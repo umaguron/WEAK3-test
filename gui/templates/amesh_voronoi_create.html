@@ -1,0 +1,155 @@
+<script>
+    function createmesh_form(speed) {
+        if ($('[name="createsMesh"]:checked').val()==0) {
+            // use existing
+            $('#create_new').hide(speed);
+            $('[name="convention"]').attr('required', false)
+            $('[name="includesAtmos"]').attr('required', false)
+            $('[name="topodata_fp"]').attr('required', false)
+            $('[name="voronoi_seeds_list_fp"]').attr('required', false)
+            $('[name="elevation_top_layer"]').attr('required', false)
+            $('[name="layer_thicknesses"]').attr('required', false)
+            $('[name="tolar"]').attr('required', false)
+            $('[name="top_layer_min_thickness"]').attr('required', false)
+        } else if ($('[name="createsMesh"]:checked').val()==1) {
+            // create new
+            $('#create_new').show(speed);
+            $('[name="convention"]').attr('required', true)
+            $('[name="includesAtmos"]').attr('required', true)
+            $('[name="topodata_fp"]').attr('required', true)
+            $('[name="voronoi_seeds_list_fp"]').attr('required', true)
+            $('[name="elevation_top_layer"]').attr('required', true)
+            $('[name="layer_thicknesses"]').attr('required', true)
+            $('[name="tolar"]').attr('required', true)
+            $('[name="top_layer_min_thickness"]').attr('required', true)
+        }
+    }
+    $(document).ready(function(){
+        createmesh_form('fast')
+    });
+    $(function () {
+        $('[name="createsMesh"]').change(function(){
+            createmesh_form('fast')
+        })
+    });
+</script>
+
+<form method="post" action="/cmesh2_check">
+    <!-- 前のパートから引き継いだ値 -->
+    <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
+    <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" />
+    <!-- 新規作成 or 既存のを利用 -->
+    <h3 class="col">
+        Create mesh
+    </h3>
+    <div class="form-check">
+        <input type="radio" value="0" class="form-check-input" name="createsMesh" id="useexisting" {% if created or not form.createsMesh or form.createsMesh == "0" %} checked {% endif %}/>
+        <label class="form-check-label" for="createsMesh">
+            Use existing mulgrid file
+        </label>
+    </div>
+    <div class="form-check">
+        <input type="radio" value="1" class="form-check-input" name="createsMesh" id="createnew"  {% if not created and form.createsMesh == "1" %} checked {% endif %} {% if created %} disabled {% endif %}/>
+        <label class="form-check-label" for="createsMesh">
+            Create new mulgrid file 
+        </label>
+    </div>
+    <br>
+    <!-- mulgridFileFp -->
+    <div class="form-group">
+        <label for="mulgridFileFp">Path of mulgrid file</label>
+        <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %}/>
+    </div>
+    <br>
+    <!-- 新規作成の場合のみ表示 -->
+    <!-- 成功時メッセージ -->
+    {% if created %}
+    <div class="row">
+        <div class="alert alert-primary col" role="alert">
+            {{ msg }}
+        </div>
+    </div>
+    {% endif %}
+    <br>
+    <div id="create_new">
+        <!-- convention -->
+        <label class="form-check-label" for="convention">
+            MULgraph geometry file Naming conventions
+        </label>
+        <div class="form-check">
+            <input type="radio" value="0" class="form-check-input" name="convention" {% if form.convention == "0" %} checked {% endif %}/>
+            <label class="form-check-label" for="convention">
+                3 characters for column followed by 2 digits for layer (default)
+            </label>
+        </div>
+        <div class="form-check">
+            <input type="radio" value="1" class="form-check-input" name="convention" {% if form.convention == "1" %} checked {% endif %}/>
+            <label class="form-check-label" for="convention">
+                3 characters for layer followed by 2 digits for column 
+            </label>
+        </div>
+        <div class="form-check">
+            <input type="radio" value="2" class="form-check-input" name="convention" {% if form.convention == "2" %} checked {% endif %}/>
+            <label class="form-check-label" for="convention">
+                2 characters for layer followed by 3 digits for column
+            </label>
+        </div>
+        <br>
+        <!-- atmosphere -->
+        <label class="form-check-label" for="includesAtmos">
+            Atmosphere type
+        </label>
+        <div class="form-check">
+            <input type="radio" value="True" class="form-check-input" name="includesAtmos" {% if form.includesAtmos == "True" %} checked {% endif %}/>
+            <label class="form-check-label" for="convention">
+                single atmosphere block
+            </label>
+        </div>
+        <div class="form-check">
+            <input type="radio" value="False" class="form-check-input" name="includesAtmos" {% if form.includesAtmos == "False" %} checked {% endif %}/>
+            <label class="form-check-label" for="convention">
+                no atmosphere block
+            </label>
+        </div>
+        <br>
+        <!-- topodata -->
+        <div class="form-group">
+            <label for="topodata_fp">topodata_fp </label>
+            <input type="text" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp"/>
+        </div>
+        <br>
+        <!-- seed list -->
+        <div class="form-group">
+            <label for="voronoi_seeds_list_fp">voronoi_seeds_list_fp </label>
+            <input type="text" value="{{ form.voronoi_seeds_list_fp }}" class="form-control" name="voronoi_seeds_list_fp"/>
+        </div>
+        <br>
+        <!-- elevation_top_layer -->
+        <div class="form-group">
+            <label for="elevation_top_layer">elevation_top_layer </label>
+            <input type="text" value="{{ form.elevation_top_layer }}" class="form-control" name="elevation_top_layer"/>
+        </div>
+        <br>
+        <!-- layer_thicknesses -->
+        <div class="form-group">
+            <label for="layer_thicknesses">layer_thicknesses </label>
+            <input type="text" value="{{ form.layer_thicknesses }}" class="form-control" name="layer_thicknesses"/>
+        </div>
+        <br>
+        <!-- tolar -->
+        <div class="form-group">
+            <label for="tolar">tolar [m]</label>
+            <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar"/>
+        </div>
+        <br>
+        <!-- top_layer_min_thickness -->
+        <div class="form-group">
+            <label for="top_layer_min_thickness">top_layer_min_thickness [m]</label>
+            <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness"/>
+        </div>
+    </div>
+    <br>
+    <div class="col">
+        <input type="submit" class="btn btn-primary" value="Create or check">
+    </div>
+</form>

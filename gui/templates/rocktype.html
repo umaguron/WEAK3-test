@@ -1,0 +1,342 @@
+<script>
+    // 次に rect regionが追加されたときにregion idとして用いられる値。
+    // regionは#0から始まるので、たとえば#0, #1の２つrect regionがあるとき、ここには2が入る
+    var rock{{ rock_id }}_region_pref = {% if form['rock' ~ rock_id ~ '_region_length'] %}{{form['rock' ~ rock_id ~ '_region_length']|int}}{% else %}0{% endif %}
+    // 
+    function regionsec{{ rock_id }}(region_id){
+        const region = '\
+        <h6 class="col">#'+ region_id +'</h6>\
+        <div class="row">\
+            <div class="col-2">\
+                <label >x min [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_xmin" value="" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+            </div>\
+            <div class="col-2">\
+                <label >x max [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_xmax" value="" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+                </div>\
+            <div class="col-2">\
+                <label >y min [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_ymin" value="" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+            </div>\
+            <div class="col-2">\
+                <label >y max [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_ymax" value="" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+            </div>\
+            <div class="col-2">\
+                <label >z min [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_zmin" value="" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+            </div>\
+            <div class="col-2">\
+                <label >z max [m]</label>\
+                <input type="text" name="rock{{ rock_id }}_reg'+ region_id +'_zmax" value="" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float_in_js']}}">\
+                <div class="invalid-msg">{{TITLE['float']}}</div>\
+            </div>\
+        </div>'
+        return region
+    };
+    $(document).ready(function(){
+        {# リクエストにrectangular regionに関する情報がない場合(初めてアクセスするとき)はjQueryでフォームを一つ追加する #}
+        {% if not form['rock' ~ rock_id ~ '_region_length'] %}
+        $('#rock{{ rock_id }}_region').append(regionsec{{ rock_id }}(rock{{ rock_id }}_region_pref));
+        rock{{ rock_id }}_region_pref++;
+        $('#rock{{ rock_id }}_region_length').val(rock{{ rock_id }}_region_pref)
+        {% endif %}
+    });
+    $(function () {
+        $('#rock{{ rock_id }}_addRegion').on('click', function(){
+            $('#rock{{ rock_id }}_region').append(regionsec{{ rock_id }}(rock{{ rock_id }}_region_pref));
+            rock{{ rock_id }}_region_pref++;
+            $('#rock{{ rock_id }}_region_length').val(rock{{ rock_id }}_region_pref)
+        });
+        $('#{{rock_id}}_useDefault_btn').on('click', function(){
+            useDefault('{{ rock_id }}');
+        });
+    });
+</script>
+<!--  -->
+<div class="row">
+    <div class="col-6">
+        <h3 class="col">Rocktype #{{ rock_id }}</h3>
+    </div>
+    <div class="col-6">
+        <button class="btn btn-outline-primary" type="button" id="{{rock_id}}_useDefault_btn">use default</button>
+    </div>
+</div>
+<br>
+<div class="row">
+    <div class="col-3">
+        <label>name</label>
+        <input type="text" name="rock{{ rock_id }}_name" value="{{form['rock' ~ rock_id ~ '_name']}}" class="form-control" pattern="{{PATTERN['blkname']}}" title="{{TITLE['blkname']}}">
+        <div class="invalid-msg">{{TITLE['blkname']}}</div>
+    </div>
+    <div class="col-3">
+        <label>density [kg/m3]</label>
+        <input type="text" name="rock{{ rock_id }}_density" value="{{form['rock' ~ rock_id ~ '_density']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>porosity</label>
+        <input type="text" name="rock{{ rock_id }}_porosity" value="{{form['rock' ~ rock_id ~ '_porosity']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>permeability_x [m2]</label>
+        <input type="text" name="rock{{ rock_id }}_permeability_x" value="{{form['rock' ~ rock_id ~ '_permeability_x']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>permeability_y [m2]</label>
+        <input type="text" name="rock{{ rock_id }}_permeability_y" value="{{form['rock' ~ rock_id ~ '_permeability_y']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>permeability_z [m2]</label>
+        <input type="text" name="rock{{ rock_id }}_permeability_z" value="{{form['rock' ~ rock_id ~ '_permeability_z']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>conductivity [W/m/K]</label>
+        <input type="text" name="rock{{ rock_id }}_conductivity" value="{{form['rock' ~ rock_id ~ '_conductivity']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+    <div class="col-3">
+        <label>specific_heat [J/kg/K]</label>
+        <input type="text" name="rock{{ rock_id }}_specific_heat" value="{{form['rock' ~ rock_id ~ '_specific_heat']}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+        <div class="invalid-msg">{{TITLE['float']}}</div>
+    </div>
+</div>
+<!--  -->
+<br>
+<div class="row">
+    <div class="col-6">
+        <h6>Relative permeability (optional)</h6>
+        <div class="input-group ">
+            <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="rock{{ rock_id }}_irp">
+                <option value="0" {% if form['rock' ~ rock_id ~ '_irp']=="0" %} selected {% endif %}>choose type (IRP)</option>
+                <option value="1" {% if form['rock' ~ rock_id ~ '_irp']=="1" %} selected {% endif %}>1: linear</option>
+                <option value="3" {% if form['rock' ~ rock_id ~ '_irp']=="3" %} selected {% endif %}>3: Corey's curves (1954)</option>
+            </select>
+            <div class="form-group">
+                <input type="text" name="rock{{ rock_id }}_rp" value="{{form['rock' ~ rock_id ~ '_rp']}}" class="form-control" placeholder="RP (in list)" pattern="{{PATTERN['numlist']}}" title="{{TITLE['numlist']}}">
+                <div class="invalid-msg">{{TITLE['numlist']}}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6">
+        <h6>Capillary pressure (optional)</h6>
+        <div class="input-group ">
+            <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="rock{{ rock_id }}_icp">
+                <option value="0" {% if form['rock' ~ rock_id ~ '_icp']=="0" %} selected {% endif %}>choose type (ICP)</option>
+                <option value="1" {% if form['rock' ~ rock_id ~ '_icp']=="1" %} selected {% endif %}>1: linear</option>
+            </select>
+            <div class="form-group">
+                <input type="text" name="rock{{ rock_id }}_cp" value="{{form['rock' ~ rock_id ~ '_cp']}}" class="form-control" placeholder="CP (in list)" pattern="{{PATTERN['numlist']}}" title="{{TITLE['numlist']}}">
+                <div class="invalid-msg">{{TITLE['numlist']}}</div>
+            </div>
+        </div>
+    </div>
+</div>
+    <br>
+
+<br>
+<br>
+<div class="row">
+    <h3 class="col-12">Conditions</h3>
+</div>
+<br>
+<!-- regionSec -->
+<div class="row">
+    <h4 class="col-6">Rectanglar region (required)</h4>
+    <button type="button" class="btn btn-outline-primary btn-small col-2" id="rock{{ rock_id }}_addRegion">add</button>
+</div> 
+<input type="hidden" value="{{form['rock' ~ rock_id ~ '_region_length']}}" class="form-control" id="rock{{ rock_id }}_region_length" name="rock{{ rock_id }}_region_length" />
+<div>
+    <!-- すでに入力済みの部分があれば復元する -->
+    {% if form['rock' ~ rock_id ~ '_region_length'] %}
+        {% for reg_id in range(form['rock' ~ rock_id ~ '_region_length']|int) %}
+            <h6 class="col">#{{reg_id}}</h6>
+            <div class="row">
+                <div class="col-2">
+                    <label >x min [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_xmin" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_xmin']}}" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                </div>
+                <div class="col-2">
+                    <label >x max [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_xmax" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_xmax']}}" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                    </div>
+                <div class="col-2">
+                    <label >y min [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_ymin" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_ymin']}}" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                </div>
+                <div class="col-2">
+                    <label >y max [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_ymax" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_ymax']}}" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                </div>
+                <div class="col-2">
+                    <label >z min [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_zmin" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_zmin']}}" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                </div>
+                <div class="col-2">
+                    <label >z max [m]</label>
+                    <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_zmax" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_zmax']}}" class="form-control form-control-sm rocktype_region_max{{rock_id}}"  pattern="{{PATTERN['float']}}">
+                    <div class="invalid-msg">{{TITLE['float']}}</div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+<div id="rock{{ rock_id }}_region">
+    <!-- その後追加する部分はjQueryで追加する -->
+</div>
+{% if rock_id==0 %}
+<!-- 説明いずれ書く -->
+<br>
+{% endif %}
+<br>
+
+<!--  -->
+<div class="row">
+    <div class="col">
+        <h4 class="col">blockList</h4>
+        {% if rock_id==0 %}
+        <div class="col-12">(description)</div>
+        {% endif %}
+        <div class="col-12">
+            <input type="text" name="rock{{ rock_id }}_blockList" value="{{form['rock' ~ rock_id ~ '_blockList']}}" class="form-control" pattern="{{PATTERN['blklist']}}" title="{{TITLE['blklist']}}">
+            <div class="invalid-msg">{{TITLE['blklist']}}</div>
+        </div>
+    </div>
+</div>
+{% if rock_id==0 %}
+<br><br>
+{% endif %}
+
+<div class="row">
+    <h4 class="col-12">formula_porosity</h4>
+    {% if rock_id==0 %}
+    <div class="col-12">Define formula of block-by-block porosity calculater</div>
+    <div class="col-12">After the evaluation, calculated porosity is substituted in variable "porosity".</div>
+    {% endif %}
+    <div class="col-12">
+        <input type="text" name="rock{{rock_id}}_formula_porosity" value="{{form['rock' ~ rock_id ~ '_formula_porosity']}}" class="form-control">
+    </div>
+</div>
+{% if rock_id==0 %}
+<h6>Available parameter & function</h6>
+<table class="table table-striped">
+    <thead>
+        <tr></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>k_x, k_y, k_z</th>
+            <td>rock permeability [m2] of this rocktype</td>
+        </tr>
+        <tr>
+            <th>rho</th>
+            <td>resistivity [ohm-m] of current block interpolated from 'resistivity_structure_fp'</td>
+        </tr>
+        <tr>
+            <th>phi</th>
+            <td>porosity of this rocktype</td>
+        </tr>
+        <tr>
+            <th>x, y, z</th>
+            <td>coordinates [m] of current block</td>
+        </tr>
+        <tr>
+            <th>surface</th>
+            <td>elevation [m] of ground surface directly above current block</td>
+        </tr>
+        <tr>
+            <th>depth</th>
+            <td>depth [m] of current block from ground surface</td>
+        </tr>
+        <tr>
+            <th>fu.HS_U_conductivity2porosity(rho, cond_matrix, cond_liq, upper, lower)</th>
+            <td>(defined in functionUtil.py) return porosity calculated using HS_U model</td>
+        </tr>
+    </tbody>
+</table>
+<br><br>
+{% endif %}
+
+<!--  -->
+<div class="row">
+    <h4 class="col-12">formula_permeability</h4>
+    {% if rock_id==0 %}
+    <div class="col-12">Define formula of block-by-block permeability calculater</div>
+    <div class="col-12">After the evaluation, calculated permeability is substituted in variable "perm".</div>
+    <div class="col-12">If [seedFlg] is True, "perm" is used to calculate block by block PMX value.</div>
+    {% endif %}
+    <div class="col-12">
+        <input type="text" name="rock{{rock_id}}_formula_permeability" value="{{form['rock' ~ rock_id ~ '_formula_permeability']}}" class="form-control">
+    </div>
+</div>
+{% if rock_id==0 %}
+<h6>Available parameter & function</h6>
+<table class="table table-striped">
+    <thead>
+        <tr></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth</th>
+            <td>(as described above)</td>
+        </tr>
+        <tr>
+            <th>porosity</th>
+            <td>block-by-block porosity defined by formula_porosity</td>
+        </tr>
+        </tbody>
+</table>
+<br><br>
+{% endif %}
+
+<!--  -->
+<div class="row">
+    <h4 class="col-12">rock_assign_condition</h4>
+    {% if rock_id==0 %}
+    <div class="col-12">Assignable ranges also can be defined here.</div>
+    <div class="col-12">This rocktype is assigned to the block for which the expression is evaluated as True by python. </div>
+    <div class="col-12">Note that this rock type can only be assigned if both 'rock_assign_condition' and 'Rectanglar region' are satisfied.</div>
+    <div class="col-12">If you do not use this condition, enter 'True'.</div>
+    {% endif %}
+    <div class="col-12">
+        <input type="text" name="rock{{rock_id}}_rock_assign_condition" value="{{form['rock' ~ rock_id ~ '_rock_assign_condition']}}" class="form-control">
+    </div>
+</div>
+{% if rock_id==0 %}
+<h6>Available parameter & function</h6>
+<table class="table table-striped">
+    <thead>
+        <tr></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth</th>
+            <td>(as described above)</td>
+        </tr>
+        <tr>
+            <th>porosity</th>
+            <td>block-by-block porosity defined by formula_porosity</td>
+        </tr>
+        <tr>
+            <th>perm</th>
+            <td>block-by-block permeability defined by formula_permeability</td>
+        </tr>
+    </tbody>
+</table>
+<br>
+{% endif %}

@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <title>cmesh5</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- jumble -->
+    <script type="text/javascript" src="/js/jquery.jrumble.1.3.min.js"></script>
+    <!-- constants -->
+    <script type="text/javascript" src="/cmesh5_defaults.js"></script>
+    <script>
+        // Initialize jRumble on Selector
+        $( function () {
+            $('#demo1').jrumble({
+                x: 10,
+                y: 10,
+                rotation: 4
+            });
+            $('#demo1').hover(function(){
+                $(this).trigger('stopRumble');
+            }, function(){
+                $(this).trigger('startRumble');
+            });
+
+        });
+        // set default values
+        function fill_by_default_values() {
+            // 値がない場合のみ入力
+            for(var key in DEFAULTS_RADIO) {
+                if ($('#cmesh5_check [name="'+key+'"]:checked').val()===undefined){
+                    $('#cmesh5_check [name="'+key+'"][value="'+DEFAULTS_RADIO[key]+'"]').prop('checked', true);
+                };
+            }
+            for(var key in DEFAULTS_TEXT) {
+                if ($('#cmesh5_check [name="'+key+'"]').val().length==0){
+                    $('#cmesh5_check [name="'+key+'"]').val(DEFAULTS_TEXT[key]);
+                };
+            }
+            // SELEC
+            if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {       
+                for(var key in DEFAULTS_TEXT_SELEC_V2) {
+                    if ($('#cmesh5_check [name="'+key+'"]').val().length==0){
+                        $('#cmesh5_check [name="'+key+'"]').val(DEFAULTS_TEXT_SELEC_V2[key]);
+                    }
+                }
+                for(var key in DEFAULTS_RADIO_SELEC_V2) {
+                    if ($('#cmesh5_check [name="'+key+'"]:checked').val()===undefined){
+                        $('#cmesh5_check [name="'+key+'"][value="'+DEFAULTS_RADIO_SELEC_V2[key]+'"]').prop('checked', true);
+                    }
+                }
+            }
+            // PRIMARY_default
+            if($('#cmesh5_check [name="PRIMARY_default"]').val().length==0){
+                fill_primary_default();
+            }
+        }
+        function overwrites_by_default_values() {
+            for(var key in DEFAULTS_RADIO) {
+                $('#cmesh5_check [name="'+key+'"][value="'+DEFAULTS_RADIO[key]+'"]').prop('checked', true);
+            }
+            for(var key in DEFAULTS_TEXT) {
+                $('#cmesh5_check [name="'+key+'"]').val(DEFAULTS_TEXT[key]);
+            }
+            // SELEC
+            if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {       
+                for(var key in DEFAULTS_TEXT_SELEC_V2) {
+                    $('#cmesh5_check [name="'+key+'"]').val(DEFAULTS_TEXT_SELEC_V2[key]);
+                }
+                for(var key in DEFAULTS_RADIO_SELEC_V2) {
+                    $('#cmesh5_check [name="'+key+'"][value="'+DEFAULTS_RADIO_SELEC_V2[key]+'"]').prop('checked', true);
+                }
+            }
+            // PRIMARY_default
+            fill_primary_default();
+        }
+        function fill_primary_default() {
+            for(var key in DEFAULTS_PRIMARY_default) {
+                if ($('#cmesh5_check #module').val()=='{{DEFINE.EOS2}}') {
+                    $('#cmesh5_check [name="PRIMARY_default"]').val(DEFAULTS_PRIMARY_default['eos2']);
+                } else if ($('#cmesh5_check #module').val()=='{{DEFINE.ECO2N_V2}}') {
+                    $('#cmesh5_check [name="PRIMARY_default"]').val(DEFAULTS_PRIMARY_default['eco2n']);
+                }
+            }
+        }
+        // multi
+        function autofill_module_dependent() {
+            if ($('#module').val()=='{{DEFINE.EOS2}}') {
+                $('#cmesh5_check [name="num_components"]').val(2);
+                $('#cmesh5_check [name="num_equations"]').val(3);
+                $('#cmesh5_check [name="num_phases"]').val(2);
+                $('#cmesh5_check [name="num_secondary_parameters"]').val(6);
+                $('.injTypeEco2N').hide('fast');
+                $('.injTypeEos2').show('fast');
+                $('#eco2n_selecline').hide('fast');
+            } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {
+                $('#cmesh5_check [name="num_components"]').val(3);
+                $('#cmesh5_check [name="num_equations"]').val(4);
+                $('#cmesh5_check [name="num_phases"]').val(3);
+                $('#cmesh5_check [name="num_secondary_parameters"]').val(6);
+                $('.injTypeEco2N').show('fast');
+                $('.injTypeEos2').hide('fast');
+                $('#eco2n_selecline').show('fast');
+            }
+        };
+        function incon_switch(speed) {
+            if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==0) {
+               $('#incon0').show(speed);
+               $('#incon1').hide(speed);
+               $('#incon2').hide(speed);
+               $('#incon_wt').hide(speed);
+            } else if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==1) {
+                $('#incon0').hide(speed);
+                $('#incon1').show(speed);
+                $('#incon2').hide(speed);
+                $('#incon_wt').show(speed);
+            } else if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==2) {
+                $('#incon0').hide(speed);
+                $('#incon1').hide(speed);
+                $('#incon2').show(speed);
+                $('#incon_wt').show(speed);
+            }  
+        }
+        function calc_t_cond(){
+            $('#cmesh5_check [name="initial_t_grad"]').val($('#cmesh5_check [name="cfr"]').val()/$('#cmesh5_check [name="thermal_cond"]').val()*1000)
+        }
+
+        // standby
+        $(function () {
+            // set default values
+            $('#fillByDefaults').on('click', function(){
+                fill_by_default_values();
+            });
+            $('#overwritesByDefaults').on('click', function(){
+                overwrites_by_default_values();
+            });
+            // detect module
+            $('#module').change(function(){autofill_module_dependent()});
+
+            $('#cmesh5_check [name="usesAnotherResAsINCON"]').change(function(){incon_switch('fast')});
+            $('#cmesh5_check [name="thermal_cond"]').on("keyup change", function(){calc_t_cond()});
+            $('#cmesh5_check [name="cfr"]').on("keyup change", function(){calc_t_cond()});
+        });
+        
+        // <!-- for adding GENER section  -->
+        // 次に rect regionが追加されたときにregion idとして用いられる値。
+        // regionは#0から始まるので、たとえば#0, #1の２つrect regionがあるとき、ここには2が入る
+        var gener_pref = {% if form['gener_length'] %}{{form['gener_length']|int}}{% else %}0{% endif %};
+        function genersec(gener_id){
+            const region = '<br>\
+                <div class="row">\
+                    <div class="col">\
+                        <h3>#' + gener_id + '</h3>\
+                    </div>\
+                    <div class="col">\
+                        <input type="checkbox" class="form-check-input" name="gener_' + gener_id + '_isDisable" value="uses" >\
+                        <label >Disable</label>\
+                    </div>\
+                </div>\
+                <div class="row">\
+                    <div class="col-6">\
+                        <label >Type</label>\
+                        <select class="form-select btn btn-outline-primary dropdown-toggle injTypeEos2" aria-label="Default select example" name="gener_'+ gener_id + '_type_eos2">\
+                            <option value="WATE">WATE: H2O</option>\
+                            <option value="COM2">COM2: CO2</option>\
+                        </select>\
+                        <select class="form-select btn btn-outline-success dropdown-toggle injTypeEco2N" aria-label="Default select example" name="gener_'+ gener_id + '_type_eco2n">\
+                            <option value="WATE">WATE: H2O</option>\
+                            <option value="COM2">COM2: NaCl</option>\
+                            <option value="COM3">COM3: CO2</option>\
+                        </select>\
+                    </div>\
+                </div>\
+                <div class="row">\
+                    <div class="col">\
+                        <label >Injection blocks</label>\
+                        <input type="text" name="gener_'+gener_id+ '_injblock" value="" class="form-control form-control-sm"  pattern="{{PATTERN.blklist_in_js}}">\
+                        <div class="invalid-msg">{{TITLE.blklist}}</div>\
+                    </div>\
+                </div>\
+                <div class="row">\
+                    <div class="col-6">\
+                        <label >Flux</label>\
+                        <input type="text" name="gener_'+gener_id+ '_flux" value="" class="form-control form-control-sm"  pattern="{{PATTERN.numlist_in_js}}">\
+                        <div class="invalid-msg">{{TITLE.numlist}}</div>\
+                    </div>\
+                    <div class="col-6">\
+                        <h6>Temperature/Enthalpy</h6>\
+                        <div class="input-group ">\
+                            <div class="form-group">\
+                                <input type="text" name="gener_'+gener_id+ '_heat" value="" class="form-control" pattern="{{PATTERN.float_in_js}}" >\
+                                <div class="invalid-msg">{{TITLE.float}}</div>\
+                            </div>\
+                            <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_'+ gener_id + '_heatUnit">\
+                                <option value="tempc">(°C)</option>\
+                            </select>\
+                        </div>\
+                    </div>\
+                </div>'
+            return region
+        };
+        $(document).ready(function(){
+
+            {# リクエストにgener secに関する情報がない場合(初めてアクセスするとき)はjQueryでフォームを一つ追加する #}
+            {% if not form['gener_length'] %}
+            // $('#gener_area').append(genersec(gener_pref));
+            // gener_pref++;
+            $('#gener_length').val(gener_pref);
+            {% endif %}
+            
+            // module
+            autofill_module_dependent();
+            // INCON
+            $('#incon0').hide();
+            $('#incon1').hide();
+            $('#incon2').hide();
+            $('#incon_wt').hide();
+            incon_switch('fast');
+        });
+        $(function () {
+            $('#addGener').click(function(){
+                $('#gener_area').append(genersec(gener_pref));
+                gener_pref++;
+                $('#gener_length').val(gener_pref);
+                // module維持損項目の表示調整のため
+                autofill_module_dependent();
+            });
+        });
+    </script>
+
+    <style>
+        /* inputのすぐ隣に配置するメッセージ要素 */
+        .invalid-msg {
+            font-size: 12px;
+            color: #ff7676;
+            display: none; /* 非表示に */
+        }
+        /* :invalid時だけ隣の要素を表示 */
+        input:invalid + .invalid-msg  {
+            display: block;
+        }
+        /* 位置固定ボタン */
+        .sticky {
+            postion: -webkit-sticky;
+            position: sticky;
+            padding: 20px 40px;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if error_msg %}
+            {% for key, err in error_msg.items() -%}
+                <div class="row">
+                    <div class="alert alert-warning col" role="alert">
+                        {{ err }}
+                    </div>
+                </div>
+            {%- endfor %}
+        {% endif %}
+        {% if downloadlink %}
+            <hr style="padding: 0px 20px;">
+            <div class="row align-items-center" >
+                <div class="col-6">
+                    <p class="display-6" style="color:#198754 ;">
+                        {{form.problemName}}.ini successfully created !
+                    </p>
+                </div>
+                <div class="col-3">
+                    <a href="{{ downloadlink }}" download>
+                        <button type="button" class="btn btn-success col-12">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                            Download
+                        </button>
+                    </a>
+                </div>
+                <div class="col-3 ">
+                    <form method="post" action="test_create" id="test_create">
+                        <input type="hidden" name="createdIniFp" value="{{downloadlink}}">
+                        {% for key, elem in form.items() -%}
+                        <input type="hidden" name="{{key}}" value="{{elem}}">
+                        {%- endfor %}
+                        <button class="btn btn-success col-12">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-forward" viewBox="0 0 16 16">
+                            <path d="M9.502 5.513a.144.144 0 0 0-.202.134V6.65a.5.5 0 0 1-.5.5H2.5v2.9h6.3a.5.5 0 0 1 .5.5v1.003c0 .108.11.176.202.134l3.984-2.933a.51.51 0 0 1 .042-.028.147.147 0 0 0 0-.252.51.51 0 0 1-.042-.028L9.502 5.513zM8.3 5.647a1.144 1.144 0 0 1 1.767-.96l3.994 2.94a1.147 1.147 0 0 1 0 1.946l-3.994 2.94a1.144 1.144 0 0 1-1.767-.96v-.503H2a.5.5 0 0 1-.5-.5v-3.9a.5.5 0 0 1 .5-.5h6.3v-.503z"/>
+                            </svg>
+                            Create inputs
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% if short_msg %}
+                <div class="row">
+                    <p style="color:#198754 ;">{{ short_msg }}</p>
+                </div>
+            {% endif %}
+            <hr style="padding: 0px 20px;">
+        {% endif %}
+        <div class="row">
+            <div class="form-group">
+                <label for="configIniFp">Setting config file</label>
+                <input type="text" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" disabled/>
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="TOUGH_INPUT_DIR">Full directory path where new problem is to be created </label>
+                <input type="text" value="{{ form.saveDir }}" class="form-control" name="saveDir" disabled/>
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="mulgridFileFp">Mesh file </label>
+                <input type="text" value="{{ form.mulgridFileFp }}" class="form-control" name="mulgridFileFp" disabled/>
+            </div>
+            <div class="form-group">
+                <label for="inputIniFp">Input file </label>
+                <input type="text" value="{{ form.inputIniFp }}" class="form-control" name="inputIniFp" disabled/>
+            </div>
+        </div>
+        <br>
+        
+        <form method="post" action="cmesh5_check"  id="cmesh5_check">
+            <input type="hidden" value="{{ form.configIniFp }}" name="configIniFp">
+            <input type="hidden" value="{{ form.saveDir }}" name="saveDir">
+            <input type="hidden" value="{{ form.mulgridFileFp }}" name="mulgridFileFp">
+            <input type="hidden" value="{{ form.inputIniFp }}" name="inputIniFp">
+            <!-- use default button -->
+            <div class="sticky">
+                <div class="row">
+                    <div class="col">
+                        <button type="button" class="btn btn-primary btn-small col-12" id="fillByDefaults">
+                            <h5>Fill by defaults</h5>
+                        </button>
+                    </div>
+                    <div class="col">
+                        <button type="button" class="btn btn-primary btn-small col-12" id="overwritesByDefaults">
+                            <h5>Use defaults</h5>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <!-- General -->
+            <div class="row">
+                <div class="col-12">
+                    <h3>General </h3>
+                </div>
+                <div class="col-6 form">
+                    <label>Problem name </label>
+                    <input type="text" name="problemName" value="{{form.problemName}}" class="form-control" required>
+                    <div class="invalid-msg">required</div>
+                </div>
+                <div class="col-6 form">
+                    <label>Default of primary valiables</label>
+                    <input type="text" name="PRIMARY_default" value="{{form.PRIMARY_default}}" class="form-control" pattern="{{PATTERN.numlist}}" title="{{TITLE.numlist}}" required>
+                    <div class="invalid-msg">{{TITLE.numlist}}</div>
+                    <!--default primary values used for creating initial condition-->
+                </div>
+            </div>
+            <br><br>
+            <!-- Simulator -->
+            <h3>Simulator</h3>
+            <div class="row">
+                <div class="col">
+                    <div class="input-group ">
+                        <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="simulator">
+                            {% for key, path in form['simulators'].items() %}
+                            <option value="{{key}}" {% if form.simulator == key %} {{'selected'}} {% endif %}> {{ key ~ ": " ~ path }} </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <!-- MULTI -->
+            <h3>MULTI</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td></td>
+                            <td>description in TOUGH3 User's Guide</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>EOS module</th>
+                            <td>
+                                <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="module" id="module" required>
+                                    <option value="{{DEFINE.EOS2}}" {% if form.module == DEFINE.EOS2 %} selected {% endif %}>EOS2</option>
+                                    <option value="{{DEFINE.ECO2N_V2}}" {% if form.module == DEFINE.ECO2N_V2 %} selected {% endif %}>ECO2N_V2</option>
+                                </select>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <th>NK</th>
+                            <td>
+                                <input type="text" name="num_components" value="{{form.num_components}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>number of mass components</td>
+                        </tr>
+                        <tr>
+                            <th>NEQ</th>
+                            <td>
+                                <input type="text" name="num_equations" value="{{form.num_equations}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>number of balance equations per grid block. Usually we have NEQ = NK + 1, for solving NK mass and one energy balance equation. Some EOS modules allow the option NEQ = NK, in which case only NK mass balances and no energy equation will be solved.</td>
+                        </tr>
+                        <tr>
+                            <th>NPH</th>
+                            <td>
+                                <input type="text" name="num_phases" value="{{form.num_phases}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>number of phases that can be present (2 for most EOS modules).</td>
+                        </tr>
+                        <tr>
+                            <th>NB</th>
+                            <td>
+                                <input type="text" name="num_secondary_parameters" value="{{form.num_secondary_parameters}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>number of secondary parameters in the PAR-array (see Figure 6) other than component mass fractions. Available options include NB = 6 (no diffusion) and NB = 8 (include diffusion).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <div id="eco2n_selecline">
+            {% include 'eco2n_selecline.html'%}
+            </div>
+            <hr>
+            <br>
+            <!-- PARAM. 1 -->
+            <h3>PARAM. 1</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td>default</td>
+                            <td></td>
+                            <td>description in TOUGH3 User's Guide</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- NOITE -->
+                        <tr>
+                            <th>NOITE</th>
+                            <td>8</td>
+                            <td>
+                                <input type="text" name="max_iterations" value="{{form.max_iterations}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}">
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>specifies the maximum number of Newtonian iterations per time step (default is 8)</td>
+                        </tr>
+                        <!-- KDATA -->
+                        <tr>
+                            <th rowspan="4">KDATA</th>
+                            <td rowspan="4">1</td>
+                            <td colspan="2">specifies amount of printout (default is 1).</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="print_level" value="0" {% if not form.print_level or form.print_level == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0 or 1
+                                </label>
+                            </td>
+                            <td>print a selection of element variables.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="print_level" value="2" {% if form.print_level == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>in addition, print a selection of connection variables.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="print_level" value="3" {% if form.print_level == "3" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    3
+                                </label>
+                            </td>
+                            <td>in addition, print a selection of generation variables.</td>
+                        </tr>
+                        <!-- MCYC -->
+                        <tr class="table-primary">
+                            <th>MCYC</th>
+                            <td>(required)</td>
+                            <td>
+                                <input type="text" name="max_timesteps" value="{{form.max_timesteps}}" class="form-control" pattern="-?\d+" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>maximum number of time steps to be calculated. If a negative value is used, MCYC=2^(-MCYC).</td>
+                        </tr>
+                        <!-- MSEC -->
+                        <tr>
+                            <th>MSEC</th>
+                            <td>infinite</td>
+                            <td>
+                                <input type="text" name="max_duration" value="{{form.max_duration}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}">
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>maximum simulation duration (machine seconds)</td>
+                        </tr>
+                        <!-- MCYPR -->
+                        <tr>
+                            <th>MCYPR</th>
+                            <td>1</td>
+                            <td>
+                                <input type="text" name="print_interval" value="{{form.print_interval}}" class="form-control" pattern="-?\d*" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>printout will occur for every multiple of <strong>MCYPR</strong> steps (default is 1). If a negative value is used, MCYPR=2^(-MCYPR).</td>
+                        </tr>
+                        <!-- MOP(1) -->
+                        <tr>
+                            <th>MOP(1)</th>
+                            <td></td>
+                            <td>
+                                <input type="text" name="mops01" value="{{form.mops01}}" class="form-control" pattern="\d" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>if unequal 0, a short printout for non-convergent iterations will be generated.</td>
+                        </tr>
+                        <!-- MOP(2-6) -->
+                        <tr>
+                            <th rowspan="6">MOP(2)-MOP(6)</th>
+                            <td rowspan="6"></td>
+                            <td colspan="4"> generate additional printout in various sub-routines, if set unequal 0. This feature should not be needed in normal applications, but it will be convenient when a user suspects a bug and wishes to examine the inner workings of the code. The amount of printout increases with <strong>MOP(I)</strong> (consult source code listings for details).</td>
+
+                        </tr>
+                        <!-- MOP(2) -->
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="mops02" value="uses" id="mops02" {% if form.mops02 == "uses" %} checked {% endif %}>
+                            </td>
+                            <td>CYCIT (main subroutine)</td>
+                        </tr>
+                        <!-- MOP(3) -->
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="mops03" value="uses" id="mops03" {% if form.mops03 == "uses" %} checked {% endif %}>
+                            </td>
+                            <td>MULTI (flow- and accumulation-terms).</td>
+                        </tr>
+                        <!-- MOP(4) -->
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="mops04" value="uses" id="mops04" {% if form.mops04 == "uses" %} checked {% endif %}>
+                            </td>
+                            <td>QU (sinks/sources). No longer supported in TOUGH3.</td>
+                        </tr>
+                        <!-- MOP(5) -->
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="mops05" value="uses" id="mops05" {% if form.mops05 == "uses" %} checked {% endif %}>
+                            </td>
+                            <td>EOS (equation of state).</td>
+                        </tr>
+                        <!-- MOP(6) -->
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="mops06" value="uses" id="mops06" {% if form.mops06 == "uses" %} checked {% endif %}>
+                            </td>
+                            <td>LINEQ (linear equations). No longer supported in TOUGH3.</td>
+                        </tr>
+                        <!-- MOP(7) -->
+                        <tr>
+                            <th>MOP(7)</th>
+                            <td></td>
+                            <td>
+                                <input type="text" name="mops07" value="{{form.mops07}}" class="form-control" pattern="\d" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>if unequal 0, a printout of input data will be provided.</td>
+                        </tr>
+                        <!-- MOP(8) -->
+                        <tr>
+                            <th>MOP(8)</th>
+                            <td></td>
+                            <td>
+                                <input type="text" name="mops08" value="{{form.mops08}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" required>
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>if <strong>ISOT</strong> < 0, chooses the option for reducing fracture-matrix interface area (See Appendix C2 in TOUGH3 Users Guide).</td>
+                        </tr>
+                        <!-- MOP(9) -->
+                        <tr>
+                            <th rowspan="3">MOP(9)</th>
+                            <td rowspan="3"></td>
+                            <td colspan="2">determines the composition of produced fluid with the MASS option (see <strong>GENER</strong>). The relative amounts of phases are determined as follows:</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops09" value="0" {% if form.mops09 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>according to relative mobilities in the source element.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops09" value="1" {% if form.mops09 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>produced source fluid has the same phase composition as the producing element.</td>
+                        </tr>
+                        <!-- MOP(10) -->
+                        <tr>
+                            <th rowspan="3">MOP(10)</th>
+                            <td rowspan="3"></td>
+                            <td colspan="2">chooses the interpolation formula for heat conductivity as a function of liquid saturation (S_l)</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops10" value="0" {% if form.mops10 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>C(S_l) = CDRY + SQRT(S_l) * [CWET - CDRY]</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops10" value="1" {% if form.mops10 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>C(S_l) = CDRY + S_l * (CWET - CDRY)</td>
+                        </tr>
+                        <!-- MOP(11) -->
+                        <tr>
+                            <th rowspan="6">MOP(11)</th>
+                            <td rowspan="6"></td>
+                            <td colspan="2">determines evaluation of mobility and permeability at interfaces.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops11" value="0" {% if form.mops11 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>mobilities are upstream weighted with <strong>WUP</strong> (see PARAM.3), permeability is upstream weighted.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops11" value="1" {% if form.mops11 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>mobilities are averaged between adjacent elements, permeability is upstream weighted.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops11" value="2" {% if form.mops11 == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>mobilities are upstream weighted, permeability is harmonic weighted.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops11" value="3" {% if form.mops11 == "3" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    3
+                                </label>
+                            </td>
+                            <td>mobilities are averaged between adjacent elements, permeability is harmonic weighted.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops11" value="4" {% if form.mops11 == "4" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    4
+                                </label>
+                            </td>
+                            <td>mobility and permeability are both harmonic weighted.</td>
+                        </tr>
+                        <!-- MOP(12) -->
+                        <tr>
+                            <th rowspan="4">MOP(12)</th>
+                            <td rowspan="4"></td>
+                            <td colspan="2">determines interpolation procedure for time dependent sink/source data (flow rates and enthalpies).</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops12" value="0" {% if form.mops12 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>triple linear interpolation; tabular data are used to obtain interpolated rates and enthalpies for the beginning and end of the time step; the average of these values is then used.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops12" value="1" {% if form.mops12 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>step function option; rates and enthalpies are taken as averages of the table values corresponding to the beginning and end of the time step.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops12" value="2" {% if form.mops12 == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>rigorous step rate capability for time dependent generation data. (see the manual for details)</td>
+                        </tr>
+                        <!-- MOP(13) -->
+                        <tr>
+                            <th rowspan="4">MOP(13)</th>
+                            <td rowspan="4"></td>
+                            <td colspan="2">determines content of <strong>INCON</strong> and <strong>SAVE</strong> files.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops13" value="0" {% if form.mops13 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>standard content.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops13" value="1" {% if form.mops13 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>writes user-specified initial conditions to file <strong>SAVE</strong>.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops13" value="2" {% if form.mops13 == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>reads parameters of hysteresis model from file <strong>INCON</strong>.</td>
+                        </tr>
+                        <!-- MOP(14) -->
+                        <tr>
+                            <th>MOP(14)</th>
+                            <td></td>
+                            <td></td>
+                            <td>(void)</td>
+                        </tr>
+                        <!-- MOP(15) -->
+                        <tr>
+                            <th rowspan="6">MOP(15)</th>
+                            <td rowspan="6"></td>
+                            <td colspan="2">determines conductive heat exchange with impermeable geologic
+                                formations using semi-analytical methods (see Section 4.5 in the manual).</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops15" value="0" {% if form.mops15 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>heat exchange is off.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops15" value="1" {% if form.mops15 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>linear heat exchange between a reservoir and confining beds is on (for grid blocks that have a non-zero heat transfer area; see data block <strong>ELEME</strong>). Initial temperature in cap- or base-rock is assumed uniform and taken as the temperature with which the last element in data block <strong>ELEME</strong> is initialized.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops15" value="2" {% if form.mops15 == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>linear heat exchange between a reservoir and confining beds is on. Initial temperature for the confining bed adjacent to an element that has a non-zero heat transfer area is taken as the temperature of that element in data block <strong>INCON</strong>.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops15" value="5" {% if form.mops15 == "5" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    5
+                                </label>
+                            </td>
+                            <td>(see the manual for details.)</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops15" value="6" {% if form.mops15 == "6" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    6
+                                </label>
+                            </td>
+                            <td>(see the manual for details.)</td>
+                        </tr>
+                        <!-- MOP(16) -->
+                        <tr>
+                            <th rowspan="4">MOP(16)</th>
+                            <td rowspan="4"></td>
+                            <td colspan="2">provides automatic time step control.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops16" value="0" {% if form.mops16 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>automatic time stepping based on maximum change in saturation.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops16" value="1" {% if form.mops16 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>automatic time stepping based on number of iterations needed for
+                                convergence.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops16" value="2" {% if form.mops16 == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label>>1</label>
+                                <input type="text" name="mops16_1" value="{{form.mops16_1}}" class="form-control" pattern="\d" title="{{TITLE.int}}" >
+                                <div class="invalid-msg">{{TITLE.int}}</div>
+                            </td>
+                            <td>time step size will be doubled if convergence occurs within <strong>ITER</strong> ≤ <strong>MOP(16)</strong> Newton-Raphson iterations. It is recommended to set <strong>MOP(16)</strong> in the range of 2 - 4.</td>
+                        </tr>
+                        <!-- MOP(17) -->
+                        <tr>
+                            <th rowspan="3">MOP(17)</th>
+                            <td rowspan="3"></td>
+                            <td colspan="2">handles time stepping after linear equation solver failure.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops17" value="0" {% if form.mops17 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>no time step reduction despite linear equation solver failure.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops17" value="9" {% if form.mops17 == "9" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    9
+                                </label>
+                            </td>
+                            <td>reduce time step after linear equation solver failure.</td>
+                        </tr>
+                        <!-- MOP(18) -->
+                        <tr>
+                            <th rowspan="3">MOP(18)</th>
+                            <td rowspan="3"></td>
+                            <td colspan="2">selects handling of interface density.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops18" value="0" {% if form.mops18 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>perform upstream weighting for interface density.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops18" value="9" {% if form.mops18 == "9" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    >0
+                                </label>
+                            </td>
+                            <td>average interface density between the two grid blocks. However, when one of the two phase saturations is zero, upstream weighting will be performed.</td>
+                        </tr>
+                        <!-- MOP() -->
+                        <tr>
+                            <th>MOP(19)</th>
+                            <td></td>
+                            <td></td>
+                            <td>switch used by different EOS modules for conversion of primary variables.</td>
+                        </tr>
+                        <tr>
+                            <th>MOP(20)</th>
+                            <td></td>
+                            <td></td>
+                            <td>switch for vapor pressure lowering in EOS4; MOP(20)=1 optionally
+                                suppresses vapor pressure lowering effects.</td>
+                        </tr>
+                        <tr>
+                            <th>MOP(21)</th>
+                            <td></td>
+                            <td></td>
+                            <td>selection of linear equation solver. (!! This setting is made in SOLVR section)</td>
+                        </tr>
+                        <tr>
+                            <th>MOP(22)</th>
+                            <td></td>
+                            <td></td>
+                            <td>(void)</td>
+                        </tr>
+                        <tr>
+                            <th>MOP(23)</th>
+                            <td></td>
+                            <td></td>
+                            <td>(void)</td>
+                        </tr>
+                        <!-- MOP(24) -->
+                        <tr>
+                            <th rowspan="3">MOP(24)</th>
+                            <td rowspan="3"></td>
+                            <td colspan="2">determines handling of multiphase diffusive fluxes at interfaces.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops24" value="0" {% if form.mops24 == "0" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    0
+                                </label>
+                            </td>
+                            <td>harmonic weighting of fully coupled effective multiphase diffusivity.</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="mops24" value="1" {% if form.mops24 == "1" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    1
+                                </label>
+                            </td>
+                            <td>separate harmonic weighting of gas and liquid phase diffusivities.</td>
+                        </tr>
+
+                        <!-- TEXP -->
+                        <tr>
+                            <th>TEXP</th>
+                            <td>(optional)</td>
+                            <td>
+                                <input type="text" name="texp" value="{{form.texp}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>binary diffusion temperature parameter</td>
+                        </tr>
+                        <!-- BE -->
+                        <tr>
+                            <th>BE</th>
+                            <td>(optional)</td>
+                            <td>
+                                <input type="text" name="be" value="{{form.be}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>enhanced vapour diffusion</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- PARAM. 2 -->
+            <h3>PARAM. 2</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td>default</td>
+                            <td></td>
+                            <td>description in TOUGH3 User's Guide</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>TSTART</th>
+                            <td>0</td>
+                            <td>
+                                <input type="text" name="tstart" value="{{form.tstart}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>starting time of simulation in seconds (default is 0).</td>
+                        </tr>
+                        <tr>
+                            <th>TIMAX</th>
+                            <td>infinite</td>
+                            <td>
+                                <input type="text" name="tstop" value="{{form.tstop}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>time in seconds at which simulation should stop (default is infinite).</td>
+                        </tr>
+                        <tr>
+                            <th>DELTEN</th>
+                            <td>(required)</td>
+                            <td>
+                                <input type="text" name="const_timestep" value="{{form.const_timestep}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>length of time steps in seconds. If DELTEN is a negative integer, DELTEN = -NDLT, the program will proceed to read NDLT records with time step information. Note that - NDLT must be provided as a floating point number, with decimal point.</td>
+                        </tr>
+                        <tr>
+                            <th>DELTMX</th>
+                            <td>infinite</td>
+                            <td>
+                                <input type="text" name="max_timestep" value="{{form.max_timestep}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>upper limit for time step size in seconds (default is infinite)</td>
+                        </tr>
+                        <tr>
+                            <th>GF</th>
+                            <td></td>
+                            <td>
+                                <input type="text" name="gravity" value="{{form.gravity}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>magnitude (m/sec2) of the gravitational acceleration vector. Blank or zero gives "no gravity" calculation.</td>
+                        </tr>
+                        <tr>
+                            <th>REDLT</th>
+                            <td>4</td>
+                            <td>
+                                <input type="text" name="timestep_reduction" value="{{form.timestep_reduction}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>factor by which time step is reduced in case of convergence failure or other problems (default is 4).</td>
+                        </tr>
+                        <tr>
+                            <th>SCALE</th>
+                            <td>1.0</td>
+                            <td>
+                                <input type="text" name="scale" value="{{form.scale}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>scale factor to change the size of the mesh (default = 1.0).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <!-- PARAM. 3 -->
+            <h3>PARAM. 3</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td>default</td>
+                            <td></td>
+                            <td>description in TOUGH3 User's Guide</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>RE1</th>
+                            <td>1e-5</td>
+                            <td>
+                                <input type="text" name="relative_error" value="{{form.relative_error}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>convergence criterion for relative error, see Appendix B (default= 10^-5). </td>
+                        </tr>
+                        <tr>
+                            <th>RE2</th>
+                            <td>1</td>
+                            <td>
+                                <input type="text" name="absolute_error" value="{{form.absolute_error}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>convergence criterion for absolute error, see Appendix B (default= 1). </td>
+                        </tr>
+                        <tr>
+                            <th>WUP</th>
+                            <td>1.0</td>
+                            <td>
+                                <input type="text" name="upstream_weight" value="{{form.upstream_weight}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>upstream weighting factor for mobilities and enthalpies at interfaces (default = 1.0 is recommended). 0 ≤ WUP ≤ 1.</td>
+                        </tr>
+                        <tr>
+                            <th>WNR</th>
+                            <td>1.0</td>
+                            <td>
+                                <input type="text" name="newton_weight" value="{{form.newton_weight}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>weighting factor for increments in Newton/Raphson - iteration (default = 1.0 is recommended). 0 < WNR ≤ 1.</td>
+                        </tr>
+                        <tr>
+                            <th>DFAC</th>
+                            <td>10^(-k/2)</td>
+                            <td>
+                                <input type="text" name="derivative_increment" value="{{form.derivative_increment}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>increment factor for numerically computing derivatives (default value is DFAC=10^(-k/2), where k, evaluated internally, is the number of significant digits of the floating point processor used; for 64-bit arithmetic, DFAC ≈ 10^-8)</td>
+                        </tr>
+                        <tr>
+                            <th>FOR</th>
+                            <td>1.0</td>
+                            <td>
+                                <input type="text" name="for" value="{{form.for}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>factor to change the size of the time step during the Newtonian iteration(default =1.0).</td>
+                        </tr>
+                        <tr>
+                            <th>AMRES</th>
+                            <td>1e+5</td>
+                            <td>
+                                <input type="text" name="amres" value="{{form.amres}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>maximum permissible residual during the Newtonian iteration. If a residual larger than AMRES is encountered, time step will automatically be reduced (default= 10^5).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <!-- FOFT/COFT -->
+            <h3>FOFT/COFT</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th rowspan="2">History blocks</th>
+                            <td>
+                            List of element names whose status you want to monitor throughout all time steps. 
+                            TOUGH3 will create <b>FOFT_(element_name).csv</b> for each element.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="text" name="history_block" value="{{form.history_block}}" class="form-control" pattern="{{PATTERN.blklist_len0_ok}}" title="{{TITLE.blklist_len0_ok}}" required>
+                                <div class="invalid-msg">{{TITLE.blklist_len0_ok}}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th rowspan="2">History connections</th>
+                            <td>
+                            List of connection tuples (like (' ab10', ' ab11') ) whose flowing status you want to monitor throughout all time steps. 
+                            TOUGH3 will create <b>COFT_(connection).csv</b> for each element.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="text" name="history_connection" value="{{form.history_connection}}" class="form-control" pattern="{{PATTERN.tuplelist}}" title="{{TITLE.tuplelist}}" required>
+                                <div class="invalid-msg">{{TITLE.tuplelist}}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th rowspan="2">Output surface connections</th>
+                            <td>
+                            If checked, COFT_(connection).csv will be created for all connections between the atmosphere block and every surface block.
+                            To visualize surface heat map, enable this option.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" name="prints_hc_surface" value="uses" {% if form.prints_hc_surface == "uses" %} checked {% endif %}>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <!-- INCON -->
+            <h3>INCON</h3>
+            {% if error_msg_incon %}
+            {% for key, err in error_msg_incon.items() -%}
+            <div class="row">
+                <div class="alert alert-warning col" role="alert">
+                    {{ err }}
+                </div>
+            </div>
+            {%- endfor %}
+            {% endif %}
+            <div class="row">
+                <div class="col">
+                    <div class="form-check">
+                        <input type="radio" name="usesAnotherResAsINCON" value="0" {% if form.usesAnotherResAsINCON == "0" %} checked {% endif %} class="form-check-input" required>
+                        <label class="form-check-label">use another simulation result as initial condition</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="form-check">
+                        <input type="radio" name="usesAnotherResAsINCON" value="1" {% if form.usesAnotherResAsINCON == "1" %} checked {% endif %} class="form-check-input" required>
+                        <label class="form-check-label">create initial condition by assigning another 1D vertical simulation result</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <div class="form-check">
+                        <input type="radio" name="usesAnotherResAsINCON" value="2" {% if form.usesAnotherResAsINCON == "2" %} checked {% endif %} class="form-check-input" required>
+                        <label class="form-check-label">create new initial condition (hydrostatic pressure & no advection)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row" id="incon0">        
+                <div class="col">
+                    <label class="form-check-label">Path of "SAVE" file of the previous simulation </label>
+                    <input type="text" name="problemNamePreviousRun" value="{{form.problemNamePreviousRun}}" class="form-control">
+                </div>
+            </div>
+            <div class="row" id="incon1">        
+                <div class="col">
+                    <label class="form-check-label">Path of input INI file of the 1D vertical simulation</label>
+                    <input type="text" name="1d_hydrostatic_sim_result_ini" value="{{form['1d_hydrostatic_sim_result_ini']}}"  class="form-control">
+                </div>
+            </div>
+            <div class="row" id="incon2">        
+                <div class="col">
+                    <label class="form-check-label">basal heat flow rate (W/m^2)</label>
+                    <input type="text" name="cfr" value="{{form['cfr']}}"  class="form-control">
+                </div>
+                /
+                <div class="col">
+                    <label class="form-check-label">thermal conductivity (W/m/K)</label>
+                    <input type="text" name="thermal_cond" value="{{form['thermal_cond']}}"  class="form-control">
+                </div>
+                =
+                <div class="col">
+                    <label class="form-check-label">conductive temperature gradient (K/km)</label>
+                    <input type="text" name="initial_t_grad" value="{{form['initial_t_grad']}}"  class="form-control" readonly>
+                </div>
+            </div>
+            <!-- <div class="row" id="incon_wt">        
+                <div class="col">
+                    <label class="form-check-label">water table elevation (m)</label>
+                    <input type="text" name="water_table_elevation" value="{{form['water_table_elevation']}}"  class="form-control">
+                </div>
+            </div> -->
+            <br>
+            <!-- Boundary -->
+            <h3>Boundary</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td>default</td>
+                            <td></td>
+                            <td>description</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>basal heat</th>
+                            <td>0</td>
+                            <td>
+                                <input type="text" name="crustalHeatFlowRate" value="{{form.crustalHeatFlowRate}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>basal heat flow (W/m^2)</td>
+                        </tr>
+                        <tr>
+                            <th>rain fall</th>
+                            <td>0</td>
+                            <td>
+                                <input type="text" name="rainfallAnnual_mm" value="{{form.rainfallAnnual_mm}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>annual rain fall (mm)</td>
+                        </tr>
+                        <tr>
+                            <th>rain temperature</th>
+                            <td>0</td>
+                            <td>
+                                <input type="text" name="T_rain" value="{{form.T_rain}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td>Temperature of rail water (ºC))</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <!-- GENER -->
+            <div class="row">
+                <div class="col">
+                    <h3>GENER</h3>
+                </div>
+                <div class="col-6">
+                    <button type="button" class="btn btn-outline-primary btn-small col-2" id="addGener">add</button>
+                </div>
+            </div>
+            <br>
+            {% if error_msg_gener %}
+            {% for key, err in error_msg_gener.items() -%}
+            <div class="row">
+                <div class="alert alert-warning col" role="alert">
+                    {{ err }}
+                </div>
+            </div>
+            {%- endfor %}
+            {% endif %}
+            <input type="hidden" value="{{form['gener_length']}}" class="form-control" id="gener_length" name="gener_length" />
+            <!-- すでに入力済みの部分があれば復元する -->
+            {% if form['gener_length'] %}
+                {% for gener_id in range(form['gener_length']|int) %}
+                <br>
+                <div id="gener{{gener_id}}">
+                    <div class="row">
+                        <div class="col">
+                            <h3>#{{gener_id}}</h3>
+                        </div>
+                        <div class="col">
+                            <input type="checkbox" class="form-check-input" name="gener_{{gener_id}}_isDisable" value="uses" {% if form['gener_' ~ gener_id ~ '_isDisable'] == "uses" %} checked {% endif %} >
+                            <label >Disable</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label >Type</label>
+                            <select class="form-select btn btn-outline-primary dropdown-toggle injTypeEos2" aria-label="Default select example" name="gener_{{ gener_id }}_type_eos2">
+                                <option value="WATE" {% if form['gener_' ~ gener_id ~ '_type_eos2']=="WATE" %} selected {% endif %}>WATE: H2O</option>
+                                <option value="COM2" {% if form['gener_' ~ gener_id ~ '_type_eos2']=="COM2" %} selected {% endif %}>COM2: CO2</option>
+                            </select>
+                            <select class="form-select btn btn-outline-success dropdown-toggle injTypeEco2N" aria-label="Default select example" name="gener_{{ gener_id }}_type_eco2n">
+                                <option value="WATE" {% if form['gener_' ~ gener_id ~ '_type_eco2n']=="WATE" %} selected {% endif %}>WATE: H2O</option>
+                                <option value="COM2" {% if form['gener_' ~ gener_id ~ '_type_eco2n']=="COM2" %} selected {% endif %}>COM2: NaCl</option>
+                                <option value="COM3" {% if form['gener_' ~ gener_id ~ '_type_eco2n']=="COM3" %} selected {% endif %}>COM3: CO2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <label >Injection blocks</label>
+                            <input type="text" name="gener_{{gener_id}}_injblock" value="{{form['gener_' ~ gener_id ~ '_injblock']}}" class="form-control form-control-sm"  pattern="{{PATTERN.blklist}}">
+                            <div class="invalid-msg">{{TITLE.blklist}}</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label >Flux</label>
+                            <input type="text" name="gener_{{gener_id}}_flux" value="{{form['gener_' ~ gener_id ~ '_flux']}}" class="form-control form-control-sm"  pattern="{{PATTERN.numlist}}">
+                            <div class="invalid-msg">{{TITLE.numlist}}</div>
+                        </div>
+                        <div class="col-6">
+                            <h6>Temperature/Enthalpy</h6>
+                            <div class="input-group ">
+                                <div class="form-group">
+                                    <input type="text" name="gener_{{gener_id}}_heat" value="{{form['gener_' ~ gener_id ~ '_heat']}}" class="form-control" pattern="{{PATTERN.float}}" >
+                                    <div class="invalid-msg">{{TITLE.float}}</div>
+                                </div>
+                                <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_{{ gener_id }}_heatUnit">
+                                    <option value="tempc" {% if form['gener_' ~ gener_id ~ '_heatUnit']=="tempc" %} selected {% endif %}>(°C)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% endif %}
+            <!-- その後追加する部分はjQueryで追加する -->
+            <div id="gener_area">
+            </div>
+            <input type="submit" class="btn btn-primary" value="Check">
+        </form>
+    </div>
+</body>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+</html>

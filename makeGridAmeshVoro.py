@@ -1,0 +1,824 @@
+from import_pytough_modules import *
+from t2data import *
+import math
+import _readConfig
+import shutil
+import numpy as np
+import copy
+import time
+from pytough_override import mulgridSubVoronoiAmesh
+from scipy.interpolate import LinearNDInterpolator
+import pandas as pd
+import functionUtil as fu
+vtk = os.path.join(baseDir, "mesh_with_topography.vtk")
+
+def main():
+
+    ## get argument
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputIni", 
+            help="fullpath of toughInput setting input.ini", type=str)
+    parser.add_argument("-fa","--force_overwrite_all", 
+            help="recreate all existing grid and input file", action='store_true')
+    parser.add_argument("-f","--force_overwrite_t2data", 
+            help="use existing mulgrid file and recreate existing t2data file", action='store_true')
+    parser.add_argument("-view","--open_viewer", 
+            help="open window viewing figures, insted of saving image", action='store_true')
+    parser.add_argument("-all","--plot_all_layers", 
+            help="saving figures for all layers", action='store_true')
+    parser.add_argument("-layer","--layer", 
+            help="name of layer to plot", type=int)
+    # parser.add_argument("-p","--showsProfile", 
+    #         help="if given, show grid profile", action='store_true')
+    args = parser.parse_args()
+
+    ## read inputIni ##
+    ini = _readConfig.InputIni().read_from_inifile(args.inputIni)
+    ini.rocktypeDuplicateCheck()
+    # create save dir. 
+    try:
+        os.makedirs(ini.t2FileDirFp, exist_ok=True) \
+            if args.force_overwrite_all or args.force_overwrite_t2data \
+            else os.makedirs(ini.t2FileDirFp)
+    except FileExistsError:
+        print(f"directory: {ini.t2FileDirFp} exists")
+        print(f"    add option -f to force overwrite")
+        sys.exit()
+    
+    makePermVariableVoronoiGrid(ini, 
+        force_overwrite_all=args.force_overwrite_all,
+        open_viewer=args.open_viewer,
+        plot_all_layers=args.plot_all_layers,
+        layer_no_to_plot=args.layer)
+        
+"""
+type: A_VORO
+function util
+"""
+def col_name(col_id, convention):
+    ## MULgraph geometry file Naming conventions (optional)
+    # 0: 3 characters for column followed by 2 digits for layer (default)
+    # 1: 3 characters for layer followed by 2 digits for column 
+    # 2: 2 characters for layer followed by 3 digits for column
+    if convention==0:
+        if col_id > 27*26*26+26: raise Exception
+        ret = int_to_chars(col_id)
+        return f"{ret:3}"    
+    elif convention==1:
+        if col_id > 99: raise Exception
+        ret = col_id
+        return f"{ret:2}"    
+    elif convention==2:
+        if col_id > 999: raise Exception
+        ret = col_id
+        return f"{ret:3}"    
+    else: raise Exception
+
+def layer_name(layer_id, convention):
+    ## MULgraph geometry file Naming conventions (optional)
+    # 0: 3 characters for column followed by 2 digits for layer (default)
+    # 1: 3 characters for layer followed by 2 digits for column 
+    # 2: 2 characters for layer followed by 3 digits for column
+    if convention==0:
+        if layer_id > 99: raise Exception
+        ret = layer_id
+        return f"{ret:2}"    
+    elif convention==1:
+        if layer_id > 27*26*26+26: raise Exception
+        ret = int_to_chars(layer_id)
+        return f"{ret:3}"    
+    elif convention==2:
+        if layer_id > 27*26: raise Exception
+        ret = int_to_chars(layer_id)
+        return f"{ret:2}"    
+    else: raise Exception
+
+def elem_name(layer_id, col_id, convention):
+    if convention==0:
+        return col_name(col_id,convention)+layer_name(layer_id,convention)
+    if convention==1 or convention==2:
+        return layer_name(layer_id,convention)+col_name(col_id,convention)
+
+def resistivity2porosity(formula, rho, x, y, z, phi, k_x, k_y, k_z):
+    return eval(formula)
+
+def porosity2permeability(formula, phi, x, y, z, k_x, k_y, k_z):
+    return eval(formula)
+
+
+def create_mulgrid_with_topo(ini:_readConfig.InputIni):
+    """
+    read voronoi seed points list from the file of ini.amesh_voronoi.voronoi_seeds_list_fp
+    and output mulgrid setting file ini.mulgridFileFp.
+    [required files or program]
+        ini.amesh_voronoi.voronoi_seeds_list_fp
+        ini.amesh_voronoi.topodata_fp
+        ini.setting.ameshexec.AMESH_PROG
+
+    """
+    import os
+    mulgraph_no_topo_fn = os.path.join(baseDir, "mesh_no_topography.geo")
+    
+    # clean
+    try:
+        os.remove(mulgraph_no_topo_fn) 
+        os.remove(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
+                            ini.setting.ameshexec.INPUT_FILENAME))
+        os.remove(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
+                            ini.setting.ameshexec.SEGMT_FILENAME))
+    except FileNotFoundError:
+        pass
+    
+    # TODO check files existence 
+    # - ini.amesh_voronoi.voronoi_seeds_list_fp
+    # - ini.amesh_voronoi.topodata_fp
+
+    """
+    read 2D Voronoi seed points
+    """
+    seeds = np.array(
+        pd.read_csv(ini.amesh_voronoi.voronoi_seeds_list_fp, delim_whitespace=True))
+
+    """
+    create AMESH input file
+    """
+    elevation = ini.amesh_voronoi.elevation_top_layer
+    layer_id = 1
+    with open(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
+                        ini.setting.ameshexec.INPUT_FILENAME), "w") as f:
+        f.write("locat\n")
+        for l in ini.amesh_voronoi.layer_thicknesses:
+            col_id = 1
+            for i, seed in enumerate(seeds):
+                # print(elem_name(layer_id, col_id, convention))
+                f.write(f"{elem_name(layer_id, col_id, ini.mesh.convention):<5}{layer_id:>5} ")
+                f.write(f"{seed[0]:15f} {seed[1]:15f} {elevation:>10} {l:>10}\n")
+                col_id += 1
+            layer_id += 1
+            elevation = elevation - l
+        f.write(f"\ntoler\n{ini.amesh_voronoi.tolar}\n")
+
+    """
+    execute prog AMESH
+    """
+    os.chdir(ini.setting.ameshexec.AMESH_DIR)
+    print("*** executing program AMESH")
+    start = time.perf_counter()
+    os.system(os.path.join(".", ini.setting.ameshexec.AMESH_PROG))
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    os.chdir(baseDir)
+
+    # TODO check files existence 
+    # os.path.join(ini.setting.ameshexec.AMESH_DIR, ini.setting.ameshexec.INPUT_FILENAME)
+    # os.path.join(ini.setting.ameshexec.AMESH_DIR, ini.setting.ameshexec.SEGMT_FILENAME)
+    # なければameshが動いていない
+
+    """
+    read AMESH output and convert to mulgraph 
+    """
+    # nodeの数の桁がcolumnの桁数(convention=2なら3)を超えるとエラーになる。
+    # MULgraphファイルのnodeの桁は3つが最大。
+    print("*** converting AMESH segmt file to mulgrid object")
+    start = time.perf_counter()
+    geo,blockmap=mulgridSubVoronoiAmesh().from_amesh(
+                            os.path.join(ini.setting.ameshexec.AMESH_DIR, 
+                                        ini.setting.ameshexec.INPUT_FILENAME), 
+                            os.path.join(ini.setting.ameshexec.AMESH_DIR, 
+                                        ini.setting.ameshexec.SEGMT_FILENAME),
+                            convention=ini.mesh.convention)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    # geo.layer_plot(None, column_names=True)
+    """
+    geo.slice_plot(line="x", block_names=True)
+    geo.slice_plot(line="y", block_names=True)
+    """
+    geo.set_atmosphere_type(0 if ini.atmosphere.includesAtmos else 2)
+
+    geo.write(mulgraph_no_topo_fn)
+
+
+    """
+    assign topography
+    """
+    print("*** reading topodata and generating interpolating function")
+    start = time.perf_counter()
+    df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
+    x = np.array(df['x']) * M_OVER_KM # km to m
+    y = np.array(df['y']) * M_OVER_KM # km to m
+    z = np.array(df['z']) * M_OVER_KM # km to m
+    interp = LinearNDInterpolator(list(zip(x,y)), z)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+
+
+    # append SURFA section to mulgraph file
+    print("*** create mulgraph setting file of grid with topography")
+    with open(mulgraph_no_topo_fn, "r") as f1,\
+        open(ini.mulgridFileFp, "w") as f2:
+        line_bf = f1.readline()
+        f2.write(line_bf)
+        for line in f1:
+            # detect end of file (空行が2回続くとそこがend of file)
+            if len(line_bf.strip())==0 and len(line.strip())==0:
+                # if end of file, add SURFA section
+                f2.write("SURFA\n")
+                for col in geo.columnlist:
+                    elev = interp(col.centre)[0]
+                    # print(f"{str(col):3}{elev:>10.1f}")
+                    f2.write(f"{str(col):3}{elev:>10.1f}\n")
+                break
+            else:
+                # if not end of file,
+                f2.write(line)
+            line_bf = line
+
+    print("    finished")
+
+    # to avoid generating too thin top layer 
+    print("*** snap_columns_to_layers")
+    geo_topo = mulgrid(ini.mulgridFileFp)
+    print(ini.amesh_voronoi.top_layer_min_thickness)
+    geo_topo.snap_columns_to_layers(min_thickness=ini.amesh_voronoi.top_layer_min_thickness)
+    geo_topo.write(ini.mulgridFileFp)
+
+
+def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
+                                force_overwrite_all=False,
+                                open_viewer=False,
+                                plot_all_layers=False,
+                                layer_no_to_plot=None,
+                                fex="pdf"):
+    """[summary]
+        main function (mesh.type: A_VORO)
+        make Permeability Variable Voronoi Grid.
+    Args:
+        ini (_readConfig.InputIni): [description]
+        force_overwrite_all (bool, optional): 
+            If True, recreate all existing grid and input file. Defaults to False.
+        open_viewer (bool, optional): 
+            If True, open window viewing figures, insted of saving image. Defaults to True.
+        layer_no_to_plot (int, optional):
+            If not none, a horizontal slice of specified layer number is created.
+        fex (str, optional):
+            file extension of image files.
+            
+    Raises:
+        Exception: [description]
+    """
+
+    if ini.mesh.type != AMESH_VORONOI:
+        sys.exit()
+
+    """
+    if mulgraph_with_topo_fn does not exist, 
+    create it from seed points list using AMESH prog
+    """
+    if not os.path.isfile(ini.mulgridFileFp)\
+            or force_overwrite_all:
+        create_mulgrid_with_topo(ini)
+    elif not os.path.isfile(ini.mulgridFileFp):
+        print(f"mulgridFileFp not found: {ini.mulgridFileFp}")
+        raise Exception
+
+    """
+    read mulgraph file that includes topo
+    """
+    print(f"*** reading existing mulgrid file: {ini.mulgridFileFp}")
+    geo_topo = mulgrid(ini.mulgridFileFp, 
+                       atmos_type=0 if ini.atmosphere.includesAtmos else 2)
+
+    # geo_topo.layer_plot(None, column_names=True)
+    # geo_topo.write_vtk(vtk)
+
+    """
+    Calculate resistivity value at each grid block by interpolation.
+    Permeabilities of each block are calculated using the resistivity values.
+    """
+    # read resistivity structure
+    print(f"*** reading resistivity data and generating interpolating function")
+    start = time.perf_counter()
+    df = pd.read_csv(ini.mesh.resistivity_structure_fp, delim_whitespace=True)
+    x = np.array(df['x'])
+    y = np.array(df['y'])
+    z = np.array(df['z'])*(-1) # convert bsl to asl
+    res = np.array(df['res'])
+    # create resistivity interpolating function
+    interpRes = LinearNDInterpolator(list(zip(x,y,z)), res)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+
+    # create new t2data object
+    dat = t2data()
+    # convert mulgrid geometry object to t2grid, and set to created t2data
+    print(f"*** converting mulgrid object to t2data object")
+    start = time.perf_counter()
+    dat.grid.fromgeo(geo_topo)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    
+    ## define permeability modifier (PM)  
+    print(f"*** assign rocktype and permeability modifier")
+    start = time.perf_counter()
+    """
+    if seedflg is True, block-by-block permeability modifier become valid.
+    In this case, pmx must be supplied in ELEME block in INFILE.
+    """
+    if ini.toughInput['seedFlg']:
+        seed = rocktype(name = "SEED ", 
+                        density = 0, # no internal generation of "linear" PM. 
+                        porosity = 0, # no internal generation of "logarithmic" PM. 
+                        permeability = [0, 0, 0] # no scale factor and no shift
+                        )
+        dat.grid.add_rocktype(seed)
+
+    ## ROCKS ##
+    for secRock in ini.rockSecList:
+        count = 0
+        # set rocktype to grid
+        dat.grid.add_rocktype(secRock.rocktype)
+        for blk in dat.grid.blocklist:
+            """
+            skip atmosphere block
+            """
+            if blk.atmosphere:
+                continue
+            """
+            if current blk included in secRock.blockList, assign current rocktype  
+            """
+            if secRock.isBlkInBlockList(blk): #TODO create judge method in _RocktypeSec
+                blk.rocktype = secRock.rocktype
+                count += 1
+            """
+            if the position of current blk does not included in the assignable range 
+                skip to next blk.
+            """
+            if not secRock.isBlkInAssignableRange(blk): #TODO create judge method in _RocktypeSec
+                continue
+            """
+            prepare variables, which are evaluated in judging assign_condition
+                or in the calculation of resistivity dependent permeability
+            """
+            # blk position
+            x = blk.centre[0]
+            y = blk.centre[1]
+            z = blk.centre[2]
+            surface = geo_topo.column[geo_topo.column_name(blk.name)].surface
+            depth = surface - z
+            # properties of current rocktype
+            phi = blk.rocktype.porosity
+            k_x = blk.rocktype.permeability[0]
+            k_y = blk.rocktype.permeability[1]
+            k_z = blk.rocktype.permeability[2]
+            # For each block, calc resistivity value at the center of the block 
+            # by interpolation, 
+            rho = interpRes(blk.centre)[0]
+            # calculate block-by-block porosity by evaluating formula given by ini file
+            porosity = eval(secRock.formula_porosity) 
+            # calculate block-by-block permeability by evaluating formula given by ini file
+            perm = eval(secRock.formula_permeability)
+            # judge current blk satisfies the rocktype assignment condition by evaluating given formula 
+            applies = eval(secRock.rock_assign_condition) 
+            """
+            If the property of the current block satisfies the rocktype assignment condition, 
+                assign current rocktype to current blk
+            """
+            if applies:
+                blk.rocktype = secRock.rocktype
+            else:
+                continue                
+            """
+            if seedflg is True, block-by-block permeability modifier (PM) become valid.
+            PM is adjusted to permeablity value (perm) caluculated above.
+            """
+            if ini.toughInput['seedFlg']:
+                print(ini.toughInput['seedFlg'])
+                """
+                In TOUGH3, permeability of the block is modified as following relation,
+                    perm = perm_ref * PM
+                [variables]
+                    perm: permeability value of the block used in the simulation
+                    perm_ref: original permeability of the block before modified
+                            (= permeability of rock(type) of the block)
+                    PM: block-by-block permeability modifier 
+                """
+                perm_ref = blk.rocktype.permeability[0]
+                # calc PM coefficient of the block
+                pm = perm/perm_ref
+                # set PM coefficient to ELEME.PMX
+                blk.pmx = pm
+            count += 1
+
+        print(f"ROCK: {secRock.secName}\tnCELLS: {count}")
+
+    # atmosphere
+    if ini.atmosphere.includesAtmos:
+        # set atomosphere
+        dat.grid.add_rocktype(ini.atmosphere.atmos)
+        # set to grid
+        for blk in dat.grid.blocklist:
+            if blk.atmosphere:
+                blk.rocktype = ini.atmosphere.atmos
+
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    
+    # set boundary condition on the side of computational domain
+    if ini.boundary.boundary_side_permeable:
+        print(f"*** set boundary condition")
+
+        # By assigning huge volumes, it does not cause temperature changes, 
+        # forcing it to behave like a black hole.
+        boundblks, boundblk_edge_areas =\
+             get_outer_boundary_blocks(geo_topo, dat.grid, geo_topo.convention)
+        for blk in boundblks:
+            blk.volume = HUGE_VOLUME
+            # blk.rocktype = bound
+        end = time.perf_counter()
+
+        # delete connection between boundary blocks
+        kill_connections_betw_boundary_blks(geo_topo, dat.grid, geo_topo.convention)
+    
+    # ## side ##
+    # # set boundary condition on the side of computational domain
+    # if ini.boundary.boundary_side_permeable:
+    #     print(f"*** set boundary condition")
+    #     boundblks, boundblk_edge_areas =\
+    #          get_outer_boundary_blocks(geo_topo, dat.grid, geo_topo.convention)
+    #     for i, blk in enumerate(boundblks):
+    #         blknm = f"BD{num_convert_to_blkname_3digit(i)}"
+    #         blockBound = t2block(name=blknm, volume=HUGE_VOLUME, blockrocktype=blk.rocktype)
+    #         dat.grid.add_block(blockBound)
+    #         conn = t2connection(blocks=[blk, blockBound], 
+    #                             distance=BOUND_BLK_CONN_DISTANCE, area=boundblk_edge_areas)
+    #         dat.grid.add_connection(conn)
+    #         binc = t2blockincon(variable=inc[blk.name].variable, block=blknm)
+    #         inc.add_incon(binc)
+
+
+    # write tough input file
+    dat.write(ini.t2GridFp)
+    try: 
+        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+    except shutil.SameFileError:
+        pass
+
+
+    # test plot (interpolated resistivity structure)
+    temp_res = [] 
+    temp_perm = []
+    for blk in dat.grid.blocklist:
+        if not blk.atmosphere:
+            # calc resistivity value at the center of the block by interpolation
+            rho = interpRes(blk.centre)[0]
+            temp_res.append(rho)   
+            if ini.toughInput['seedFlg']:
+                k = blk.pmx *  blk.rocktype.permeability[0] 
+            else:
+                k = blk.rocktype.permeability[0]          
+            temp_perm.append(k)   
+        else:
+            # atmosphere blocks
+            temp_res.append(1e8)
+            temp_perm.append(1e-20)   
+
+    variable_res = np.array(temp_res)
+    variable_perm = np.array(temp_perm)
+
+    if open_viewer:
+        # open viewer
+        plt = None
+    else:
+        # save image insted of opening viewer
+        import matplotlib.pyplot as plt
+    plt.rcParams["font.size"] = 6
+    geo_topo.layer_plot(None, column_names=True, plt=plt)
+    if not open_viewer:
+        # invert y axis
+        lim = plt.ylim()    
+        plt.ylim((lim[1],lim[0]))
+        plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_LAYER_SURFACE}.{fex}"))
+    
+    # position of slice
+    xslices = []
+    yslices = []
+    zslices = []
+    # xslices = [1000]
+    # yslices = [-500]
+    # zslices = [0]
+    # xslices = np.arange(0, 3001, 200)
+    # yslices = np.arange(-3000, 600, 200)
+    # zslices = np.arange(-4000, 1001, 500)
+    # angle = -20
+
+    for x in xslices:
+        linex = np.array([[x,geo_topo.bounds[0][1]],[x,geo_topo.bounds[1][1]]])
+        geo_topo.slice_plot(line=linex, variable=np.log10(variable_perm), 
+                            colourmap=CMAP_PERMEABILITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10PERM)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_X}{x}.{fex}"))
+            plt.close()
+        geo_topo.slice_plot(line=linex, variable=np.log10(variable_res), 
+                            colourmap=CMAP_RESISTIVITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10RES)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_X}{x}.{fex}"))
+            plt.close()
+    
+    for y in yslices:
+        liney = np.array([[geo_topo.bounds[0][0],y],[geo_topo.bounds[1][0],y]])
+        geo_topo.slice_plot(line=liney, variable=np.log10(variable_perm), 
+                            colourmap=CMAP_PERMEABILITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10PERM)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Y}{y}.{fex}"))
+            plt.close()
+        geo_topo.slice_plot(line=liney, variable=np.log10(variable_res), 
+                            colourmap=CMAP_RESISTIVITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10RES)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_Y}{y}.{fex}"))
+            plt.close()
+    
+    for z in zslices:
+        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_perm),
+                            colourmap=CMAP_PERMEABILITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10PERM)
+        if not open_viewer:
+            # invert y axis
+            lim = plt.ylim()    
+            plt.ylim((lim[1],lim[0]))
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Z}{z}.{fex}"))
+            plt.close()
+        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_res),
+                            colourmap=CMAP_RESISTIVITY, plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10RES)
+        if not open_viewer:
+            # invert y axis
+            lim = plt.ylim()    
+            plt.ylim((lim[1],lim[0]))
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_Z}{z}.{fex}"))
+            plt.close()
+
+    for l, line in enumerate(ini.plot.profile_lines_list):
+        geo_topo.slice_plot(line=line, variable=np.log10(variable_perm), 
+                            colourmap=CMAP_PERMEABILITY, plt=plt,
+                            plot_limits=ini.plot.slice_plot_limits,
+                            colourbar_limits=CBAR_LIM_LOG10PERM)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.{fex}"))
+            plt.close()
+        geo_topo.slice_plot(line=line, variable=np.log10(variable_res), 
+                            colourmap=CMAP_RESISTIVITY, plt=plt,
+                            plot_limits=ini.plot.slice_plot_limits,
+                            colourbar_limits=CBAR_LIM_LOG10RES)
+        if not open_viewer:
+            plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.{fex}"))
+            plt.close()
+
+    # plot for all layer
+    if plot_all_layers:
+        for layer in geo_topo.layer:
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_perm),
+                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+                                colourbar_limits=CBAR_LIM_LOG10PERM)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
+                plt.close()
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_res),
+                                colourmap=CMAP_RESISTIVITY, plt=plt,
+                                colourbar_limits=CBAR_LIM_LOG10RES,
+                                column_names=True)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer}.{fex}"))
+                plt.close()
+    
+    if layer_no_to_plot is not None:
+        for layer in geo_topo.layer:
+            if layer_no_to_plot != int(layer): continue
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_perm),
+                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+                                colourbar_limits=CBAR_LIM_LOG10PERM)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
+                plt.close()
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_res),
+                                colourmap=CMAP_RESISTIVITY, plt=plt,
+                                colourbar_limits=CBAR_LIM_LOG10RES,
+                                column_names=True)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer}.{fex}"))
+                plt.close()
+
+    # topo
+    elevations, X, Y = [], [], []
+    for col in geo_topo.columnlist:
+        X.append(col.centre[0])
+        Y.append(col.centre[1])
+        elevations.append(col.surface)
+    geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, plt=plt, title="elevation", xlabel="Northing (m)", ylabel="Easting (m)")
+    if not open_viewer:
+        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+                        colors='white', linewidths=0.5)
+        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+                        colors='white', linewidths=1)
+        # symbol
+        for key, tup in TOPO_MAP_SYMBOL.items():
+            plt.plot(tup[0], tup[1], marker='o', markersize=1, color='black')
+            # plt.annotate(key, xy=tup, xytext=(tup[0], tup[1]+500), 
+            #     arrowprops=dict(facecolor='black', width=0.5, headwidth=2, headlength=2, shrink=0.05))
+        
+        # invert y axis
+        lim = plt.ylim()    
+        plt.ylim((lim[1],lim[0]))
+        plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_TOPO}.{fex}"))
+        plt.close()
+    
+    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_perm), 
+    #                     colourmap=CMAP_PERMEABILITY, plt=plt)
+    # if not open_viewer:
+    #     plt.savefig(os.path.join(ini.t2FileDirFp, f"permeability_slice-{angle}."+fex))
+    #     plt.close()
+    
+    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_res), 
+    #                     colourmap=CMAP_RESISTIVITY, plt=plt,
+    #                     colourbar_limits=CBAR_LIM_LOG10RES)
+    # if not open_viewer:
+    #     plt.savefig(os.path.join(ini.t2FileDirFp, f"resistivity_slice-{angle}."+fex))
+    #     plt.close()
+
+def get_outer_boundary_blocks(geo:mulgrid, grid:t2grid, convention:int):
+    """
+    At first, get the columns of the outer boundary.
+    Then, get the list of blocks that consist of the outer boundary
+    Args:
+        geo (mulgrid): [description]
+        grid (t2grid): [description]
+        convention (int): [description]
+
+    Returns:
+        [list], [list]: 
+            list of t2block belonging to outer side edge of computational domain, 
+            list of area of surface belonging to outer side edge of computational domain for each block
+    """
+    # list of mulgrids.node belong to outer side edge of computational domain
+    boundnodes = geo.column_boundary_nodes(geo.columnlist)
+    print("boundary nodes:")
+    print(boundnodes)
+    # list of mulgrids.column belong to outer side edge of computational domain
+    boundcols = []
+    for node in boundnodes:
+        for col in node.column:
+            if col not in boundcols: boundcols.append(col)
+    print("boundary columns:")
+    print(boundcols)
+    # list of col edge length shared by the boundary of computational domain
+    boundcol_edge_lengthes = get_col_outer_edge_length(boundcols, boundnodes)
+    
+    # outer boundaryのブロックのリストを取得
+    blocklist = []
+    # 計算領域の外側に接する面積も各blkごとに取得
+    blk_surf_area_on_bound = []
+    for col, len in zip(boundcols, boundcol_edge_lengthes):
+        # columnごとに地表面標高を取得
+        layer_top_elev = geo.column_surface_layer(col).centre
+        for lay in geo.layerlist:
+            if lay.centre > layer_top_elev:
+                # 地表より上のブロックはスキップ
+                # print(f'{col.name:>3}{lay.name:>2} skip')
+                continue
+            elif lay.centre == layer_top_elev:
+                lay_thick = lay.thickness - (lay.top-col.surface)
+            elif lay.centre < layer_top_elev:
+                lay_thick = lay.thickness
+
+            blkname = blockname(col.name, lay.name, convention)
+            # print(blkname)
+            blocklist.append(grid.block[blkname])
+            blk_surf_area_on_bound.append(len*lay_thick)
+
+    return blocklist, blk_surf_area_on_bound
+
+
+def get_col_outer_edge_length(boundcols, boundnodes):
+    """
+    For the columns located at the periphery of the computational domain, 
+    obtain the length of the part of each column that touches the periphery.
+    (計算領域の外周部に位置するcolumnについて、それぞれのcolumnが外周部に接する長さを取得.)
+    Args:
+        boundcols ([list of mulgrids.column]): 
+            columns at the periphery of the computational domain
+        boundnodes ([list of mulgrids.node]): 
+            nodes at the periphery of the computational domain
+    
+    Returns:
+        [list of float]: length of column boundary shared by outer edge
+    """
+    lengthes_shared_by_outer_edge = []
+    for col in boundcols:
+        # 各columnについて計算領域境界に属するnode(積集合を求める)
+        boundnodes_on_col = set(col.node) & set(boundnodes)
+        if len(boundnodes_on_col)>3:
+            print(f"the number of nodes on the edge of computational domain exceeds 3. why? (column:{col})")
+            print(f"計算領域が長方形じゃないようなのでもう無理です")
+            sys.exit()
+        x = []
+        y = []
+        for bnc in boundnodes_on_col:
+            x.append(bnc.pos[0])
+            y.append(bnc.pos[1])
+        lengthes_shared_by_outer_edge.append(((max(x)-min(x))**2+(max(y)-min(y))**2)**0.5)
+    return lengthes_shared_by_outer_edge
+
+# def num_convert_to_blkname_3digit(num):
+#     arr=["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z",1,2,3,4,5,6,7,8,9]
+#     n=len(arr)
+#     if num>=n**3:
+#         sys.exit("overflow")
+#     elif n**3 > num >= n**2:
+#         return f"{arr[num//n**2-1]}{arr[(num%n**2)//n**1-1]}{arr[((num%n**2)%n**1)-1]}"
+#     elif n**2 > num >= n**1:
+#         return f" {arr[(num%n**2)//n**1-1]}{arr[((num%n**2)%n**1)-1]}"
+#     elif n**1 > num >= n**0:
+#         return f"  {arr[((num%n**2)%n**1)-1]}"
+
+def kill_connections_betw_boundary_blks(geo:mulgrid, grid:t2grid, convention:int):
+    # list of mulgrids.node belong to outer side edge of computational domain
+    boundnodes = geo.column_boundary_nodes(geo.columnlist)
+    # list of mulgrids.column belong to outer side edge of computational domain
+    boundcols = []
+    for node in boundnodes:
+        for col in node.column:
+            if col not in boundcols: boundcols.append(col)
+    for col in boundcols:
+        # delete lateral connection
+        for neighcol in col.neighbour & set(boundcols):
+            for lay in geo.layerlist:
+                conname1 = (blockname(col.name, lay.name, convention),
+                            blockname(neighcol.name, lay.name, convention))
+                conname2 = (blockname(neighcol.name, lay.name, convention),
+                            blockname(col.name, lay.name, convention))
+                if conname1 in grid.connection:
+                    grid.delete_connection(conname1)
+                elif conname2 in grid.connection:
+                    grid.delete_connection(conname2)
+
+        # delete vertical connection
+        for lay1 in geo.layerlist:
+            for lay2 in geo.layerlist:
+                conname1 = (blockname(col.name, lay1.name, convention),
+                            blockname(col.name, lay2.name, convention))
+                conname2 = (blockname(col.name, lay2.name, convention),
+                            blockname(col.name, lay1.name, convention))
+                if conname1 in grid.connection:
+                    grid.delete_connection(conname1)
+                elif conname2 in grid.connection:
+                    grid.delete_connection(conname2)
+        
+        # delete connections to atmosphere block
+        if geo.atmosphere_type == 0 or geo.atmosphere_type == 1:
+            if len(grid.atmosphere_blocks)==0:
+                print(f"""atmosphere_type={geo.atmosphere_type}. But, no atmosphere block found in dat.grid. Exit""")
+            for atmblk in grid.atmosphere_blocks:
+                for lay in geo.layerlist:
+                    conname1 = (blockname(col.name, lay.name, convention),
+                                atmblk.name)
+                    conname2 = (atmblk.name,
+                                blockname(col.name, lay.name, convention))
+                    if conname1 in grid.connection:
+                        grid.delete_connection(conname1)
+                    elif conname2 in grid.connection:
+                        grid.delete_connection(conname2)
+
+
+def blockname(colname, layname, convention):
+    if convention == 0:
+        blkname = f'{colname:>3}{layname:>2}'
+    elif convention == 1:
+        blkname = f'{layname:>3}{colname:>2}'
+    elif convention == 2:
+        blkname = f'{layname:>3}{colname:>3}'
+    return blkname
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,286 @@
+<h3>SELEC (additional setting for ECO2N_V2)</h3>
+<div class="row">
+    <table class="table">
+        <thead>
+            <tr>
+                <td width="10%">name</td>
+                <td width="10%"></td>
+                <td>description in ECO2N V2.0 User's Guide</td>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- IE(1) -->
+            <tr>
+                <th>IE(1)</th>
+                <td>
+                    <input type="radio" name="IE1" value="0" {% if form.IE1 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label> 
+                    <input type="radio" name="IE1" value="1" {% if form.IE1 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>set equal to 1, to read one additional data record.</td>
+            </tr>
+            <!-- IE(3) -->
+            <tr>
+                <th rowspan="5">IE(3)</th>
+                <td colspan="2">ALLOWS CHOICE OF OPTIONS FOR CALCULATION OF BRINE VISCOSITY.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE3" value="0" {% if form.IE3 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>PHILLIPS ET AL. (1981) (DEFAULT).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE3" value="1" {% if form.IE3 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>PALLISER AND MCKIBBIN (1998).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE3" value="2" {% if form.IE3 == "2" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">2</label>
+                </td>
+                <td>MAO AND SUN (2006).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE3" value="3" {% if form.IE3 == "3" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">3</label>
+                </td>
+                <td>POTTER (1976).</td>
+            </tr>
+            <!-- IE(4) -->
+            <tr>
+                <th rowspan="7">IE(4)</th>
+                <td colspan="2">ALLOWS CHOICE OF OPTIONS FOR CALCULATION OF BRINE VISCOSITY.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="1" {% if form.IE4 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>ANDERSEN ET AL. (1992). (DEFAULT=0)</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="2" {% if form.IE4 == "2" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">2</label>
+                </td>
+                <td>PRITCHETT (1993). </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="3" {% if form.IE4 == "3" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">3</label>
+                </td>
+                <td>BRINE COMPRESSIBILITY EQUAL TO WATER COMPRESSIBILITY AT THE SAME REDUCED TEMPERATURE.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="4" {% if form.IE4 == "4" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">4</label>
+                </td>
+                <td>BRINE COMPRESSIBILITY EQUAL TO WATER COMPRESSIBILITY AT THE SAME TEMPERATURE</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="5" {% if form.IE4 == "5" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">5</label>
+                </td>
+                <td>BATZLE AND WANG (1992). </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE4" value="6" {% if form.IE4 == "6" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">6</label>
+                </td>
+                <td>DRIESNER (2007). </td>
+            </tr>
+            <!-- IE(10) -->
+            <tr>
+                <th>IE(10)</th>
+                <td></td>
+                <td>allows choice of thermal conductivity models as a function of saturation and type of the fluid. This option requires to modify the TOUGH2 core code i.e., the subroutine MUILTI. See Appendix D for details about the models and the instructions of code modifications as well as input set up.</td>
+            </tr>
+            <!-- IE(11) -->
+            <tr>
+                <th rowspan="5">IE(11)</th>
+                <td colspan="2">selects dependence of permeability on the fraction Φ<sub>f</sub>/Φ<sub>0</sub> = (1-S<sub>s</sub>) of original pore space that remains available to fluids when salt precipitates.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE11" value="0" {% if form.IE11 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>permeability does not vary with flow porosity Φ<sub>f</sub>.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE11" value="1" {% if form.IE11 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>k/k<sub>0</sub> = (1-S<sub>s</sub>)<sup>γ</sup> , with γ = FE(9)</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE11" value="2" {% if form.IE11 == "2" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">2</label>
+                </td>
+                <td>fractures in series, i.e., Eq. (4.2.2) with exponent 2 replaced by 3.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE11" value="3" {% if form.IE11 == "3" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">3</label>
+                </td>
+                <td>tubes-in-series model, i.e., Eq. (4.2.2).</td>
+            </tr>
+            <!-- IE(12) -->
+            <tr>
+                <th rowspan="3">IE(12)</th>
+                <td colspan="2">allows choice of model for water solubility in CO2</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE12" value="0" {% if form.IE12 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>after Spycher and Pruess (2005).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE12" value="1" {% if form.IE12 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>evaporation model; i.e., water density in the CO2-rich phase is calculated as
+                    density of saturated water vapor at prevailing temperature and salinity.</td>
+            </tr>
+            <!-- IE(13) -->
+            <tr>
+                <th rowspan="3">IE(13)</th>
+                <td colspan="2">allows choice of dependence of brine density on dissolved CO2</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE13" value="0" {% if form.IE13 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>brine density varies with dissolved CO2 concentration, according to García's (2001) correlation for temperature dependence of molar volume of dissolved CO2.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE13" value="1" {% if form.IE13 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>brine density is independent of CO2 concentration.</td>
+            </tr>
+            <!-- IE(14) -->
+            <tr>
+                <th rowspan="3">IE(14)</th>
+                <td colspan="2">allows choice of treatment of thermophysical properties as a function of salinity</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE14" value="0" {% if form.IE14 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>full dependence.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE14" value="1" {% if form.IE14 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>no salinity dependence of thermophysical properties (except for brine enthalpy; salt solubility constraints are maintained).</td>
+            </tr>
+            <!-- IE(15) -->
+            <tr>
+                <th rowspan="6">IE(15)</th>
+                <td colspan="2">allows choice of correlation for brine enthalpy at saturated vapor pressure</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE15" value="1" {% if form.IE15 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>MICHAELIDES (1981).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE15" value="2" {% if form.IE15 == "2" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">2</label>
+                </td>
+                <td>MILLER (1978). (OBSOLETE)</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE15" value="3" {% if form.IE15 == "3" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">3</label>
+                </td>
+                <td>PHILLIPS ET AL. (1981).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE15" value="4" {% if form.IE15 == "4" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">4</label>
+                </td>
+                <td>LORENZ, MARIC AND RIRSHL (2000). (DEFAULT=0)</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE15" value="5" {% if form.IE15 == "5" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">5</label>
+                </td>
+                <td>DRIESNER (2007).</td>
+            </tr>
+            <!-- IE(16) -->
+            <tr>
+                <th rowspan="4">IE(16)</th>
+                <td colspan="2">allows choice of mutual solubility model and effect of water on CO2-rich phase</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE16" value="0" {% if form.IE16 == "0" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">0</label>
+                </td>
+                <td>mutual solubilities from Spycher and Pruess (2005, 2010); see Sections 3.4-3.6 for effect of water on thermophysical properties of the CO2-rich phase.</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE16" value="1" {% if form.IE16 == "1" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">1</label>
+                </td>
+                <td>exactly the same mutual solubility model for low temperature as implemented in ECO2N V1.0, ignoring the effects of water on the thermophysical properties of the CO2-rich phase (not recommended for systems involving high temperature).</td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="radio" name="IE16" value="2" {% if form.IE16 == "2" %} checked {% endif %} class="form-check-input" >
+                    <label class="form-check-label">2</label>
+                </td>
+                <td>density and specific enthalpy of the CO2-rich phase calculated using the approach based on the cubic EOS (Spycher and Pruess, 2011).</td>
+            </tr>
+            <!-- FE(9) -->
+            <tr>
+                <th>FE(9)</th>
+                <td>
+                    <input type="text" name="FE9" value="{{form.FE9}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}">
+                    <div class="invalid-msg">{{TITLE.float}}</div>
+                </td>
+                <td>parameter γ (for IE(11)=1); parameter Φ<sub>r</sub> (for IE(11) = 2, 3)</td>
+            </tr>
+            <!-- FE(10) -->
+            <tr>
+                <th>FE(10)</th>
+                <td>
+                    <input type="text" name="FE10" value="{{form.FE10}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}">
+                    <div class="invalid-msg">{{TITLE.float}}</div>
+                </td>
+                <td>parameter Γ (for IE(11 = 2,3))</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
