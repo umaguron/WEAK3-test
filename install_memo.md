@@ -25,18 +25,18 @@ http://windows.github.com/
 
     参考->https://qiita.com/teruroom/items/7d8c26dc07ddeae90be8
 
-    anacondaのルートディレクトリに.condarcというファイルを作成。以下を書く。
+    anacondaのルートディレクトリに.condarcというファイルを作成。以下のようにプロキシを設定する。
     ```
     proxy_servers:
-        http: http://proxy.noc.titech.ac.jp:3128
-        https: http://proxy.noc.titech.ac.jp:3128
+        http: http://proxy.aaa.bbb.ac.jp:8080
+        https: http://proxy.aaa.bbb.ac.jp:8080
     ```
     ※ https:の設定値は"https"でなく"http"であることに注意
 
 + git
     ```
-    git config --global http.proxy http://proxy.noc.titech.ac.jp:3128
-    git config --global https.proxy https://proxy.noc.titech.ac.jp:3128
+    git config --global http.proxy http://proxy.aaa.bbb.ac.jp:8080
+    git config --global https.proxy https://proxy.aaa.bbb.ac.jp:8080
     ```
     プロキシ設定を削除する
     ```
@@ -155,8 +155,8 @@ iapwsについては以下でもOK
 <br>
 <br>
 
-# TOUGH3の準備
-場所: 131.112.25.8サーバの ~kanda/Tough3/TOUGH3_Source_v1.0.zip 
+# TOUGH3/TOUGH2の準備
+購入する or 同組織内で使っている人からもらう
 
 ### TOUGH3本体のbug fix
 TOUGH3本体にもいくつかバグが見つかっている。以下のURLに従いfixする。
@@ -181,7 +181,7 @@ https://tough.lbl.gov/user-support/tough-bugs-fixes/
 # 大きすぎてgitにupできないデータ
 data/sowat_read.txt: sowat出力の塩水の熱力学データ
 
-松永に聞いてください。
+matsunagaに聞いてください。
 
 <br>
 <br>
