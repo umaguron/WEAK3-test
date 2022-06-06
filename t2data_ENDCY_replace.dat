@@ -1,0 +1,27 @@
+ENDCY
+
+
+
+OUTPU----1----*----2----*----3
+6
+TOTAL FLOW RATE
+FLOW RATE              -1    0 <- the flow of each phase
+FLOW RATE               1   -1 <- the flow of each component in phase IPH=1
+FLOW RATE               2   -1 <- the flow of each component in phase IPH=2
+HEAT FLOW
+VELOCITY                0      <-IPH=0: the output variables of all phases are printed
+
+
+
+TEMPERATURE              
+PRESSURE                0      
+SATURATION              0
+RELATIVE                0
+DENSITY                 0
+ENTHALPY                0
+CAPILLARY               0
+MASS FRACTION           1
+MASS FRACTION           2
+
+MOMOP
+                1
