@@ -36,11 +36,16 @@
                         <th rowspan="3">[toughexec]</th>
                         <td rowspan="3">TOUGHプログラムの置き場所</td>
                         <td><b>BIN_DIR</b></td>
-                        <td>TOUGH3の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)</td>
+                        <td>
+                            <ul class="list-unstyled">
+                                <li>TOUGH3の各モジュールの実行ファイル(User's Guideに従い、コンパイルしたもの。tough3-eco2n_v2など。)が含まれるディレクトリ(フルパス)</li>
+                                <li>おそらく、(...)/TOUGH3v1.x/TOUGH3-Code/esd-tough3/tough3-install/bin になる</li>
+                            </ul>
+                        </td>
                     </tr>
                     <tr>
                         <td><b>BIN_DIR_T2</b></td>
-                        <td>TOUGH2の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)</td>
+                        <td>(TOUGH2も使いたい場合のみ設定。)TOUGH2の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)</td>
                     </tr>
                     <tr>
                         <td><b>BIN_DIR_LOCAL</b></td>
@@ -103,8 +108,12 @@
         <br>
         <div class="row">
             <div class="col">
-                <p>AMESH(Haukwa, 1998)を使用して、MULGRAPH (O'sullivan and Bullivant, 1995)形式のメッシュファイルを作成する。<p>
-                <p>MULgraphについての詳しい説明はpyTOUGHマニュアルのappendix. Aを参照。</p>
+                <ul class="list-unstyled">
+                    <li>AMESH(Haukwa, 1998)を使用して、MULGRAPH (O'sullivan and Bullivant, 1995)形式のメッシュファイルを作成する</li>
+                    <li>MULgraphについての詳しい説明はpyTOUGHマニュアルのappendix. Aを参照。</li>
+                    <li>まず2次元の平面グリッドを作成し、それをレイヤー状に積み重ねることで3次元グリッドを作成する。</li>
+                    <li>最後に地形データをもとに、上部の要素を削って地形を再現する。</li>
+                </ul>
             </div>
         </div>
         <br>
@@ -140,6 +149,16 @@
                         <td>既存 or これから作成するmulgraphファイルのパス</td>
                     </tr>
                     <tr>
+                        <th>MULgraph geometry file Naming conventions</th>
+                        <td>MULgraphでは要素名を'カラム名'+'レイヤー名'の5文字で表現する(e.g., 'abc12')。英数字の割り振りは以下の3つから選択。
+                        <ul>
+                            <li>カラム: 英字3文字/レイヤー: 数字2桁</li>
+                            <li>レイヤー: 英字3文字/カラム: 数字2桁</li>
+                            <li>レイヤー: 英字2文字/カラム: 数字3桁</li>
+                        </ul>
+                        </td>
+                    </tr>
+                    <tr>
                         <th>topodata_fp</th>
                         <td>
                             <p>地形データ。形式は以下の通り。xは北方向、yは東方向、zは標高。各数値の単位は[km]</p>   
@@ -149,13 +168,17 @@
                     <tr>
                         <th>voronoi_seeds_list_fp</th>
                         <td>
-                            <p><a href="https://ja.wikipedia.org/wiki/%E3%83%9C%E3%83%AD%E3%83%8E%E3%82%A4%E5%9B%B3">voronoiメッシュ</a>作成時に使用される、各セルの"seed"(母点)となる座標のリスト。形式は以下の通り。単位は[m]</p>   
+                            <p>2次元平面グリッドを定義。<a href="https://ja.wikipedia.org/wiki/%E3%83%9C%E3%83%AD%E3%83%8E%E3%82%A4%E5%9B%B3">voronoiメッシュ</a>作成時に使用される、各セルの"seed"(母点)となる座標のリスト。形式は以下の通り。単位は[m]</p>   
                             <img src="/img/voro_sample.png">
                         </td>
                     </tr>
                     <tr>
                         <th>elevation_top_layer</th>
-                        <td>メッシュ作成領域内の最高地点より高い標高[m]を書く。 </td>
+                        <td>メッシュ作成領域内の最高地点より高い標高[m]を入力する。 </td>
+                    </tr>
+                    <tr>
+                        <th>layer_thicknesses</th>
+                        <td>各レイヤーの厚さを定義する配列(python3形式)。 上面のレイヤーから順番に並べること。単位は[m]。</td>
                     </tr>
                     <tr>
                         <th>top_layer_min_thickness</th>

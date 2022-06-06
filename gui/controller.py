@@ -139,6 +139,8 @@ def cmesh2_check():
                 error_msg["voronoi_seeds_list_fp"] = f"{voronoi_seeds_list_fp}   does not exist. Please create."
             if os.path.isfile(create_fullpath(request.form['mulgridFileFp'])):
                 error_msg["mulgridFile_fp"] = f"{create_fullpath(request.form['mulgridFileFp'])}  already exist. Please specify different file path."
+            if not os.path.isdir(os.path.dirname(request.form['mulgridFileFp'])):
+                error_msg["mulgridDir"] = f"Directory: {create_fullpath(os.path.dirname(request.form['mulgridFileFp']))} does not exist. Please create it beforehand."
 
             if len(error_msg) > 0:
                 return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
