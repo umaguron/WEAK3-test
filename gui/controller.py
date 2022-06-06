@@ -425,10 +425,11 @@ def cmesh3_check():
         tmp['inputIniFp'] = inputIni.inputIniFp
         tmp['t2GridFp'] = inputIni.t2GridFp
         tmp['t2FileDirFp'] = inputIni.t2FileDirFp
-        tmp['xmin'] = min(inputIni.plot.slice_plot_limits[0])
-        tmp['xmax'] = max(inputIni.plot.slice_plot_limits[0])
-        tmp['zmin'] = min(inputIni.plot.slice_plot_limits[1])
-        tmp['zmax'] = max(inputIni.plot.slice_plot_limits[1])
+        if inputIni.plot.slice_plot_limits is not None:
+            tmp['xmin'] = min(inputIni.plot.slice_plot_limits[0])
+            tmp['xmax'] = max(inputIni.plot.slice_plot_limits[0])
+            tmp['zmin'] = min(inputIni.plot.slice_plot_limits[1])
+            tmp['zmax'] = max(inputIni.plot.slice_plot_limits[1])
         for i in range(6):
             tmp[f'line_{i}'] = ""
         for i, line in enumerate(inputIni.plot.profile_lines_list):

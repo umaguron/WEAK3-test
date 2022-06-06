@@ -6,6 +6,8 @@ to avoid messing up the codes with magic numbers or magic constants.
 """user-defined exception"""
 class InvalidToughInputException(Exception):
     pass
+class Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo(Exception):
+    pass
 
 """library"""
 PYTOUGH_ROOT_PATH = "lib/PyTOUGH-master"

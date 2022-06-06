@@ -149,7 +149,7 @@ iapwsについては以下でもOK
     プロジェクトルートで以下のコマンドを実行すればOK
 
     ```
-    ./install_log.sh
+    ./install_db.sh
     ```
 
 * ECO2N V2.0用データ

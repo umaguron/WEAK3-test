@@ -143,6 +143,11 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     seeds = np.array(
         pd.read_csv(ini.amesh_voronoi.voronoi_seeds_list_fp, delim_whitespace=True))
+    if ini.mesh.convention==0 and len(seeds)>945:
+        # AMESHのせいか、PyTOUGHのせいかわからないが、
+        # convention==0かつseedsが945個以上だとmulgrid().from_ameshでエラーになる。
+        raise Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo
+
 
     """
     create AMESH input file
@@ -185,7 +190,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     # MULgraphファイルのnodeの桁は3つが最大。
     print("*** converting AMESH segmt file to mulgrid object")
     start = time.perf_counter()
-    geo,blockmap=mulgridSubVoronoiAmesh().from_amesh(
+    geo,blockmap=mulgrid().from_amesh(
                             os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), 
                             os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME),
                             convention=ini.mesh.convention)
