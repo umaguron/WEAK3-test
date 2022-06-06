@@ -137,7 +137,7 @@ iapwsについては以下でもOK
     1. 解凍する
     2. コンパイルする(Sourceフォルダに移動してmakeとタイプ->リターン)
 4. __!! 実行ファイルのパーミッションの変更を忘れずに !!__
-5. setting.iniのAMESH_DIRに実行ファイルの場所の相対パス、AMESH_PROGに実行ファイルの名前を書く
+5. define.pyのAMESH_DIRに実行ファイルの場所の相対パス、AMESH_PROGに実行ファイルの名前を書く
 
 <br>
 <br>
@@ -151,6 +151,24 @@ iapwsについては以下でもOK
     ```
     ./install_log.sh
     ```
+
+* ECO2N V2.0用データ
+  CO2TAB(TOUGH3のパッケージに入っている？)は /tables 以下に配置する。
+
+* define.pyに設定する値は以下の通り
+  
+  |変数名|設定値|説明|
+  |-|-|-|
+  |T3OUT_ESCAPE_DIRNAME|任意|TOUGH3シミュレーションで出力される大量のファイルを退避するディレクトリ名。何でも良い|
+  |SAVEFIG_DIRNAME|任意|作成した画像を書き出すディレクトリの名前。何でも良い|
+  |INCON_FILE_NAME|'INCON'|TOUGH3初期条件ファイルの名前|
+  |SAVE_FILE_NAME|'SAVE'|TOUGH3シミュレーション終了時の条件を記録したファイルの名前|
+  |OUTPUT_ELEME_CSV_FILE_NAME|OUTPUT_ELEME.csv|TOUGH3出力ファイルの名前|
+  |OUTPUT_CONNE_CSV_FILE_NAME|OUTPUT_CONNE.csv|TOUGH3出力ファイルの名前|
+  |AMESH_PROG|AMESH(Haukwa, 1998)実行ファイルの名前||
+  |AMESH_DIR|AMESH_PROGがおいてあるディレクトリ（プロジェクトルートからのパス||
+  |INPUT_FILENAME|in|AMESHの出力ファイル名|
+  |SEGMT_FILENAME|segmt|AMESHの出力ファイル名|
 
 <br>
 <br>

@@ -1503,8 +1503,7 @@ def read_output_eleme_csv(ini:_readConfig.InputIni):
     # escape t3outfiles
     escape_t3outfiles(ini)
     
-    elemCsv = os.path.join(ini.t3outEscapeFp,
-                           ini.setting.toughConfig.OUTPUT_ELEME_CSV_FILE_NAME)
+    elemCsv = os.path.join(ini.t3outEscapeFp, OUTPUT_ELEME_CSV_FILE_NAME)
     with open(elemCsv, 'r') as f:
         label = None
         unit = None
@@ -1578,8 +1577,7 @@ def read_output_conne_csv(ini:_readConfig.InputIni):
     # escape t3outfiles
     escape_t3outfiles(ini)
     
-    conneCsv = os.path.join(
-        ini.t3outEscapeFp,ini.setting.toughConfig.OUTPUT_CONNE_CSV_FILE_NAME)
+    conneCsv = os.path.join(ini.t3outEscapeFp, OUTPUT_CONNE_CSV_FILE_NAME)
     with open(conneCsv, 'r') as f:
         label = None
         unit = None
@@ -1986,7 +1984,7 @@ def show_incon_summary(ini:_readConfig.InputIni):
         res2.append(inc[blk.name].variable[2])
         res3.append(inc[blk.name].variable[3])
     print(f"""
-----INCON: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{ini.setting.toughConfig.INCON_FILE_NAME}
+----INCON: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{INCON_FILE_NAME}
     variable 0 max {max(res0)}, min {min(res0)}
     variable 1 max {max(res1)}, min {min(res1)}
     variable 2 max {max(res2)}, min {min(res2)}
@@ -2006,7 +2004,7 @@ def show_incon_summary(ini:_readConfig.InputIni):
             res2.append(save[blk.name].variable[2])
             res3.append(save[blk.name].variable[3])
         print(f"""
-----SAVE: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{ini.setting.toughConfig.SAVE_FILE_NAME}
+----SAVE: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{SAVE_FILE_NAME}
     variable 0 max {max(res0)}, min {min(res0)}
     variable 1 max {max(res1)}, min {min(res1)}
     variable 2 max {max(res2)}, min {min(res2)}
@@ -2169,12 +2167,12 @@ def brine_resistivity(x_nacl_l, density, temperature, pure_water_dens=None):
     
     if 0.1 < molality:
         # Sinmyo & Keppler (2017)
-        logger.info(f"molal:{molality:.4f} use SK")
+        logger.debug(f"molal:{molality:.4f} use SK")
         brine_resistivity = \
             brine_resistivity_SK(x_nacl_l*100, pure_water_dens, temperature)
     elif molar < 0.01:
         # Quist & Marshall (1968)
-        logger.info(f"molal:{molality:.4f} use QM")
+        logger.debug(f"molal:{molality:.4f} use QM")
         brine_resistivity =\
              brine_resistivity_QM(molality, density, temperature)
         # brine_resistivity = np.nan
@@ -2193,7 +2191,7 @@ def brine_resistivity(x_nacl_l, density, temperature, pure_water_dens=None):
             brine_resistivity = \
                 brine_resistivity_SK(x_nacl_l*100, pure_water_dens, temperature)
         # m_minからm_maxのうち、最もスムーズにSKとQMのモデルがつながるmolalityを探す
-        logger.info(f"*** QM or SK. Start to search switching molality value ")
+        logger.info(f"*** molal:{molality:.4f} QM or SK. Start to search switching molality value ")
         for m in 10**np.linspace(math.log10(m_min), math.log10(m_max), 10): 
             logger.debug(f"searching... ")
             x_nacl = molality2massfrac(m)
@@ -2214,7 +2212,7 @@ def brine_resistivity(x_nacl_l, density, temperature, pure_water_dens=None):
                 return brsk
             brqm = brine_resistivity_QM(molality, density, temperature)
             if not math.isnan(brqm):
-                logger.info(f"molal:{molality:.4f} use QM")
+                logger.debug(f"molal:{molality:.4f} use QM")
                 return brqm
             else:
                 return np.nan
@@ -2229,7 +2227,7 @@ def brine_resistivity(x_nacl_l, density, temperature, pure_water_dens=None):
             # 切り替え点より低濃度
             brine_resistivity = \
                 brine_resistivity_QM(molality, density, temperature)
-            logger.info(f"molal:{molality:.4f} use QM")
+            logger.debug(f"molal:{molality:.4f} use QM")
 
     return brine_resistivity
    

@@ -215,6 +215,7 @@
         
         <form method="post" action="/cmesh3_check" id="applyForm">
             <!--  -->
+            <input type="hidden" value="{{ form.original_iniFp }}" class="form-control" name="original_iniFp" />
             <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
             <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" />
             <input type="hidden" value="{{ form.convention }}" class="form-control" name="convention" />
@@ -237,11 +238,20 @@
                             </div>
                             <div class="col-6 form">
                                 <label>Problem name </label>
-                                <label class="aaa">(説明)</label>
+                                <!-- <label class="aaa">(説明)</label> -->
                                 <input type="text" name="problemName" value="{{form.problemName}}" class="form-control" required>
                                 <div class="invalid-msg">required</div>
                             </div>
                             <div class="col-6">
+                                <label>Force overwrite</label> 
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="overwrites_prob" value="uses" {% if form.overwrites_prob == "uses" %} checked {% endif %}>
+                                    <label class="form-check-label" for="flexCheckChecked">
+                                        overwrites already created data if the problem name is the same
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12">
                                 <label>Resistivity structure data </label>
                                 <input type="text" name="resistivity_structure_fp" value="{{form.resistivity_structure_fp}}" class="form-control" required>
                                 <div class="invalid-msg">required</div>

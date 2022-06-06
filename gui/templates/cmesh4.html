@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>cmesh3</title>
+    <title>cmesh4</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -28,6 +28,18 @@
 
         });
     </script>
+    <style>
+        /* inputのすぐ隣に配置するメッセージ要素 */
+        .invalid-msg {
+            font-size: 12px;
+            color: #ff7676;
+            display: none; /* 非表示に */
+        }
+        /* :invalid時だけ隣の要素を表示 */
+        input:invalid + .invalid-msg  {
+            display: block;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -57,33 +69,202 @@
             </div>
         </div>
         <br>
-        <h2>rocktype</h2>
-        {% for key, item in rocktypes.items() %}
-        <p>{{key}}</p>
-        <p>{{item}}</p>
-        {% endfor%}
         <hr>
-        <h1>できたよ</h1>
-        <h1 id="demo1">{{new_prob_fp}}</h1>
-        <h1>確認よろしく</h1>
+        <div class="row" style="color:#198754 ;">
+            <blockquote class="blockquote">
+                <div class="form-group">
+                    <label>Following problem directory have been newly created:</label>
+                    <input type="text" value="{{ form.t2FileDirFp }}" class="form-control"  readonly/>
+                </div>
+                <br>
+                <div class="form-group">
+                    <label>Following TOUGH3 grid file have been successfully created:</label>
+                    <input type="text" value="{{ form.t2GridFp }}" class="form-control"  readonly/>
+                </div>
+                <br>
+                <div class="form-group">
+                    <label>Mesh info have been written in following input.ini:</label>
+                    <input type="text" value="{{ form.inputIniFp }}" class="form-control"  readonly/>
+                </div>
+            </blockquote>
+        </div>
+        <br>
         <div class="row">
             <div class="col">
                 <form action="/cmesh5" method="post">
+                    <input type="hidden" value="{{form.original_iniFp}}" class="form-control" name="original_iniFp" />
                     <input type="hidden" value="{{inputIniFp}}" name="inputIniFp">
-                    <input type="submit" value="Create TOUGH3 inputs (go to cmesh4)" class="btn btn-primary">
+                    <input type="submit" value="Create TOUGH3 inputs (go to cmesh5)" class="btn btn-outline-primary btn-lg col-12">
                 </form>
             </div>
             <div class="col">
                 <form action="/" method="get">
-                    <input type="submit" value="Home" class="btn btn-success">
+                    <input type="submit" value="Go back to home" class="btn btn-outline-success btn-lg col-12">
                 </form>
             </div>
         </div>
+        <br>
+        <br>
+        <div class="row g-4">
+            <div class="card">
+                <div class="card-body">
+                    <form action="/cmesh4_visualize" method="post">
+                        <input type="hidden" value="{{form.original_iniFp}}" class="form-control" name="original_iniFp" />
+                        <input type="hidden" value="{{inputIniFp}}" name="inputIniFp">
+                        <input type="hidden" value="{{form.saveDir}}" name="saveDir">
+                        <input type="hidden" value="{{form.configIniFp}}"  name="configIniFp">
+                        <input type="hidden" value="{{form.mulgridFileFp}}"  name="mulgridFileFp">
+                        <input type="hidden" value="{{form.problemName}}"  name="problemName">
+                        <input type="hidden" value="{{form.t2GridFp}}"  name="t2GridFp">
+                        <input type="hidden" value="{{form.t2FileDirFp}}"  name="t2FileDirFp">
+                        <div class="row">
+                            <div class="col-12">
+                                <h1>Slice</h1>
+                            </div>
+                            <div class="col-12">
+                                <ul class="list-unstyled">
+                                    <li>Create slices using the PyTOUGH method mulgrid.slice_plot().</li>
+                                    <li>Value in the followng boxes are passed to the method as argument "line". (See details for PyTOUGH User's guide)</li>
+                                </ul>
+                                <ul class="list-unstyled">
+                                    <li>Available types of value are as follows: 
+                                        <ul>
+                                            <li>List of two horizontal (x,y) points defining the endpoints of the line (e.g., "[[1000,0],[-500,300]]")</li>
+                                            <li>string 'x' or 'y' to specify the x- or y-axis</li>
+                                            <li>northing (float) through grid centre (e.g., "45" means 45º counterclockwise from the east, if x is northing)</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                            <br>
+                            <div class="col-6">
+                                <label>#0</label>
+                                <input type="text" name="line_0" value="{{form.line_0}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                            <div class="col-6">
+                                <label>#1</label>
+                                <input type="text" name="line_1" value="{{form.line_1}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                            <div class="col-6">
+                                <label>#2</label>
+                                <input type="text" name="line_2" value="{{form.line_2}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                            <div class="col-6">
+                                <label>#3</label>
+                                <input type="text" name="line_3" value="{{form.line_3}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                            <div class="col-6">
+                                <label>#4</label>
+                                <input type="text" name="line_4" value="{{form.line_4}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                            <div class="col-6">
+                                <label>#5</label>
+                                <input type="text" name="line_5" value="{{form.line_5}}" class="form-control" pattern="{{PATTERN['plot_line']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['plot_line']}}</div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row">
+                            <h5>Axial range of slices</h5>
+                            <div class="col-3">
+                                <label>lateral min (m)</label>
+                                <input type="text" name="xmin" value="{{form.xmin}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+                                <div class="invalid-msg">{{TITLE['float']}}</div>
+                            </div>
+                            <div class="col-3">
+                                <label>lateral max (m)</label>
+                                <input type="text" name="xmax" value="{{form.xmax}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+                                <div class="invalid-msg">{{TITLE['float']}}</div>
+                            </div>
+                            <div class="col-3">
+                                <label>z min (m)</label>
+                                <input type="text" name="zmin" value="{{form.zmin}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+                                <div class="invalid-msg">{{TITLE['float']}}</div>
+                            </div>
+                            <div class="col-3">
+                                <label>z max (m)</label>
+                                <input type="text" name="zmax" value="{{form.zmax}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
+                                <div class="invalid-msg">{{TITLE['float']}}</div>
+                            </div>
+                        </div>                           
+                        <br>
+                        <div class="row">
+                            <div class="col-6">
+                                <input type="submit" value="recreate slices" class="btn btn-primary">
+                            </div> 
+                        </div> 
+                    </form>
+                </div> 
+            </div> 
+        </div>
+        <br>
+        <div class="row g-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-12">
+                            <h3>Plan view</h3>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <img src="{{show_images.layer.path}}" class="img-fluid" alt="{{show_images.layer.path}}" title="{{show_images.layer.caption}}">
+                        </div>
+                    </div> 
+                </div> 
+            </div> 
+        </div>
+        <br>
+        <div class="row g-4">
+            <div class="card">
+                <div class="card-body">
+                    {% for line_idx, image in show_images.slice.items() -%}
+                    <div class="row">
+                        <div class="col-12">
+                            <h3>line #{{line_idx}}</h3>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-6">
+                            <h5>Resistivity</h5>
+                        </div>
+                        <div class="col-6">
+                            <h5>Permeability</h5>
+                        </div>
+                    </div> 
+                    <div class="row">
+                        <div class="col-6">
+                            <img src="{{image.resis_path}}" class="img-fluid" alt="{{image.resis_path}}" title="{{image.resis_path}}">
+                        </div>
+                        <div class="col-6">
+                            <img src="{{image.perm_path}}" class="img-fluid" alt="{{image.perm_path}}" title="{{image.perm_path}}">
+                        </div>
+                    </div> 
+                    <br>
+                    {%- endfor %}
+                </div> 
+            </div> 
+        </div>
+            
+
+        <div class="row">
+            <div class="col">
+                <p></p>
+            </div>
+        </div>
+        
+        
+        
+        
+        
     </div>
-    {% for image in show_images -%}
-    <img src="{{image.path}}" alt="{{image.path}}" title="{{image.path}}">
-    {{image.caption}}
-    {%- endfor %}
     
+
 </body>
 </html>

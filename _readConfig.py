@@ -1,4 +1,5 @@
 #-------------------------------------------------------------------------------
+from attr import has
 from import_pytough_modules import *
 #
 from io import DEFAULT_BUFFER_SIZE
@@ -56,26 +57,7 @@ class SettingIni(object):
             except:
                 self.GRID_DIR = ""
             self.TOUGH_INPUT_DIR = config.get('toughConfig','TOUGH_INPUT_DIR')
-            self.INCON_FILE_NAME = config.get('toughConfig','INCON_FILE_NAME')
-            self.SAVE_FILE_NAME = config.get('toughConfig','SAVE_FILE_NAME')
-            try:
-                self.T3OUT_ESCAPE_DIRNAME = config.get('toughConfig','T3OUT_ESCAPE_DIRNAME')
-            except:
-                self.T3OUT_ESCAPE_DIRNAME = ""
-            try:
-                self.SAVEFIG_DIRNAME = config.get('toughConfig','SAVEFIG_DIRNAME')
-            except:
-                self.SAVEFIG_DIRNAME = ""
-            try:
-                self.OUTPUT_ELEME_CSV_FILE_NAME = \
-                    config.get('toughConfig','OUTPUT_ELEME_CSV_FILE_NAME')
-            except:
-                self.OUTPUT_ELEME_CSV_FILE_NAME = "OUTPUT_ELEME.csv"
-            try:
-                self.OUTPUT_CONNE_CSV_FILE_NAME = \
-                    config.get('toughConfig','OUTPUT_CONNE_CSV_FILE_NAME')
-            except:
-                self.OUTPUT_CONNE_CSV_FILE_NAME = "OUTPUT_CONNE.csv"
+
 
     # section: toughexec
     class _toughexec(object):
@@ -103,6 +85,8 @@ class SettingIni(object):
                 pass
     
     # section: ameshexec
+    """
+    # these settings are converted to define.py 
     class _ameshexec(object):
         def __init__(self, config: configparser.ConfigParser):
             try:
@@ -115,6 +99,7 @@ class SettingIni(object):
                 self.AMESH_PROG = None
                 self.INPUT_FILENAME = None
                 self.SEGMT_FILENAME = None
+    """
 
     def __init__(self, settingIniFp:str):
         """ get logger """
@@ -131,7 +116,7 @@ class SettingIni(object):
             raise FileNotFoundError
         self.toughConfig = self._toughConfig(self.config)
         self.toughexec = self._toughexec(self.config)
-        self.ameshexec = self._ameshexec(self.config)
+        # self.ameshexec = self._ameshexec(self.config)
 
 
 class InputIni(object):
@@ -205,62 +190,6 @@ class InputIni(object):
         except:
             logger.warning("Fail to construct path in InputIni.construct_path(). Skip.")
     
-        """
-        self.mulgridFileFp = os.path.join(
-                                baseDir, 
-                                self.setting.toughConfig.GRID_DIR, 
-                                self.toughInput['mulgridFileName'])
-       
-        # try:
-        #     # if TOUGH_INPUT_DIR setting is found in input.ini
-        #     TID = config['configuration']['TOUGH_INPUT_DIR']
-        #     if os.path.isdir(os.path.join(baseDir, TID)):
-        #         # overwrite TOUGH_INPUT_DIR in setting.ini
-        #         self.setting.toughConfig.TOUGH_INPUT_DIR = TID
-        #     else:
-        #         # if available TOUGH_INPUT_DIR is "not" found in input.ini
-        #         TID = self.setting.toughConfig.TOUGH_INPUT_DIR
-        # except:
-        #     # if available TOUGH_INPUT_DIR is "not" found in input.ini
-        #     TID = self.setting.toughConfig.TOUGH_INPUT_DIR
-        # self.t2FileDirFp = os.path.join(baseDir, TID, 
-        #                             self.toughInput['problemName'])
-
-        self.t2FileDirFp = os.path.join(
-                                baseDir, 
-                                self.setting.toughConfig.TOUGH_INPUT_DIR, 
-                                self.toughInput['problemName'])
-
-        if self.plot.reads_data_from_current_dir:
-            # To read result from current dir, 
-            # disguise self.t2FileDirFp with current inputIniFp
-            self.t2FileDirFp = os.path.abspath(os.path.dirname(self.inputIniFp))
-            print(f"now InputIni.t2FileDirFp is overwritten by directory including"\
-                  +" inputIni file for reading result in current place.")
-
-        self.t2FileFp = os.path.join(
-                                self.t2FileDirFp, 
-                                self.toughInput['t2DataFileName'])
-        self.t2GridFp = f"{self.t2FileFp}.grid"
-        self.tOutFileFp = os.path.join(
-                                self.t2FileDirFp, 
-                                self.toughInput['toughOutputFileName'])
-        self.resultVtuFileFp = os.path.join(
-                                self.t2FileDirFp,
-                                self.toughInput['resultVtuFileName'])
-        self.t3outEscapeFp = os.path.join(
-                                self.t2FileDirFp,
-                                self.setting.toughConfig.T3OUT_ESCAPE_DIRNAME)
-        self.savefigFp = os.path.join(
-                                self.t2FileDirFp,
-                                self.setting.toughConfig.SAVEFIG_DIRNAME)
-        self.inconFp = os.path.join(
-                                self.t2FileDirFp, 
-                                self.setting.toughConfig.INCON_FILE_NAME)
-        self.saveFp = os.path.join(
-                                self.t2FileDirFp, 
-                                self.setting.toughConfig.SAVE_FILE_NAME)
-        """
         self.validation()
 
         return self
@@ -325,16 +254,16 @@ class InputIni(object):
                                 FILENAME_RESULT_VTU)
         self.t3outEscapeFp = os.path.join(
                                 self.t2FileDirFp,
-                                self.setting.toughConfig.T3OUT_ESCAPE_DIRNAME)
+                                T3OUT_ESCAPE_DIRNAME)
         self.savefigFp = os.path.join(
                                 self.t2FileDirFp,
-                                self.setting.toughConfig.SAVEFIG_DIRNAME)
+                                SAVEFIG_DIRNAME)
         self.inconFp = os.path.join(
                                 self.t2FileDirFp, 
-                                self.setting.toughConfig.INCON_FILE_NAME)
+                                INCON_FILE_NAME)
         self.saveFp = os.path.join(
                                 self.t2FileDirFp, 
-                                self.setting.toughConfig.SAVE_FILE_NAME)
+                                SAVE_FILE_NAME)
 
     def validation(self):
         """ get logger """
@@ -595,26 +524,26 @@ class InputIni(object):
                 f"{__class__.__name__}.{sys._getframe().f_code.co_name}")
 
             try:
-                self.slice_plot_limits = eval(config.get('plot', 'slice_plot_limits'))
+                self.slice_plot_limits = eval(config['plot']['slice_plot_limits'])
             except:
                 self.slice_plot_limits = None
 
             try:
-                self.slice_plot_variables_T2 = eval(config.get('plot', 'slice_plot_variables_T2'))
+                self.slice_plot_variables_T2 = eval(config['plot']['slice_plot_variables_T2'])
             except:
                 self.slice_plot_variables_T2 = ['T', 'SG']
             try:
-                self.slice_plot_variables_T3 = eval(config.get('plot', 'slice_plot_variables_T3'))
+                self.slice_plot_variables_T3 = eval(config['plot']['slice_plot_variables_T3'])
             except:
-                self.slice_plot_variables_T3 = ['TEMP', 'SAT_G']
+                self.slice_plot_variables_T3 = ['RES', 'TEMP', 'SAT_G', 'SAT_S', 'X_WATER_G', 'X_CO2_G', 'X_WATER_L', 'X_NaCl_L', 'X_CO2_L', 'FLOW']
             
             try:
-                self.xoft_t_range = eval(config.get('plot', 'xoft_t_range'))
+                self.xoft_t_range = eval(config['plot']['xoft_t_range'])
             except:
                 self.xoft_t_range = None
             try:
                 self.gif_minimun_print_interval_sec = \
-                    eval(config.get('plot', 'gif_minimun_print_interval_sec'))
+                    eval(config['plot']['gif_minimun_print_interval_sec'])
             except:
                 self.gif_minimun_print_interval_sec = 1
             finally:
@@ -622,20 +551,24 @@ class InputIni(object):
                 if self.gif_minimun_print_interval_sec < 0.001:
                     self.gif_minimun_print_interval_sec = 0.001
             try:
-                self.columns_incon_plot = eval(config.get('plot', 'columns_incon_plot'))
+                self.columns_incon_plot = eval(config['plot']['columns_incon_plot'])
             except:
                 self.columns_incon_plot = None
             try:
                 # if true, reads data from directory where inputIni file put
                 self.reads_data_from_current_dir = \
-                    eval(config.get('plot', 'reads_data_from_current_dir'))
+                    eval(config['plot']['reads_data_from_current_dir'])
                 logger.info(f"reads_data_from_current_dir: {self.reads_data_from_current_dir}")
             except:
                 # reads data from InputIni.t2FileDirFp
                 self.reads_data_from_current_dir = False
             try:
                 self.profile_lines_list = \
-                    eval(config.get('plot', 'profile_lines_list'))
+                    eval(config['plot']['profile_lines_list'])
+                for i, line in enumerate(self.profile_lines_list):
+                    if isinstance(line, list):
+                        self.profile_lines_list[i] = np.array(line)
+                        
             except:
                 self.profile_lines_list = PROFILE_LINES_LIST_DEFAULT
             return self
@@ -757,7 +690,7 @@ class InputIni(object):
 
             # block
             if blk.name in self.blockList: 
-                logger.info(f"     blk'{blk.name}': True")
+                logger.debug(f"     blk'{blk.name}': True")
                 return True
             return False
 
@@ -1263,14 +1196,23 @@ class InputIni(object):
 
         if hasattr(self, 'plot'):
             keys = ['slice_plot_limits', 'slice_plot_variables_T2', 'slice_plot_variables_T3', 'xoft_t_range',
-                    'gif_minimun_print_interval_sec', 'columns_incon_plot', 'reads_data_from_current_dir', 
-                    'profile_lines_list']
+                    'gif_minimun_print_interval_sec', 'columns_incon_plot', 'reads_data_from_current_dir']
             for key in keys:
                 if hasattr(self.plot, key):
                     val = eval(f'self.plot.{key}')
                     config.set('plot', key, val if type(val) is str else repr(val))
                 else:
                     config.set('plot', key, '')
+            
+            if hasattr(self.plot, 'profile_lines_list'):
+                tmp = []
+                for i, line in enumerate(self.plot.profile_lines_list):
+                    if isinstance(line, np.ndarray): 
+                        # np.ndarrayを文字列に変換するとおかしくなるのでlistに戻す
+                        tmp.append([list(line[0]), list(line[1])])
+                    else: 
+                        tmp.append(line)
+                config.set('plot', 'profile_lines_list', repr(tmp))
 
         if hasattr(self, 'boundary'):
             keys = ['boundary_side_permeable']
@@ -1324,13 +1266,4 @@ class InputIni(object):
         
 
 if __name__ == '__main__':
-    # ini = InputIni().read_from_inifile('/Users/matsunagakousei/sourceCodes/TOUGH3/exec/bfkst_thesis/T297_structure/result/full_test/full_bcgsl_asm_m1e-15_cd1e-13_flux_25_0.5_T297_re1e-08.ini')
-    ini = InputIni().read_from_inifile('/Users/matsunagakousei/sourceCodes/TOUGH3/exec/JDR_revision/full_bcgsl_asm_m1e-15_cd1e-13_flux_25_0.5_T297_re1e-08.ini')
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-    ini = InputIni().read_from_inifile('iniSample/input_radial_converged_eco2n.ini')
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-    ini = InputIni().read_from_inifile('iniSample/input_radial_converged_eco2n.ini')
-    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-    # ini = InputIni().read_from_inifile('exec/bfkst_thesis/T297_structure/result/full_bcgsl_asm_m1e-15_cd1e-13_flux_25_0.5_T297_re1e-08.ini')
-    # ini.output2inifile('test_out.ini')
-    # ini = InputIni().read_from_inifile('test_out.ini')
+    pass

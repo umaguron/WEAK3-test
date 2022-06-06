@@ -47,6 +47,12 @@
                         <td>上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。</td>
                     </tr>
                     <tr>
+                        <th>[toughConfig]</th>
+                        <td></td>
+                        <td><b>t2dataDir</b></td>
+                        <td>シミュレーションごとのフォルダがこのディレクトリ配下に作成され、input/output fileが書き出される。</td>
+                    </tr>
+                    <!-- <tr>
                         <th rowspan="8">[toughConfig]</th>
                         <td rowspan="8"></td>
                         <td><b>t2dataDir</b></td>
@@ -75,7 +81,7 @@
                         <td colspan="2">その他の項目については、以下のようにする。</td>
                     </tr>
                     <tr><td>INPUT_FILENAME</td><td>in</td></tr>
-                    <tr><td>SEGMT_FILENAME</td><td>segmt</td></tr>
+                    <tr><td>SEGMT_FILENAME</td><td>segmt</td></tr> -->
                 </tbody>
             </table>
         </div>
@@ -297,14 +303,126 @@
         <br>
         <div class="row">
             <div class="col">
-                一番下の <button class="btn btn-primary">Check</button> を押下すると、tough3のメッシュのテスト作成を行う。エラーがなければcmesh4の画面に遷移する。
+                一番下の <button class="btn btn-primary btn-small">Check</button> を押下すると、tough3のメッシュのテスト作成を行う。エラーがなければcmesh4の画面に遷移する。
             </div>
         </div>
         <br>
         <br>
         <br>
         <h1>cmesh4</h1>
+        <div class="row">
+            <ul class="list-unstyled">
+                <li>上部に作成されたグリッドファイルと、ここまで入力したメッシュ情報が書き出されたinput.iniのパス、それらが書き出されたディレクトリ（problem directory）が表示されている。</li>
+                <li>後半は作成された浸透率構造の断面図を、もととなった比抵抗構造と比較することができる。</li>
+                <li>問題なければ <button class="btn btn-primary btn-small">Go to cmesh5</button>を押下し、TOUGH3シミュレーションのパラメータ設定に進む。</li>
+            </ul>
+        </div>
+        <div class="row">
+            <h4>Slices</h4>
+            <div class="col">  
+                <ul class="">
+                    <li><b>line #0 - #5</b>のテキストボックスには説明に従って、作成したい断面の位置を定義する。</li>
+                    <li>各断面図の描画範囲は、<b>Axial range of slices</b>で指定可能。（すべての図に一括適用されることに注意）</li>
+                    <li>recreate slicesを押下すると入力値をもとに断面を作り直す。</li>
+                </ul>
+                <ul class="list-unstyled">
+                    <li>作成された断面はproblem directoryにも保存される。</li>
+                    <li>ここで定義した断面の情報はinput.iniに記録され、シミュレーション結果の断面図(温度、塩濃度、比抵抗など)を描画する際にも使われる。</li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">  
+            <b>plan view</b>
+            <ul class="list-unstyled">
+                <li>作成したメッシュの平面図（セル上にはカラムindex）</li>
+            </ul>
+            <b>line #0 - 5</b>
+            <ul class="list-unstyled">
+                <li>Slicesの各テキストボックスで指定した位置での断面図</li>
+            </ul>
+        </div>
+        <div class="row">  
+            <h5><b>その他</b></h5>
+            <div class="col">  
+                <ul class="">
+                    <li>ここまでの情報はすでにinput.iniに記録されているので、ここで中断しても問題ない。</li>
+                    <li><a href="http://localhost:8000/">home</a>の"read from existing input.ini (cmesh3_readFromIni)"にinput.iniのパスを指定すればcmesh3の設定から再開可能。</li>
+                    <li>cmesh4までに作成されたinput.iniは不完全なため、makeGridAmeshVoro.py, tough3exec_ws.py, run.pyに食わせてもエラーになる。</li>
+                </ul>
+            </div>
+        </div>
+        <br>
+        <br>
         <h1>cmesh5</h1>
+        <div class="row">
+            <ul class="list-unstyled">
+                <li>シミュレーションのパラメータ設定を行う。</li>
+                <li>各パラメータフォームの横にはTOUGH3 マニュアルからコピーした説明が書いてある。全部ではないので詳細はマニュアルを参照すること。</li>
+                <li>メッシュ情報(cmesh4まで)が作成済みの場合、<a href="http://localhost:8000/">home</a>の"read from existing input.ini (cmesh5)"にinput.iniのパスを指定すればcmesh5の設定から再開可能。</li>
+            </ul>
+            
+            <h4>INCON</h4>
+            <p>初期条件を指定する。３種類の初期条件が指定可能。</p>
+            <div class="col">
+                <ul>
+                    <li><b>前回のシミュレーションの終了状態</b></li>
+                    <ul>
+                        <li>TOUGH3シミュレーション終了時に出力されるSAVEのファイルパスを指定する。</li>
+                        <li>同じ形状のメッシュを使ったシミュレーションであることが必要</li>
+                    </ul>
+                    <li><b>1次元鉛直シミュレーションの結果</b></li>
+                    <ul>
+                        <li>１次元鉛直グリッドによるシミュレーション結果(温度、圧力)を地表を上端として各カラムに貼り付ける。</li>
+                        <li>１次元シミュレーションの結果は補間されるため、グリッド間隔は同じである必要はない。</li>
+                        <li>貼り付け先のメッシュより深部までのシミュレーション結果が必要(補間できずエラーになる)</li>
+                    </ul>
+                    <li><b>静水圧かつ一定の地温勾配</b></li>
+                    <ul>
+                        <li>地温勾配は、地殻熱流量と岩石の熱伝導率で決まる。これらを各テキストボックス指定すると地温勾配が計算される。</li>
+                        <li>計算された地温勾配のみinput.iniに記録される。</li>
+                    </ul>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <h4>GENER</h4>
+            <div class="col">
+                <ul>
+                    <li>流体を注入する場合、注入ブロックと流量、温度をここで指定する。</li> 
+                    <li>温度はエンタルピーに変換されTOUGH3の入力として使用される。</li> 
+                    <li>NaClやCO2に関しては温度→エンタルピーの変換を実装していないため、どんな温度を設定しても0kJ/kgになることに注意。</li> 
+                </ul>
+            </div>
+        </div>
+        <br>
+        <div class="row">
+            <p>一番下の <button class="btn btn-primary btn-small">Check</button> を押下すると、入力された情報をもとにinput.iniの作成を行う。input.ini作成に成功すると 
+                <button type="button" class="btn btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                    Download
+                </button>
+                と 
+                <button class="btn btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-forward" viewBox="0 0 16 16">
+                        <path d="M9.502 5.513a.144.144 0 0 0-.202.134V6.65a.5.5 0 0 1-.5.5H2.5v2.9h6.3a.5.5 0 0 1 .5.5v1.003c0 .108.11.176.202.134l3.984-2.933a.51.51 0 0 1 .042-.028.147.147 0 0 0 0-.252.51.51 0 0 1-.042-.028L9.502 5.513zM8.3 5.647a1.144 1.144 0 0 1 1.767-.96l3.994 2.94a1.147 1.147 0 0 1 0 1.946l-3.994 2.94a1.144 1.144 0 0 1-1.767-.96v-.503H2a.5.5 0 0 1-.5-.5v-3.9a.5.5 0 0 1 .5-.5h6.3v-.503z"/>
+                    </svg>
+                    Create inputs
+                </button>
+                が画面上部に表示される。</p>
+            <div class="col">
+                <ul class="">
+                    <li><b>Download</b>では作成したinput.iniをダウンロードできる。</li>
+                    <li><b>Create inputs</b>を押下すると作成されたinput.iniを用いてメッシュとTOUGH3インプットファイルの作成を行う。</li>
+                    <ul class="">
+                        <li>makeGridAmeshVoro.py, tough3exec_ws.py を使用</li>
+                        <li>input.iniのエラーチェックも兼ねて実行しておくのがおすすめ。</li>
+                    </ul>
+                </ul>
+            </div>
+        </div>
     </div>
 </body>
 </html>

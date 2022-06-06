@@ -16,7 +16,29 @@ FILENAME_TOUGH_OUTPUT = 'output.listing'
 FILENAME_RESULT_VTU = 'result.vtu'
 FILENAME_GRIDVTK = 'grid.vtu'
 
-"""image files"""
+INCON_FILE_NAME = 'INCON'
+SAVE_FILE_NAME = 'SAVE'
+OUTPUT_ELEME_CSV_FILE_NAME = 'OUTPUT_ELEME.csv'
+OUTPUT_CONNE_CSV_FILE_NAME = 'OUTPUT_CONNE.csv'
+
+# for visualization of permeability and original resistivity structures
+PICKLED_MULGRID_RES = 'mulgrid_resistivity.npy'
+PICKLED_MULGRID_PERM = 'mulgrid_permeability.npy'
+PICKLED_INPUTINI = 'InputIni.pickle'
+
+"""dir names """
+# dir. path from TOUGH_INPUT_DIR
+T3OUT_ESCAPE_DIRNAME = '0t3out'
+# dir. path from TOUGH_INPUT_DIR
+SAVEFIG_DIRNAME = '0fig'
+
+"""AMESH"""
+AMESH_DIR = "amesh/Source/"
+AMESH_PROG = "amesh"
+AMESH_INPUT_FILENAME = "in"
+AMESH_SEGMT_FILENAME = "segmt"
+
+"""name of image files"""
 IMG_LAYER_SURFACE = 'layer_surface'
 IMG_PERM_SLICE_X = 'permeability_slice-x'
 IMG_PERM_SLICE_Y = 'permeability_slice-y'
@@ -52,6 +74,7 @@ REGULAR = "REGULAR"
 AMESH_VORONOI = "A_VORO"
 """[plot]"""
 PROFILE_LINES_LIST_DEFAULT = ['x']
+FONT_SIZE = 10
 
 # resistivity of host rock used in the calculation of HS bounds
 HOSTROCK_RESISTIVITY = 100

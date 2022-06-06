@@ -10,7 +10,7 @@ import define
 class Const(object):
     """テンプレートで利用する定数を定義する"""
     # constant 
-    ROCKTYPE_LEN = 5
+    ROCKTYPE_LEN = 6
 
     
     # validation and message
@@ -44,7 +44,11 @@ class Const(object):
     
     PATTERN['blkname'] = "[ A-z0-9]{1,5}"
     TITLE['blkname'] = "ブロック名(5文字以内)"
+    
+    PATTERN['plot_line'] = ".*"
+    TITLE['plot_line'] = ""
 
     # define.pyの中身をそのまま使いたい
     DEFINE = define
+    
 

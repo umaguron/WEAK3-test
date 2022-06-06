@@ -264,12 +264,10 @@ def makeToughInput(ini:_readConfig.InputIni):
         print("[tough3exec] INCON created (hydrostatic)")
     else:
         # case use result of previous run as initial contion
-        pnpr = os.path.join(baseDir, II['problemNamePreviousRun'], 
-                                    ini.setting.toughConfig.SAVE_FILE_NAME)
+        pnpr = os.path.join(baseDir, II['problemNamePreviousRun'], SAVE_FILE_NAME)
         previousRunResultFp = \
             os.path.join(baseDir, ini.setting.toughConfig.TOUGH_INPUT_DIR, 
-                                    II['problemNamePreviousRun'], 
-                                    ini.setting.toughConfig.SAVE_FILE_NAME)
+                                    II['problemNamePreviousRun'], SAVE_FILE_NAME)
         
         # if inputini.problemNamePreviousRun is arbitrary relative path of problemname including SAVE, 
         if os.path.isfile(pnpr): previousRunResultFp = pnpr

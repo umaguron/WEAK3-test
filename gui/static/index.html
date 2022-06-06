@@ -1,22 +1,18 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <title>cmesh1</title>
+    <title>index</title>
 </head>
 <body>
-<a href="/usage">usage</a>
-<a href="cmesh1">cmesh1</a>
+<p><a href="/usage">usage</a></p>
+<p><a href="cmesh1">cmesh1</a></p>
 <form action="cmesh3_readFromIni" method="post">
-    <input type="text" placeholder="path of setting file" name="inputIniFp"/>
-    <input type="submit" value="read from existing setting file (cmesh3_readFromIni)"/>
+    <input type="text" placeholder="path of input.ini" name="original_iniFp"/>
+    <input type="submit" value="read from existing input.ini (cmesh3_readFromIni)"/>
 </form>
 <form action="cmesh5" method="post">
-    <input type="text" placeholder="path of setting file" name="inputIniFp"/>
-    <input type="submit" value="cmesh5"/>
+    <input type="text" placeholder="path of input.ini" name="inputIniFp"/>
+    <input type="submit" value="read from existing input.ini cmesh5"/>
 </form>
-<!-- <form action="cmesh5_readFromIni" method="post">
-    <input type="text" placeholder="path of setting file" name="iniFp"/>
-    <input type="submit" value="cmesh5_readFromIni"/>
-</form> -->
 </body>
 </html>

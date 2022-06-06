@@ -1,3 +1,6 @@
+from asyncio.log import logger
+
+from click import style
 from import_pytough_modules import *
 from t2data import *
 import math
@@ -10,6 +13,9 @@ from pytough_override import mulgridSubVoronoiAmesh
 from scipy.interpolate import LinearNDInterpolator
 import pandas as pd
 import functionUtil as fu
+import pickle
+import define_logging
+
 vtk = os.path.join(baseDir, "mesh_with_topography.vtk")
 
 def main():
@@ -114,7 +120,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     [required files or program]
         ini.amesh_voronoi.voronoi_seeds_list_fp
         ini.amesh_voronoi.topodata_fp
-        ini.setting.ameshexec.AMESH_PROG
+        define.AMESH_PROG
 
     """
     import os
@@ -123,10 +129,8 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     # clean
     try:
         os.remove(mulgraph_no_topo_fn) 
-        os.remove(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
-                            ini.setting.ameshexec.INPUT_FILENAME))
-        os.remove(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
-                            ini.setting.ameshexec.SEGMT_FILENAME))
+        os.remove(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME))
+        os.remove(os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME))
     except FileNotFoundError:
         pass
     
@@ -145,8 +149,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     elevation = ini.amesh_voronoi.elevation_top_layer
     layer_id = 1
-    with open(os.path.join(ini.setting.ameshexec.AMESH_DIR, 
-                        ini.setting.ameshexec.INPUT_FILENAME), "w") as f:
+    with open(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), "w") as f:
         f.write("locat\n")
         for l in ini.amesh_voronoi.layer_thicknesses:
             col_id = 1
@@ -162,17 +165,17 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     execute prog AMESH
     """
-    os.chdir(ini.setting.ameshexec.AMESH_DIR)
+    os.chdir(AMESH_DIR)
     print("*** executing program AMESH")
     start = time.perf_counter()
-    os.system(os.path.join(".", ini.setting.ameshexec.AMESH_PROG))
+    os.system(os.path.join(".", AMESH_PROG))
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
     os.chdir(baseDir)
 
     # TODO check files existence 
-    # os.path.join(ini.setting.ameshexec.AMESH_DIR, ini.setting.ameshexec.INPUT_FILENAME)
-    # os.path.join(ini.setting.ameshexec.AMESH_DIR, ini.setting.ameshexec.SEGMT_FILENAME)
+    # os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME)
+    # os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME)
     # なければameshが動いていない
 
     """
@@ -183,10 +186,8 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     print("*** converting AMESH segmt file to mulgrid object")
     start = time.perf_counter()
     geo,blockmap=mulgridSubVoronoiAmesh().from_amesh(
-                            os.path.join(ini.setting.ameshexec.AMESH_DIR, 
-                                        ini.setting.ameshexec.INPUT_FILENAME), 
-                            os.path.join(ini.setting.ameshexec.AMESH_DIR, 
-                                        ini.setting.ameshexec.SEGMT_FILENAME),
+                            os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), 
+                            os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME),
                             convention=ini.mesh.convention)
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
@@ -269,6 +270,10 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
         Exception: [description]
     """
 
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+    
     if ini.mesh.type != AMESH_VORONOI:
         sys.exit()
 
@@ -305,8 +310,21 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     y = np.array(df['y'])
     z = np.array(df['z'])*(-1) # convert bsl to asl
     res = np.array(df['res'])
-    # create resistivity interpolating function
-    interpRes = LinearNDInterpolator(list(zip(x,y,z)), res)
+    
+    # create or load resistivity interpolating function 
+    pickled = ini.mesh.resistivity_structure_fp+"_pickled"
+    if os.path.isfile(pickled):
+        logger.debug(f"load pickled interpolating function: {pickled}")
+        # load selialized interpolating function
+        with open(pickled, 'rb') as f:
+            interpRes = pickle.load(f)   
+    else:
+        logger.debug(f"create interpolating function and pickle: {pickled}")
+        # interpolating function
+        interpRes = LinearNDInterpolator(list(zip(x,y,z)), res)
+        # serialize and save
+        with open(pickled, 'wb') as f:
+            pickle.dump(interpRes, f)         
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
 
@@ -486,19 +504,88 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
 
     variable_res = np.array(temp_res)
     variable_perm = np.array(temp_perm)
+    
+    """pickle created array for next visualization"""
+    if not os.path.isdir(ini.savefigFp):
+        os.makedirs(ini.savefigFp)
+    np.save(os.path.join(ini.savefigFp, PICKLED_MULGRID_PERM), variable_perm)
+    np.save(os.path.join(ini.savefigFp, PICKLED_MULGRID_RES), variable_res)
+    
+    """visualize"""
+    visualize(ini, 
+              geo_topo, 
+              variable_res,
+              variable_perm,
+              fex=fex, 
+              open_viewer=open_viewer, 
+              plot_all_layers=plot_all_layers,
+              layer_no_to_plot=layer_no_to_plot)
+ 
+    
+def visualize(ini:_readConfig.InputIni,
+                geo_topo: mulgrid,
+                variable_resistivity: np.array,
+                variable_permeability: np.array,
+                fex='pdf',
+                open_viewer=False,
+                plot_all_layers=False,
+                layer_no_to_plot=None ):
+    """_summary_
 
+    Args:
+        ini (_readConfig.InputIni): _description_
+        geo_topo (mulgrid): _description_
+        variable_resistivity (np.array): loaded array of (ini.savefigFp)/(PICKLED_MULGRID_PERM)
+        variable_permeability (np.array): loaded array of (ini.savefigFp)/(PICKLED_MULGRID_RES)
+        fex (str, optional): extention of created figures. Defaults to 'pdf'.
+        open_viewer (bool, optional): 
+            If True, open window viewing figures, insted of saving image. Defaults to True.
+        plot_all_layers(bool, optional):
+            If True, create horizontal slice for all layers.
+        layer_no_to_plot (int, optional):
+            If not none, a horizontal slice of specified layer number is created.
+    """
+    
     if open_viewer:
         # open viewer
         plt = None
     else:
         # save image insted of opening viewer
         import matplotlib.pyplot as plt
-    plt.rcParams["font.size"] = 6
-    geo_topo.layer_plot(None, column_names=True, plt=plt)
+        plt.rcParams["font.size"] = FONT_SIZE
+    geo_topo.layer_plot(None, column_names=True, plt=plt, 
+                        xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
     if not open_viewer:
         # invert y axis
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
+        # plot location of profiles
+        for i, line in enumerate(ini.plot.profile_lines_list):
+            if isinstance(line, (float, int)):
+                x = plt.xlim()
+                y = [plt.xlim()[0]*math.tan((90-line)/180*math.pi), 
+                     plt.xlim()[1]*math.tan((90-line)/180*math.pi)]
+                if abs(plt.xlim()[1]) > abs(plt.ylim()[1]*math.tan(line/180*math.pi)):
+                    text_pos = [plt.ylim()[1]*math.tan(line/180*math.pi), 
+                                plt.ylim()[1]]
+                else:
+                    text_pos = [plt.xlim()[1], 
+                                plt.xlim()[1]*math.tan((90-line)/180*math.pi)]
+            elif str(line).strip().lower() == 'x':
+                x, y = plt.xlim(), [0, 0]
+                text_pos = [plt.xlim()[1], 0]
+            elif str(line).strip().lower() == 'y':
+                x, y = [0, 0], plt.ylim()
+                text_pos = [0, plt.ylim()[1]]
+            elif isinstance(line, (list, np.ndarray)):
+                x = [line[0][0], line[1][0]]
+                y = [line[0][1], line[1][1]]
+                text_pos = [line[1][0], line[1][1]]
+            else:
+                continue
+            plt.plot(x, y, linewidth=1.0, label=f'line #{i}')
+            plt.text(text_pos[0], text_pos[1], f'line #{i}', fontsize=10)
+            
         plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_LAYER_SURFACE}.{fex}"))
     
     # position of slice
@@ -515,13 +602,13 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
 
     for x in xslices:
         linex = np.array([[x,geo_topo.bounds[0][1]],[x,geo_topo.bounds[1][1]]])
-        geo_topo.slice_plot(line=linex, variable=np.log10(variable_perm), 
+        geo_topo.slice_plot(line=linex, variable=np.log10(variable_permeability), 
                             colourmap=CMAP_PERMEABILITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_X}{x}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=linex, variable=np.log10(variable_res), 
+        geo_topo.slice_plot(line=linex, variable=np.log10(variable_resistivity), 
                             colourmap=CMAP_RESISTIVITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
@@ -530,13 +617,13 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     
     for y in yslices:
         liney = np.array([[geo_topo.bounds[0][0],y],[geo_topo.bounds[1][0],y]])
-        geo_topo.slice_plot(line=liney, variable=np.log10(variable_perm), 
+        geo_topo.slice_plot(line=liney, variable=np.log10(variable_permeability), 
                             colourmap=CMAP_PERMEABILITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Y}{y}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=liney, variable=np.log10(variable_res), 
+        geo_topo.slice_plot(line=liney, variable=np.log10(variable_resistivity), 
                             colourmap=CMAP_RESISTIVITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
@@ -544,7 +631,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             plt.close()
     
     for z in zslices:
-        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_perm),
+        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_permeability),
                             colourmap=CMAP_PERMEABILITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
@@ -553,7 +640,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             plt.ylim((lim[1],lim[0]))
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Z}{z}.{fex}"))
             plt.close()
-        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_res),
+        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_resistivity),
                             colourmap=CMAP_RESISTIVITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
@@ -564,14 +651,14 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             plt.close()
 
     for l, line in enumerate(ini.plot.profile_lines_list):
-        geo_topo.slice_plot(line=line, variable=np.log10(variable_perm), 
+        geo_topo.slice_plot(line=line, variable=np.log10(variable_permeability), 
                             colourmap=CMAP_PERMEABILITY, plt=plt,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=line, variable=np.log10(variable_res), 
+        geo_topo.slice_plot(line=line, variable=np.log10(variable_resistivity), 
                             colourmap=CMAP_RESISTIVITY, plt=plt,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10RES)
@@ -582,7 +669,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     # plot for all layer
     if plot_all_layers:
         for layer in geo_topo.layer:
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_perm),
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
                                 colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
                                 colourbar_limits=CBAR_LIM_LOG10PERM)
             if not open_viewer:
@@ -591,7 +678,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
                 plt.ylim((lim[1],lim[0]))
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
                 plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_res),
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
                                 colourmap=CMAP_RESISTIVITY, plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
                                 column_names=True)
@@ -605,7 +692,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     if layer_no_to_plot is not None:
         for layer in geo_topo.layer:
             if layer_no_to_plot != int(layer): continue
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_perm),
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
                                 colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
                                 colourbar_limits=CBAR_LIM_LOG10PERM)
             if not open_viewer:
@@ -614,7 +701,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
                 plt.ylim((lim[1],lim[0]))
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
                 plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_res),
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
                                 colourmap=CMAP_RESISTIVITY, plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
                                 column_names=True)
@@ -649,18 +736,19 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
         plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_TOPO}.{fex}"))
         plt.close()
     
-    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_perm), 
+    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_permeability), 
     #                     colourmap=CMAP_PERMEABILITY, plt=plt)
     # if not open_viewer:
     #     plt.savefig(os.path.join(ini.t2FileDirFp, f"permeability_slice-{angle}."+fex))
     #     plt.close()
     
-    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_res), 
+    # geo_topo.slice_plot(line=angle, variable=np.log10(variable_resistivity), 
     #                     colourmap=CMAP_RESISTIVITY, plt=plt,
     #                     colourbar_limits=CBAR_LIM_LOG10RES)
     # if not open_viewer:
     #     plt.savefig(os.path.join(ini.t2FileDirFp, f"resistivity_slice-{angle}."+fex))
     #     plt.close()
+
 
 def get_outer_boundary_blocks(geo:mulgrid, grid:t2grid, convention:int):
     """

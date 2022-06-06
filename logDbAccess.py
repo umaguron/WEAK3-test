@@ -1,7 +1,9 @@
 import sqlite3
 import _readConfig
 from define import *
-import os, re
+import os, re, sys
+import define_logging
+
 
 def insertToughInput(conn: sqlite3.Connection, 
                     ini: _readConfig.InputIni,
@@ -18,6 +20,10 @@ def insertToughInput(conn: sqlite3.Connection,
     Returns:
         lastrowid: rowid of last updated record
     """
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+
     II = ini.toughInput
     c = conn.cursor()
 
@@ -49,6 +55,13 @@ def insertToughInput(conn: sqlite3.Connection,
     # 20211019 added column
     solver_params = ['matslv','z_precond','o_precond','relative_max_iterations','closure',
                      'nProc','ksp_type','pc_type','ksp_rtol']
+    
+    # 20220603 detect parameter existence
+    params2 = ['print_interval','max_timesteps','print_level','tstop',
+               'const_timestep','gravity','MOPs01','MOPs02','MOPs03',
+               'MOPs04','MOPs05','MOPs06','MOPs07','MOPs08','MOPs09',
+               'MOPs10','MOPs11','MOPs12','MOPs13','MOPs14','MOPs15',
+               'MOPs16','MOPs17']
 
     """ update table toughInput"""
     # search record and check exitence
@@ -76,31 +89,8 @@ def insertToughInput(conn: sqlite3.Connection,
                 num_equations ,
                 num_phases ,
                 num_secondary_parameters ,
-                print_interval ,
-                max_timesteps ,
-                print_level ,
-                tstop ,
-                const_timestep ,
-                gravity ,
                 PRIMARY_AIR ,
                 PRIMARY_default ,
-                MOPs01 ,
-                MOPs02 ,
-                MOPs03 ,
-                MOPs04 ,
-                MOPs05 ,
-                MOPs06 ,
-                MOPs07 ,
-                MOPs08 ,
-                MOPs09 ,
-                MOPs10 ,
-                MOPs11 ,
-                MOPs12 ,
-                MOPs13 ,
-                MOPs14 ,
-                MOPs15 ,
-                MOPs16 ,
-                MOPs17 ,
                 problemNamePreviousRun ,
                 rockSecList ,
                 generSecList ,
@@ -121,31 +111,8 @@ def insertToughInput(conn: sqlite3.Connection,
                 {II['num_equations']} ,
                 {II['num_phases']} ,
                 {II['num_secondary_parameters']} ,
-                {II['print_interval']} ,
-                {II['max_timesteps']} ,
-                {II['print_level']} ,
-                {II['tstop']} ,
-                {II['const_timestep']} ,
-                {II['gravity']} ,
                 "{ini.atmosphere.PRIMARY_AIR}" ,
                 "{II['PRIMARY_default']}" ,
-                {II['MOPs01']} ,
-                {II['MOPs02']} ,
-                {II['MOPs03']} ,
-                {II['MOPs04']} ,
-                {II['MOPs05']} ,
-                {II['MOPs06']} ,
-                {II['MOPs07']} ,
-                {II['MOPs08']} ,
-                {II['MOPs09']} ,
-                {II['MOPs10']} ,
-                {II['MOPs11']} ,
-                {II['MOPs12']} ,
-                {II['MOPs13']} ,
-                {II['MOPs14']} ,
-                {II['MOPs15']} ,
-                {II['MOPs16']} ,
-                {II['MOPs17']} ,
                 '{II['problemNamePreviousRun']}' ,
                 "{II['rockSecList']}" ,
                 "{II['generSecList']}" ,
@@ -163,6 +130,14 @@ def insertToughInput(conn: sqlite3.Connection,
                 col_str += f', {sp}' 
                 value_str += f", '{getattr(ini.solver, sp)}'" 
 
+        for param in params2:
+            if param in II and len(str(II[param]))>0 :
+                col_str += f", {param}"
+                value_str += f", {II[param]}"
+
+        logger.debug('col_str  '+ repr(col_str))
+        logger.debug('value_str  '+ repr(value_str))
+        
         sql = f"INSERT INTO toughInput({col_str}) VALUES ({value_str})"  
     elif result is not None and overWrites:
         print(f"[toughinput] overwrite already existing "\
@@ -183,31 +158,8 @@ def insertToughInput(conn: sqlite3.Connection,
                 num_equations ,
                 num_phases ,
                 num_secondary_parameters ,
-                print_interval ,
-                max_timesteps ,
-                print_level ,
-                tstop ,
-                const_timestep ,
-                gravity ,
                 PRIMARY_AIR ,
                 PRIMARY_default ,
-                MOPs01 ,
-                MOPs02 ,
-                MOPs03 ,
-                MOPs04 ,
-                MOPs05 ,
-                MOPs06 ,
-                MOPs07 ,
-                MOPs08 ,
-                MOPs09 ,
-                MOPs10 ,
-                MOPs11 ,
-                MOPs12 ,
-                MOPs13 ,
-                MOPs14 ,
-                MOPs15 ,
-                MOPs16 ,
-                MOPs17 ,
                 problemNamePreviousRun ,
                 rockSecList ,
                 generSecList ,
@@ -230,31 +182,8 @@ def insertToughInput(conn: sqlite3.Connection,
                 {II['num_equations']} ,
                 {II['num_phases']} ,
                 {II['num_secondary_parameters']} ,
-                {II['print_interval']} ,
-                {II['max_timesteps']} ,
-                {II['print_level']} ,
-                {II['tstop']} ,
-                {II['const_timestep']} ,
-                {II['gravity']} ,
                 "{ini.atmosphere.PRIMARY_AIR}" ,
                 "{II['PRIMARY_default']}" ,
-                {II['MOPs01']} ,
-                {II['MOPs02']} ,
-                {II['MOPs03']} ,
-                {II['MOPs04']} ,
-                {II['MOPs05']} ,
-                {II['MOPs06']} ,
-                {II['MOPs07']} ,
-                {II['MOPs08']} ,
-                {II['MOPs09']} ,
-                {II['MOPs10']} ,
-                {II['MOPs11']} ,
-                {II['MOPs12']} ,
-                {II['MOPs13']} ,
-                {II['MOPs14']} ,
-                {II['MOPs15']} ,
-                {II['MOPs16']} ,
-                {II['MOPs17']} ,
                 '{II['problemNamePreviousRun']}' ,
                 "{II['rockSecList']}" ,
                 "{II['generSecList']}" ,
@@ -271,6 +200,14 @@ def insertToughInput(conn: sqlite3.Connection,
             if hasattr(ini.solver, sp):
                 col_str += f', {sp}' 
                 value_str += f", '{getattr(ini.solver, sp)}'" 
+        
+        for param in params2:
+            if param in II and len(str(II[param]))>0 :
+                col_str += f", {param}"
+                value_str += f", {II[param]}"
+
+        logger.debug('col_str  '+ repr(col_str))
+        logger.debug('value_str  '+ repr(value_str))
 
         sql = f"REPLACE INTO toughInput({col_str}) VALUES ({value_str})"  
     else:

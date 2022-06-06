@@ -1,9 +1,12 @@
 from ast import Name
 from distutils.command.config import config
+from imp import init_builtin
 # from distutils.log import error
 import os 
 import sys
 import pathlib
+
+from numpy import isin
 # from unittest import result
 baseDir = pathlib.Path(__file__).parent.resolve()
 sys.path.append(baseDir)
@@ -28,6 +31,8 @@ import math
 import dict_gui
 import time
 import shutil
+import pickle
+from constants import Const
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -201,9 +206,17 @@ def cmesh3():
 def cmesh3_validate(request:request):
     error_msg = {}
     if not os.path.isfile(create_fullpath(request.form['resistivity_structure_fp'])):
-        error_msg['resistivity_structure_fp']= f"Resistivity structure data: '{create_fullpath(request.form['resistivity_structure_fp'])}' not found" 
-    if os.path.isdir(os.path.join(request.form['saveDir'], request.form['problemName'])):
-        error_msg['problemName']= f"problem: '{os.path.join(request.form['saveDir'],request.form['problemName'])}' already exists." 
+        error_msg['resistivity_structure_fp']= \
+            f"Resistivity structure data: "\
+            f"'{create_fullpath(request.form['resistivity_structure_fp'])}'"\
+            " not found" 
+    if os.path.isdir(os.path.join(request.form['saveDir'], 
+                                  request.form['problemName']))\
+            and not 'overwrites_prob' in request.form:
+        error_msg['problemName']= \
+            f"problem: "\
+            f"'{os.path.join(request.form['saveDir'],request.form['problemName'])}'"\
+            f" already exists." 
 
     # validation用ダミー変数&クラス
     rho, x, y, z, k_x, k_y, k_z, phi, surface, depth, porosity, perm = 1,2,3,4,5,6,7,8,9,10,11,12
@@ -258,11 +271,19 @@ def cmesh3_check():
             return render_template('cmesh3.html', form=request.form, error_msg=error_msg)
         
         """ _readConfig.InputIniインスタンス作成"""
-        # もう一度作る
-        inputIni = _readConfig.InputIni()
+        if len(request.form["original_iniFp"])>0:
+            # cmesh3_readFromIniからのとき、ファイルから読み込み、画面で入力された値で上書きする
+            inputIni = _readConfig.InputIni().read_from_inifile(request.form["original_iniFp"])
+            # rockSecListをリセットしておく
+            inputIni.toughInput['rockSecList'] = []
+            inputIni.rockSecList = []
+        else:
+            # cmesh1からのときもう一度作る
+            inputIni = _readConfig.InputIni()
+            inputIni.toughInput = {}
+            
         inputIni.setting = _readConfig.SettingIni(create_fullpath(request.form['configIniFp']))
         inputIni.configIniFp = create_relpath(request.form['configIniFp'])
-        inputIni.toughInput = {}
         inputIni.mesh.type = AMESH_VORONOI
         inputIni.mesh.mulgridFileFp = create_relpath(request.form['mulgridFileFp'])
         # inputIni.mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
@@ -381,41 +402,48 @@ def cmesh3_check():
         """check & create"""
         inputIni.rocktypeDuplicateCheck()
         # create save dir. 
-        try:
-            os.makedirs(inputIni.t2FileDirFp, exist_ok=False)
-        except FileExistsError:
-            logger.info(f"directory: {inputIni.t2FileDirFp} exists")
-            logger.info(f"    add option -f to force overwrite")
-            raise
+        os.makedirs(inputIni.t2FileDirFp, exist_ok=True)
 
         inputIni.inputIniFp = os.path.join(projRoot, inputIni.t2FileDirFp, "input.ini")
-        tmp = dict(request.form)
-        tmp['inputIniFp'] = inputIni.inputIniFp
         inputIni.output2inifile(inputIni.inputIniFp)
+        
+        # pickle for cmesh4_visualize()
+        with open(os.path.join(os.path.dirname(inputIni.inputIniFp), 
+                               PICKLED_INPUTINI), 
+                  'wb') as f:
+            pickle.dump(inputIni, f)   
         logger.debug(inputIni.mulgridFileFp)
+        # create t2data
         makeGridAmeshVoro.makePermVariableVoronoiGrid(inputIni, fex="png")
 
         """copy images to static/output"""
-        show_images = []
-        shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
-                     create_fullpath("gui/static/output/"))
-        show_images.append({'path':f'output/{IMG_LAYER_SURFACE}.png',
-                            'caption':'IMG_LAYER_SURFACE'})
+        show_images = copy_visualized_mulgrid_imgs(inputIni)
         
-        for l, _ in enumerate(inputIni.plot.profile_lines_list):
-            shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.png"),
-                         create_fullpath("gui/static/output/"))
-            show_images.append({'path':f'output/{IMG_PERM_SLICE_LINE}{l}.png',
-                                'caption':'IMG_PERM_SLICE_LINE'})
-            shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
-                         create_fullpath("gui/static/output/"))
-            show_images.append({'path':f'output/{IMG_RESIS_SLICE_LINE}{l}.png',
-                                'caption':'IMG_RESIS_SLICE_LINE'})
-        logger.debug(show_images)
-            
-        
+        """prepare form"""
         new_prob_fp = inputIni.t2FileDirFp
-        return render_template('cmesh4.html', form=tmp, rocktypes=config, rocktype_names=rocktype_names, new_prob_fp=new_prob_fp, show_images=show_images, inputIniFp=inputIni.inputIniFp)
+        tmp = dict(request.form)
+        tmp['inputIniFp'] = inputIni.inputIniFp
+        tmp['t2GridFp'] = inputIni.t2GridFp
+        tmp['t2FileDirFp'] = inputIni.t2FileDirFp
+        tmp['xmin'] = min(inputIni.plot.slice_plot_limits[0])
+        tmp['xmax'] = max(inputIni.plot.slice_plot_limits[0])
+        tmp['zmin'] = min(inputIni.plot.slice_plot_limits[1])
+        tmp['zmax'] = max(inputIni.plot.slice_plot_limits[1])
+        for i in range(6):
+            tmp[f'line_{i}'] = ""
+        for i, line in enumerate(inputIni.plot.profile_lines_list):
+            if isinstance(line, np.ndarray): 
+                # 文字列に変換するとおかしくなるのでlistに戻す
+                tmp[f'line_{i}'] = repr([list(line[0]), list(line[1])])
+            else: 
+                tmp[f'line_{i}'] = line
+        
+        # return render_template('cmesh4.html', form=tmp, rocktypes=config, rocktype_names=rocktype_names, new_prob_fp=new_prob_fp, show_images=show_images, inputIniFp=inputIni.inputIniFp)
+        return render_template('cmesh4.html', 
+                               form=tmp, 
+                               new_prob_fp=new_prob_fp, 
+                               show_images=show_images,
+                               inputIniFp=inputIni.inputIniFp)
     else:
         return redirect(url_for('index'))
 
@@ -426,17 +454,14 @@ def cmesh3_readFromIni():
         f"controller.{sys._getframe().f_code.co_name}")
     if request.method == 'POST':
         
-        # iniFp = "exec/honda/readFromIni_test/input.ini"
-        iniFp = create_fullpath(request.form["inputIniFp"])
+        iniFp = create_fullpath(request.form["original_iniFp"])
         if not os.path.isfile(iniFp):
             return redirect(url_for('index'))
-
         
         #_readConfig.InputIniインスタンス作成
         inputIni = _readConfig.InputIni()
         config = configparser.ConfigParser(defaults=None)
         config.read(iniFp)
-
         
         # エラー承知で読み込む
         try:
@@ -461,7 +486,7 @@ def cmesh3_readFromIni():
             inputIni.validation()
 
         # htmlで表示できるようにformに展開する
-        form = convert_InputIni2form_cmesh3(inputIni)
+        form = convert_InputIni2form_cmesh3(inputIni, dict(request.form))
         logger.debug(form)
 
         return render_template('cmesh3.html', form=form)
@@ -588,6 +613,100 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
             ret[f"rock{rock_id}_reg{reg_id}_zmax"] = reg.zmax
     
     return ret
+
+def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni):
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"controller.{sys._getframe().f_code.co_name}")
+    
+    show_images = {}
+    shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
+                    create_fullpath("gui/static/output/"))
+    show_images['layer'] = \
+        {'path':f'output/{IMG_LAYER_SURFACE}.png',
+         'caption':'IMG_LAYER_SURFACE'}
+    
+    show_images['slice'] = {}
+    for l, line in enumerate(inputIni.plot.profile_lines_list):
+        shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.png"),
+                        create_fullpath("gui/static/output/"))
+        shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
+                        create_fullpath("gui/static/output/"))
+        show_images['slice'][f'{l}'] = \
+            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}.png',
+             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}.png',
+             'caption':repr(line)}
+        
+    logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
+    
+    return show_images
+
+
+@app.route('/cmesh4_visualize', methods=['GET', 'POST'])
+def cmesh4_visualize():
+    # iniファイルを新規作成するとき
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"controller.{sys._getframe().f_code.co_name}")
+    if request.method == 'POST':
+        
+        form = dict(request.form)
+        
+        # load inputIni pickled in cmesh3_check()
+        with open(os.path.join(os.path.dirname(form['inputIniFp']), 
+                               PICKLED_INPUTINI), 
+                  'rb') as f:
+            ini = pickle.load(f)  
+        geo_topo = mulgrid(ini.mulgridFileFp)
+        
+        # load arrays pickled in makeGridAmeshVoro.makePermVariableVoronoiGrid()
+        variable_perm = np.load(os.path.join(ini.savefigFp, PICKLED_MULGRID_PERM))
+        variable_res = np.load(os.path.join(ini.savefigFp, PICKLED_MULGRID_RES))
+        
+        # overwrites ini.plot.slice_plot_limits
+        if len(form['xmin'])>0 and len(form['xmax'])>0 \
+                and len(form['zmin'])>0 and len(form['zmax'])>0 :
+            ini.plot.slice_plot_limits = [[float(form['xmin']),float(form['xmax'])],
+                                          [float(form['zmin']),float(form['zmax'])]]  
+        else:
+            form['xmin'],form['xmax'],form['zmin'],form['zmax'] = "", "", "", ""
+            ini.plot.slice_plot_limits = None
+        
+        # overwrites ini.plot.profile_lines_list 
+        ini.plot.profile_lines_list = []
+        for line in ['line_0', 'line_1', 'line_2', 'line_3', 'line_4', 'line_5']:
+            try:
+                if len(request.form[line])>0:
+                    if request.form[line].lower().strip() in ('x', 'y'):
+                        ini.plot.profile_lines_list.append(request.form[line])
+                        logger.debug(f"{line} {request.form[line]}: x or y")
+                    elif isinstance(eval(request.form[line]),(list, np.ndarray)):
+                        logger.debug(f"{line} {request.form[line]}:type np.ndarray")
+                        ini.plot.profile_lines_list.append(np.array(eval(request.form[line])))
+                    elif isinstance(eval(request.form[line]),(float,int)):
+                        logger.debug(f"{line} {request.form[line]}: type float")
+                        ini.plot.profile_lines_list.append(float(request.form[line]))
+            except:
+                logger.debug(f"{line} {request.form[line]}: eval error")
+        
+        # update input.ini
+        ini.output2inifile(ini.inputIniFp)
+        
+        logger.debug(ini.plot.profile_lines_list)
+        
+        # create slices
+        makeGridAmeshVoro.visualize(ini,geo_topo,variable_res,variable_perm, fex='png')
+        # copy created slice images to static/output
+        show_images = copy_visualized_mulgrid_imgs(ini)
+        
+        return render_template('cmesh4.html', 
+                               form=form,
+                               new_prob_fp=ini.t2FileDirFp, 
+                               show_images=show_images,
+                               inputIniFp=request.form['inputIniFp'])
+    else:
+        return redirect(url_for('index'))
+
 
 @app.route('/cmesh5', methods=['GET', 'POST'])
 def cmesh5():
@@ -1003,8 +1122,7 @@ def cmesh5_write_file(request:request):
     config['toughInput']['selection_line2'] = repr(line2)
     logger.debug('selection_line2: ' + repr(line2))
 
-
-    # 書き出し
+    # 書き出し1
     outfp = os.path.join(pathlib.Path(__file__).parent.resolve(),
                          'static/output', 
                          form['problemName']+'.ini')
@@ -1034,12 +1152,13 @@ def test_create():
         
         error_msg = {}
         short_msg = ""
-        try:
-            os.makedirs(ini.t2FileDirFp, exist_ok=False)
-            makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
+        os.makedirs(ini.t2FileDirFp, exist_ok=True)
+        if not os.path.isfile(ini.t2FileFp):
+            if not os.path.isfile(ini.t2GridFp):
+                makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
             tough3exec_ws.makeToughInput(ini)
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
-        except FileExistsError:
+        else:
             error_msg['prob_exists'] = f"Problem: {create_relpath(ini.t2FileDirFp)}. Please specify different problem name and press (check)."
         
         # return to cmesh5.html     
