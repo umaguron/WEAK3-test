@@ -8,6 +8,8 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <!-- jumble -->
@@ -129,6 +131,15 @@
         function calc_t_cond(){
             $('#cmesh5_check [name="initial_t_grad"]').val($('#cmesh5_check [name="cfr"]').val()/$('#cmesh5_check [name="thermal_cond"]').val()*1000)
         }
+        function solver_switch(speed) {
+            if ($('#cmesh5_check [name="matslv"]:checked').val()!=8) {
+               $('#solver_option_serial').show(speed);
+               $('#solver_option_parallel').hide(speed);
+            } else if ($('#cmesh5_check [name="matslv"]:checked').val()==8) {
+                $('#solver_option_serial').hide(speed);
+                $('#solver_option_parallel').show(speed);
+            }
+        }
 
         // standby
         $(function () {
@@ -145,6 +156,7 @@
             $('#cmesh5_check [name="usesAnotherResAsINCON"]').change(function(){incon_switch('fast')});
             $('#cmesh5_check [name="thermal_cond"]').on("keyup change", function(){calc_t_cond()});
             $('#cmesh5_check [name="cfr"]').on("keyup change", function(){calc_t_cond()});
+            $('#cmesh5_check [name="matslv"]').change(function(){solver_switch('fast')});
         });
         
         // <!-- for adding GENER section  -->
@@ -221,6 +233,7 @@
             $('#incon2').hide();
             $('#incon_wt').hide();
             incon_switch('fast');
+            solver_switch('fast');
         });
         $(function () {
             $('#addGener').click(function(){
@@ -379,6 +392,8 @@
                     </div>
                 </div>
             </div>
+            <br>
+            <br>
             <br>
             <!-- MULTI -->
             <h3>MULTI</h3>
@@ -988,6 +1003,7 @@
                     </tbody>
                 </table>
             </div>
+            <br>
             <!-- PARAM. 2 -->
             <h3>PARAM. 2</h3>
             <div class="row">
@@ -1267,6 +1283,7 @@
                 </div>
             </div> -->
             <br>
+            <br>
             <!-- Boundary -->
             <h3>Boundary</h3>
             <div class="row">
@@ -1310,6 +1327,7 @@
                     </tbody>
                 </table>
             </div>
+            <br>
             <br>
             <!-- GENER -->
             <div class="row">
@@ -1391,6 +1409,375 @@
             <!-- その後追加する部分はjQueryで追加する -->
             <div id="gener_area">
             </div>
+            <br><br>
+            <!-- Solver -->
+            <h3>Solver</h3>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>name</td>
+                            <td>solver type</td>
+                            <td></td>
+                            <td>description in TOUGH3 User's Guide</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th rowspan="6">MATSLV</th>
+                            <td rowspan="5">Serial</td>
+                            <td>
+                                <input type="radio" name="matslv" value="2" {% if form.matslv == "2" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    2
+                                </label>
+                            </td>
+                            <td>DSLUBC, a bi-conjugate gradient solver</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="matslv" value="3" {% if form.matslv == "3" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    3
+                                </label>
+                            </td>
+                            <td>DSLUCS, a Lanczos-type bi-conjugate gradient solver (default)</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="matslv" value="4" {% if form.matslv == "4" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    4
+                                </label>
+                            </td>
+                            <td>DSLUGM, a generalized minimum residual solver</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="matslv" value="5" {% if form.matslv == "5" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    5
+                                </label>
+                            </td>
+                            <td>DLUSTB, a stabilized bi-conjugate gradient solver</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <input type="radio" name="matslv" value="6" {% if form.matslv == "6" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    6
+                                </label>
+                            </td>
+                            <td>direct solver LUBAND</td>
+                        </tr>
+                        <tr>
+                            <td>Parallel</td>
+                            <td>
+                                <input type="radio" name="matslv" value="8" {% if form.matslv == "8" %} checked {% endif %} class="form-check-input" required>
+                                <label class="form-check-label">
+                                    8
+                                </label>
+                            </td>
+                            <td>PETSc parallel iterative solver</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <div class="accordion" id="accordionExample">
+                <div class="accordion-item">
+                    <div class="accordion-header" id="headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                        <h5>Solver options</h5>
+                    </button>
+                    </div>
+                    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                        <div class="accordion-body">
+                            <!--Option serial-->
+                            <table class="table" id="solver_option_serial">
+                                <thead>
+                                    <tr>
+                                        <td>name</td>
+                                        <td></td>
+                                        <td>description in TOUGH3 User's Guide</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th rowspan="6">ZPROCS</th>
+                                        <td colspan="2">selects the Z-preconditioning (Moridis and Pruess, 1998).</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="zprocs" value="Z0" {% if form.matslv == "Z0" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                Z0
+                                            </label>
+                                        </td>
+                                        <td>no Z-preprocessing (default for NEQ=1) </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="zprocs" value="Z1" {% if form.matslv == "Z1" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                Z1
+                                            </label>
+                                        </td>
+                                        <td>replace zeros on the main diagonal by a small constant (1.e-25; default for NEQ ≠ 1)) </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="zprocs" value="Z2" {% if form.matslv == "Z2" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                Z2
+                                            </label>
+                                        </td>
+                                        <td>make linear combinations of equations for each grid block to achieve non-zeros on the main diagonal </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="zprocs" value="Z3" {% if form.matslv == "Z3" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                Z3
+                                            </label>
+                                        </td>
+                                        <td>normalize equations, followed by Z2 </td>
+                                        </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="zprocs" value="Z4" {% if form.matslv == "Z4" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                Z4
+                                            </label>
+                                        </td>
+                                        <td>affine transformation to unit main-diagonal submatrices, without center pivoting </td>
+                                    </tr>
+                                    <tr>
+                                        <th rowspan="6">OPROCS</th>
+                                        <td colspan="2">selects the O-preconditioning (Moridis and Pruess, 1998).</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="oprocs" value="O0" {% if form.matslv == "O0" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                O0
+                                            </label>
+                                        </td>
+                                        <td>no O-preprocessing (default, also invoked for NEQ=1)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="oprocs" value="O1" {% if form.matslv == "O1" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                O1
+                                            </label>
+                                        </td>
+                                        <td>eliminate lower half of the main-diagonal submatrix with center pivoting</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="oprocs" value="O2" {% if form.matslv == "O2" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                O2
+                                            </label>
+                                        </td>
+                                        <td>O1, plus eliminate upper half of the main-diagonal submatrix with center pivoting</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="oprocs" value="O3" {% if form.matslv == "O3" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                O3
+                                            </label>
+                                        </td>
+                                        <td>O2, plus normalize, resulting in unit main-diagonal submatrices</td>
+                                        </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="oprocs" value="O4" {% if form.matslv == "O4" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                O4
+                                            </label>
+                                        </td>
+                                        <td>affine transformation to unit main-diagonal submatrices, without center pivoting</td>                            
+                                    </tr>
+                                    <tr>
+                                        <th>RITMAX</th>
+                                        <td>
+                                            <input type="text" name="ritmax" value="{{form.ritmax}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                            <div class="invalid-msg">{{TITLE.float}}</div>
+                                        </td>
+                                        <td>selects the maximum number of CG iterations as a fraction of the total number of equations (0.0 < RITMAX ≤ 1.0; default is RITMAX = 0.1) </td>                            
+                                    </tr>
+                                    <tr>
+                                        <th>CLOSUR</th>
+                                        <td>
+                                            <input type="text" name="closur" value="{{form.closur}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                            <div class="invalid-msg">{{TITLE.float}}</div>
+                                        </td>
+                                        <td>convergence criterion for the CG iterations (1.e-12 ≤ CLOSUR ≤ 1.e-6; default is CLOSUR = 1.e-6) </td>                            
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <!--Option parallel-->
+                            <table class="table" id="solver_option_parallel">
+                                <thead>
+                                    <tr>
+                                        <td>name</td>
+                                        <td></td>
+                                        <td>description in TOUGH3 User's Guide</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th>number of processors</th>
+                                        <td>
+                                            <input type="text" name="nProc" value="{{form.nProc}}" class="form-control" pattern="{{PATTERN.int}}" title="{{TITLE.int}}" >
+                                            <div class="invalid-msg">{{TITLE.int}}</div>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <th rowspan="7">ksp_type</th>
+                                        <td colspan="2">Solver</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="bicg" {% if form.matslv == "bicg" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                bicg
+                                            </label>
+                                        </td>
+                                        <td>(bi-conjugate gradient method)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="bcgsl" {% if form.matslv == "bcgsl" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                bcgsl
+                                            </label>
+                                        </td>
+                                        <td>(stabilized version of bi-conjugate gradient method)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="cg" {% if form.matslv == "cg" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                cg
+                                            </label>
+                                        </td>
+                                        <td>(conjugate gradient method)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="minres" {% if form.matslv == "minres" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                minres
+                                            </label>
+                                        </td>
+                                        <td>(minimum residual gradient)</td>
+                                        </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="gmres" {% if form.matslv == "gmres" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                gmres
+                                            </label>
+                                        </td>
+                                        <td>(generalized minimal residual method)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="ksp_type" value="fgmres" {% if form.matslv == "fgmres" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                fgmres
+                                            </label>
+                                        </td>
+                                        <td>(flexible generalized minimal residual method)</td>
+                                    </tr>
+                                    <tr>
+                                        <th rowspan="7">pc_type</th>
+                                        <td colspan="2">Preconditioner</td>
+                                    </tr>
+                                    <!--<tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="jacobi" {% if form.matslv == "jacobi" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                jacobi
+                                            </label>
+                                        </td>
+                                        <td>(point Jacobi preconditioner)</td>
+                                    </tr>-->
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="jacobi" {% if form.matslv == "jacobi" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                jacobi
+                                            </label>
+                                        </td>
+                                        <td>(diagonal scaling preconditioning)</td>                            
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="pbjacobi" {% if form.matslv == "pbjacobi" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                pbjacobi
+                                            </label>
+                                        </td>
+                                        <td>(point block Jacobi preconditioner)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="bjacobi" {% if form.matslv == "bjacobi" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                bjacobi
+                                            </label>
+                                        </td>
+                                        <td>(block Jacobi preconditioner)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="asm" {% if form.matslv == "asm" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                asm
+                                            </label>
+                                        </td>
+                                        <td>(restricted additive Schwarz method)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="ilu" {% if form.matslv == "ilu" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                ilu
+                                            </label>
+                                        </td>
+                                        <td>(incomplete factorization preconditioner)</td>                            
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <input type="radio" name="pc_type" value="icc" {% if form.matslv == "icc" %} checked {% endif %} class="form-check-input" >
+                                            <label class="form-check-label">
+                                                icc
+                                            </label>
+                                        </td>
+                                        <td>(incomplete Cholesky factorization preconditioner) </td>                            
+                                    </tr>
+                                    <tr>
+                                        <th>ksp_rtol</th>
+                                        <td>
+                                            <input type="text" name="ksp_rtol" value="{{form.ksp_rtol}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
+                                            <div class="invalid-msg">{{TITLE.float}}</div>
+                                        </td>
+                                        <td>relative convergence tolerance (any real number) </td>                            
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br><br>
+            <!-- button -->
             <input type="submit" class="btn btn-primary" value="Check">
         </form>
     </div>
