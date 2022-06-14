@@ -4,7 +4,7 @@ baseDir = pathlib.Path(__file__).parent.resolve()
 from scipy.interpolate import LinearNDInterpolator
 
 """output of read_sowat_out.py"""
-SOWAT_OUTPUT="/Users/matsunagakousei/sourceCodes/sowat/read.txt"
+SOWAT_OUTPUT="data/sowat_read.txt"
 """utility"""
 x_mol2x_wt = lambda x_mol: 58.5*x_mol/(40.5*x_mol+18)
 x_wt2x_mol = lambda x_wt: 18*x_wt/(58.5-40.5*x_wt)
