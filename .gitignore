@@ -43,3 +43,4 @@ logger12.log
 logging_sample.log
 testdata/input/*
 gui/static/output/*
+test*
