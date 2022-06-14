@@ -1491,7 +1491,7 @@
                         <h5>Solver options</h5>
                     </button>
                     </div>
-                    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                         <div class="accordion-body">
                             <!--Option serial-->
                             <table class="table" id="solver_option_serial">
@@ -1509,7 +1509,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="zprocs" value="Z0" {% if form.matslv == "Z0" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="zprocs" value="Z0" {% if form.zprocs == "Z0" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 Z0
                                             </label>
@@ -1518,7 +1518,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="zprocs" value="Z1" {% if form.matslv == "Z1" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="zprocs" value="Z1" {% if form.zprocs == "Z1" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 Z1
                                             </label>
@@ -1527,7 +1527,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="zprocs" value="Z2" {% if form.matslv == "Z2" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="zprocs" value="Z2" {% if form.zprocs == "Z2" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 Z2
                                             </label>
@@ -1536,7 +1536,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="zprocs" value="Z3" {% if form.matslv == "Z3" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="zprocs" value="Z3" {% if form.zprocs == "Z3" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 Z3
                                             </label>
@@ -1545,7 +1545,7 @@
                                         </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="zprocs" value="Z4" {% if form.matslv == "Z4" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="zprocs" value="Z4" {% if form.zprocs == "Z4" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 Z4
                                             </label>
@@ -1558,7 +1558,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="oprocs" value="O0" {% if form.matslv == "O0" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="oprocs" value="O0" {% if form.oprocs == "O0" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 O0
                                             </label>
@@ -1567,7 +1567,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="oprocs" value="O1" {% if form.matslv == "O1" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="oprocs" value="O1" {% if form.oprocs == "O1" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 O1
                                             </label>
@@ -1576,7 +1576,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="oprocs" value="O2" {% if form.matslv == "O2" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="oprocs" value="O2" {% if form.oprocs == "O2" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 O2
                                             </label>
@@ -1585,7 +1585,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="oprocs" value="O3" {% if form.matslv == "O3" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="oprocs" value="O3" {% if form.oprocs == "O3" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 O3
                                             </label>
@@ -1594,7 +1594,7 @@
                                         </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="oprocs" value="O4" {% if form.matslv == "O4" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="oprocs" value="O4" {% if form.oprocs == "O4" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 O4
                                             </label>
@@ -1643,7 +1643,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="bicg" {% if form.matslv == "bicg" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="bicg" {% if form.ksp_type == "bicg" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 bicg
                                             </label>
@@ -1652,7 +1652,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="bcgsl" {% if form.matslv == "bcgsl" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="bcgsl" {% if form.ksp_type == "bcgsl" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 bcgsl
                                             </label>
@@ -1661,7 +1661,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="cg" {% if form.matslv == "cg" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="cg" {% if form.ksp_type == "cg" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 cg
                                             </label>
@@ -1670,7 +1670,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="minres" {% if form.matslv == "minres" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="minres" {% if form.ksp_type == "minres" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 minres
                                             </label>
@@ -1679,7 +1679,7 @@
                                         </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="gmres" {% if form.matslv == "gmres" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="gmres" {% if form.ksp_type == "gmres" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 gmres
                                             </label>
@@ -1688,7 +1688,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="ksp_type" value="fgmres" {% if form.matslv == "fgmres" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="ksp_type" value="fgmres" {% if form.ksp_type == "fgmres" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 fgmres
                                             </label>
@@ -1701,7 +1701,7 @@
                                     </tr>
                                     <!--<tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="jacobi" {% if form.matslv == "jacobi" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="jacobi" {% if form.pc_type == "jacobi" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 jacobi
                                             </label>
@@ -1710,7 +1710,7 @@
                                     </tr>-->
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="jacobi" {% if form.matslv == "jacobi" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="jacobi" {% if form.pc_type == "jacobi" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 jacobi
                                             </label>
@@ -1719,7 +1719,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="pbjacobi" {% if form.matslv == "pbjacobi" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="pbjacobi" {% if form.pc_type == "pbjacobi" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 pbjacobi
                                             </label>
@@ -1728,7 +1728,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="bjacobi" {% if form.matslv == "bjacobi" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="bjacobi" {% if form.pc_type == "bjacobi" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 bjacobi
                                             </label>
@@ -1737,7 +1737,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="asm" {% if form.matslv == "asm" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="asm" {% if form.pc_type == "asm" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 asm
                                             </label>
@@ -1746,7 +1746,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="ilu" {% if form.matslv == "ilu" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="ilu" {% if form.pc_type == "ilu" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 ilu
                                             </label>
@@ -1755,7 +1755,7 @@
                                     </tr>
                                     <tr>
                                         <td>
-                                            <input type="radio" name="pc_type" value="icc" {% if form.matslv == "icc" %} checked {% endif %} class="form-check-input" >
+                                            <input type="radio" name="pc_type" value="icc" {% if form.pc_type == "icc" %} checked {% endif %} class="form-check-input" >
                                             <label class="form-check-label">
                                                 icc
                                             </label>
