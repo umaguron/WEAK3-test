@@ -1,11 +1,17 @@
 # 環境整備
 ## gitの導入
-GitHub for Windows
-http://windows.github.com/
-(GitHub for Windowsのインストーラーには、GUIとコマンドラインバージョンのGitが含まれる)
+
+ソースコードにはちょくちょく修正が入ると思うので、gitで管理しておくとあとあと楽です。
+
+使い方は適当に調べれば出てきます。
+
+コマンドラインで操作できるつよい人以外は以下をオススメします。
+__Github for Desktop__ https://desktop.github.com/
+
 
 
 ## anacondaの導入
+pythonに色々なライブラリを導入することになるので、anacondaで管理するのがよい。
 + 各自PC
 
     https://www.anaconda.com/
@@ -57,7 +63,6 @@ http://windows.github.com/
 
 ## 2. その他ライブラリ
 
-
 ### conda(or pip?)で入れる
 + matplotlib
 + pandas
@@ -87,6 +92,12 @@ python3 -m pip install --upgrade Pillow
 pip install vtk
 pip install flask
 pip install iapws
+```
+
+注) ライブラリを入れる前にpython3のインタープリタがanacondaのものと同一か確認したほうがよい
+```
+which pip3
+# -> anacondaが含まれるパスが表示されればたぶん大丈夫
 ```
 <br><br>
 ### ワークステーション(faraday)の場合
@@ -152,8 +163,26 @@ iapwsについては以下でもOK
     ./install_db.sh
     ```
 
+* テーブルの表示を見やすくする
+    
+  * linux/mac
+    
+    ~/.sqlitercを作っておく。
+    ファイルの中身は以下のようにする。
+    ```
+    .mode column
+    .width 0
+    .headers on
+    .nullvalue NULL
+    ```
+  * windows
+    
+    不明 
+
+
+<br>
 * ECO2N V2.0用データ
-  CO2TAB(TOUGH3のパッケージに入っている？)は /tables 以下に配置する。
+  CO2TAB(TOUGH3のパッケージに入っている？)は /tables 直下に配置する。
 
 * define.pyに設定する値は以下の通り
   
@@ -185,7 +214,7 @@ https://tough.lbl.gov/user-support/tough-bugs-fixes/
 <br>
 <br>
 
-# anacondaコマンド
+# (参考) anacondaコマンド
 ### 新規環境作成
 ```conda create -n (環境名)```
 ### activate

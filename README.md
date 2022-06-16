@@ -123,6 +123,8 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
    * 新規作成は[cmesh1](http://localhost:8000/cmesh1)から
    * 作成済みinput.iniを読み込み、浸透率構造を編集するには[cmesh3_readFromIni]()のテキストボックスにinput.iniのパスを入力してEnter
    * 作成済みinput.iniを読み込み、TOUGH3シミュレーションの設定パラメータを編集するには[cmesh3_readFromIni]()のテキストボックスにinput.iniのパスを入力してEnter
+   * __しょっちゅうエラーになると思うが、多くの場合はブラウザバックで再入力が可能。__
+   * __複数のinput.ini作成を同時に行わないこと__
 
 3. 最後まで行くと作成されたinput.iniをダウンロードすることができる。
 
