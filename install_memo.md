@@ -58,7 +58,7 @@ pythonに色々なライブラリを導入することになるので、anaconda
 1. https://github.com/acroucher/PyTOUGH
 からダウンロードもしくはgit cloneしてくる。
 2. 任意の場所に展開する。
-3. define.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリのパスを設定する。
+3. define_path.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリのパスを設定する。
 <br><br>
 
 ## 2. その他ライブラリ
@@ -116,7 +116,7 @@ pipについては
 iapwsについては以下でもOK
 1. ```git clone https://github.com/jjgomera/iapws.git```
 2. 任意の場所に展開する。
-3. define.pyの`IAPWS_ROOT_PATH`に展開後のディレクトリのパスを設定する。
+3. define_path.pyの`IAPWS_ROOT_PATH`に展開後のディレクトリのパスを設定する。
 
 <br>
 <br>
@@ -148,7 +148,23 @@ iapwsについては以下でもOK
     1. 解凍する
     2. コンパイルする(Sourceフォルダに移動してmakeとタイプ->リターン)
 4. __!! 実行ファイルのパーミッションの変更を忘れずに !!__
-5. define.pyのAMESH_DIRに実行ファイルの場所の相対パス、AMESH_PROGに実行ファイルの名前を書く
+5. define_path.pyのAMESH_DIRに実行ファイルの場所の相対パス、AMESH_PROGに実行ファイルの名前を書く
+
+<br>
+<br>
+
+## 5. 各種パスの設定
+
+* define_path.pyの以下の項目を自分の環境に合わせて修正
+
+  |変数名|設定値|説明|
+  |-|-|-|
+  |PYTOUGH_ROOT_PATH|PyTOUGH location|PyTOUGHのプログラム(t2data.pyなど)の場所を指定|
+  |BIN_DIR|TOUGH3 executable location|TOUGH3の各モジュールの実行ファイル(User's Guideに従い、コンパイルしたもの。tough3-eco2n_v2など。)が含まれるディレクトリ(フルパス)<br>おそらく、(...)/TOUGH3v1.x/TOUGH3-Code/esd-tough3/tough3-install/bin になる|
+  |BIN_DIR_T2|TOUGH2 executable location|(TOUGH2も使いたい場合のみ設定。)TOUGH2の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)|
+  |BIN_DIR_LOCAL|TOUGH2 executable location|上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。|
+  |AMESH_DIR|AMESH_PROGがおいてあるディレクトリ（プロジェクトルートからのパス||
+  |AMESH_PROG|AMESH(Haukwa, 1998)実行ファイルの名前||
 
 <br>
 <br>
@@ -184,7 +200,7 @@ iapwsについては以下でもOK
 * ECO2N V2.0用データ
   CO2TAB(TOUGH3のパッケージに入っている？)は /tables 直下に配置する。
 
-* define.pyに設定する値は以下の通り
+* define.py　設定値の説明
   
   |変数名|設定値|説明|
   |-|-|-|
@@ -194,10 +210,6 @@ iapwsについては以下でもOK
   |SAVE_FILE_NAME|'SAVE'|TOUGH3シミュレーション終了時の条件を記録したファイルの名前|
   |OUTPUT_ELEME_CSV_FILE_NAME|OUTPUT_ELEME.csv|TOUGH3出力ファイルの名前|
   |OUTPUT_CONNE_CSV_FILE_NAME|OUTPUT_CONNE.csv|TOUGH3出力ファイルの名前|
-  |AMESH_PROG|AMESH(Haukwa, 1998)実行ファイルの名前||
-  |AMESH_DIR|AMESH_PROGがおいてあるディレクトリ（プロジェクトルートからのパス||
-  |INPUT_FILENAME|in|AMESHの出力ファイル名|
-  |SEGMT_FILENAME|segmt|AMESHの出力ファイル名|
 
 <br>
 <br>

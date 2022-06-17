@@ -4,6 +4,7 @@ import configparser
 import json
 import _readConfig
 from define import *
+from define_path import *
 import argparse
 import shutil
 
@@ -80,7 +81,7 @@ if _rii.toughInput['simulator']==SIMULATOR_NAME_T3:
         os.system(f"""
         module purge
         export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-        mpiexec -n {nProc} {_rii.setting.toughexec.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
+        {MPIEXEC} -n {nProc} {_rii.setting.toughexec.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
         """)
     else:
         # mode serial 

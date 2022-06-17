@@ -6,12 +6,12 @@ to avoid messing up the codes with magic numbers or magic constants.
 """user-defined exception"""
 class InvalidToughInputException(Exception):
     pass
-class Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo(Exception):
+# class Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo(Exception):
+#     pass
+class SurfaceElevationLowerThanBottomLayerException(Exception):
     pass
 
-"""library"""
-PYTOUGH_ROOT_PATH = "lib/PyTOUGH-master"
-IAPWS_ROOT_PATH = "lib/iapws/iapws"
+
 """file name"""
 FILENAME_T2DATA = 't2data.dat'
 FILENAME_TOUGH_OUTPUT = 'output.listing'
@@ -34,11 +34,6 @@ T3OUT_ESCAPE_DIRNAME = '0t3out'
 # dir. path from TOUGH_INPUT_DIR
 SAVEFIG_DIRNAME = '0fig'
 
-"""AMESH"""
-AMESH_DIR = "amesh/Source/"
-AMESH_PROG = "amesh"
-AMESH_INPUT_FILENAME = "in"
-AMESH_SEGMT_FILENAME = "segmt"
 
 """name of image files"""
 IMG_LAYER_SURFACE = 'layer_surface'

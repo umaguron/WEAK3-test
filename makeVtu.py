@@ -190,6 +190,8 @@ def original_surfacemap(variable_name:str, values:list,
         # full range
         cbarlim = (max([v for v in values if v is not None]), 
                    min([v for v in values if v is not None]))
+    # reset figure
+    plt.figure()
     # plot flow data
     geo.layer_plot(layer=None, variable=values, plt=plt, variable_name=variable_name+"/m^2",
                 title=title,

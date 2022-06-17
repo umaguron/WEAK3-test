@@ -63,6 +63,7 @@ class SettingIni(object):
     class _toughexec(object):
         def __init__(self, config: configparser.ConfigParser):
             self.COMM_EXEC = None
+            """ 2022/06/17 No longer necessary. 
             self.BIN_DIR = None
             self.BIN_DIR_T2 = None
             self.BIN_DIR_LOCAL = None
@@ -83,6 +84,7 @@ class SettingIni(object):
                 self.BIN_DIR_LOCAL = config.get('toughexec', 'BIN_DIR_LOCAL')
             except:
                 pass
+            """
     
     # section: ameshexec
     """
@@ -310,25 +312,25 @@ class InputIni(object):
         if ret['simulator']==SIMULATOR_NAME_T3 \
                 and self.setting.toughexec.COMM_EXEC is None:
             self.setting.toughexec.COMM_EXEC = \
-                os.path.join(self.setting.toughexec.BIN_DIR,f"tough3-{ret['module']}")
+                os.path.join(BIN_DIR,f"tough3-{ret['module']}")
         if ret['simulator']==SIMULATOR_NAME_T2 \
                 and self.setting.toughexec.COMM_EXEC is None:
             self.setting.toughexec.COMM_EXEC = \
-                os.path.join(self.setting.toughexec.BIN_DIR_T2,f"xt2_{ret['module']}")
+                os.path.join(BIN_DIR_T2,f"xt2_{ret['module']}")
         if ret['simulator']==SIMULATOR_NAME_T3_LOCAL:
             """
             simulator='TOUGH3_LOCAL' is totally same as simulator='TOUGH3' 
             other than the setting about a path of executable.  
             """
             ret['simulator'] = SIMULATOR_NAME_T3
-            if self.setting.toughexec.BIN_DIR_LOCAL is None:
+            if BIN_DIR_LOCAL is None:
                 self.setting.toughexec.COMM_EXEC = \
-                    os.path.join(self.setting.toughexec.BIN_DIR,f"tough3-{ret['module']}")
+                    os.path.join(BIN_DIR,f"tough3-{ret['module']}")
                 logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not set in settingIni file.")
                 logger.warning(f"             use COMM_EXEC: {self.setting.toughexec.COMM_EXEC}")
             else:
                 self.setting.toughexec.COMM_EXEC = \
-                    os.path.join(self.setting.toughexec.BIN_DIR_LOCAL,f"tough3-{ret['module']}")
+                    os.path.join(BIN_DIR_LOCAL,f"tough3-{ret['module']}")
 
         ret['problemName'] = self.config.get('toughInput', 'problemName')
         # ret['mulgridFileName'] = self.config.get('toughInput', 'mulgridFileName')

@@ -1,6 +1,3 @@
-from asyncio.log import logger
-
-from click import style
 from import_pytough_modules import *
 from t2data import *
 import math
@@ -123,7 +120,11 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
         define.AMESH_PROG
 
     """
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
     import os
+
     mulgraph_no_topo_fn = os.path.join(baseDir, "mesh_no_topography.geo")
     
     # clean
@@ -146,7 +147,12 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     if ini.mesh.convention==0 and len(seeds)>945:
         # AMESHのせいか、PyTOUGHのせいかわからないが、
         # convention==0かつseedsが945個以上だとmulgrid().from_ameshでエラーになる。
-        raise Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo
+        # raise Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo
+        
+        # 2022/06/17追記
+        # from_ameshでエラーになるのはseedの数が原因ではなさそう。
+        # 945個以上でエラーになってもtolarを小さくするとエラーはなくなった
+        pass
 
 
     """
@@ -156,16 +162,23 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     layer_id = 1
     with open(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), "w") as f:
         f.write("locat\n")
-        for l in ini.amesh_voronoi.layer_thicknesses:
+        for i, l in enumerate(ini.amesh_voronoi.layer_thicknesses):
             col_id = 1
-            for i, seed in enumerate(seeds):
+            for seed in seeds:
                 # print(elem_name(layer_id, col_id, convention))
                 f.write(f"{elem_name(layer_id, col_id, ini.mesh.convention):<5}{layer_id:>5} ")
                 f.write(f"{seed[0]:15f} {seed[1]:15f} {elevation:>10} {l:>10}\n")
                 col_id += 1
             layer_id += 1
-            elevation = elevation - l
+            if i+1<len(ini.amesh_voronoi.layer_thicknesses) :
+                # next layer elevation = 
+                # current layer elevation - (current layer thickness + next layer thickness) / 2
+                elevation = elevation - (l+ini.amesh_voronoi.layer_thicknesses[i+1])/2
+                logger.debug(f"layer{i+1} elevation {elevation}m")
         f.write(f"\ntoler\n{ini.amesh_voronoi.tolar}\n")
+    bottom_of_bottom_layer_elev = elevation \
+                                  - ini.amesh_voronoi.layer_thicknesses[-1]/2 
+    logger.debug(f"{bottom_of_bottom_layer_elev}")
 
     """
     execute prog AMESH
@@ -211,11 +224,25 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     print("*** reading topodata and generating interpolating function")
     start = time.perf_counter()
-    df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
-    x = np.array(df['x']) * M_OVER_KM # km to m
-    y = np.array(df['y']) * M_OVER_KM # km to m
-    z = np.array(df['z']) * M_OVER_KM # km to m
-    interp = LinearNDInterpolator(list(zip(x,y)), z)
+    # create or load resistivity interpolating function 
+    pickled = ini.amesh_voronoi.topodata_fp+"_pickled"
+    if os.path.isfile(pickled):
+        print(f"load pickled interpolating function: {pickled}")
+        # load selialized interpolating function
+        with open(pickled, 'rb') as f:
+            interp = pickle.load(f)   
+    else:
+        print(f"create interpolating function and pickle: {pickled}")
+        # read data file
+        df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
+        x = np.array(df['x']) * M_OVER_KM # km to m
+        y = np.array(df['y']) * M_OVER_KM # km to m
+        z = np.array(df['z']) * M_OVER_KM # km to m
+        # interpolating function
+        interp = LinearNDInterpolator(list(zip(x,y)), z)
+        # serialize and save
+        with open(pickled, 'wb') as f:
+            pickle.dump(interp, f)    
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
 
@@ -233,7 +260,13 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                 f2.write("SURFA\n")
                 for col in geo.columnlist:
                     elev = interp(col.centre)[0]
-                    # print(f"{str(col):3}{elev:>10.1f}")
+                    logger.debug(f"col:{col} elevation: {elev:.1f}")
+                    if elev <= bottom_of_bottom_layer_elev + ini.amesh_voronoi.top_layer_min_thickness:
+                        logger.error(f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
+                                     f" than the elevation at the bottom of domain"
+                                     f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
+                        logger.error(f"Please add more elements in 'layer_thicknesses'.")
+                        raise SurfaceElevationLowerThanBottomLayerException
                     f2.write(f"{str(col):3}{elev:>10.1f}\n")
                 break
             else:
@@ -310,12 +343,6 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     # read resistivity structure
     print(f"*** reading resistivity data and generating interpolating function")
     start = time.perf_counter()
-    df = pd.read_csv(ini.mesh.resistivity_structure_fp, delim_whitespace=True)
-    x = np.array(df['x'])
-    y = np.array(df['y'])
-    z = np.array(df['z'])*(-1) # convert bsl to asl
-    res = np.array(df['res'])
-    
     # create or load resistivity interpolating function 
     pickled = ini.mesh.resistivity_structure_fp+"_pickled"
     if os.path.isfile(pickled):
@@ -325,6 +352,12 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             interpRes = pickle.load(f)   
     else:
         logger.debug(f"create interpolating function and pickle: {pickled}")
+        # read data file
+        df = pd.read_csv(ini.mesh.resistivity_structure_fp, delim_whitespace=True)
+        x = np.array(df['x'])
+        y = np.array(df['y'])
+        z = np.array(df['z'])*(-1) # convert bsl to asl
+        res = np.array(df['res'])    
         # interpolating function
         interpRes = LinearNDInterpolator(list(zip(x,y,z)), res)
         # serialize and save
