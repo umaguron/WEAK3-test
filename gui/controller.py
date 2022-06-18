@@ -866,14 +866,14 @@ def construct_simulator_paths(form, configIniFp):
     if setting.toughexec.COMM_EXEC is not None:
         form['simulators']['COMM_EXEC'] = setting.toughexec.COMM_EXEC
     else:
-        if setting.toughexec.BIN_DIR is not None:
-            form['simulators']['TOUGH3'] = setting.toughexec.BIN_DIR
-        if setting.toughexec.BIN_DIR_LOCAL is not None:
-            form['simulators']['TOUGH3_LOCAL'] = setting.toughexec.BIN_DIR_LOCAL
-        if setting.toughexec.BIN_DIR_T2 is not None:
-            form['simulators']['TOUGH2'] = setting.toughexec.BIN_DIR_T2
+        if BIN_DIR is not None:
+            form['simulators']['TOUGH3'] = BIN_DIR
+        if BIN_DIR_LOCAL is not None:
+            form['simulators']['TOUGH3_LOCAL'] = BIN_DIR_LOCAL
+        if BIN_DIR_T2 is not None:
+            form['simulators']['TOUGH2'] = BIN_DIR_T2
     if len(form['simulators'])==0:
-        logger.error(f"please set path of simulator in {config['configuration']['configini']}")
+        logger.error(f"please set path of simulator in define_path.py")
         raise FileNotFoundError
     logger.debug('simulators: ' + repr(form['simulators']))
     return form
