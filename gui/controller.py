@@ -1064,8 +1064,13 @@ def cmesh5_write_file(request:request):
             info = f"[{sec:<15}] {key:<25}: {config[sec][key]} "
         else:
             info = f"[{sec:<15}] {key:<25}: (not found)         "
-        config.set(sec, key, form[name])
-        logger.debug(info + f"--> {form[name]}")
+        if name in form:
+            logger.debug(info + f"--> {form[name]}")
+            config.set(sec, key, form[name])
+        else:
+            logger.debug(info + f"--> ")
+            config.set(sec, key, "")
+
         
     # GENER 
     idx = 0
