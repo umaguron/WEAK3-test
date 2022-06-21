@@ -743,6 +743,11 @@ def cmesh5_check():
         form = dict(request.form)
         form = construct_simulator_paths(form, form['configIniFp'])
 
+        if request.form['usesAnotherResAsINCON'] == "1":
+            # get path of SAVE file of 1d vertical simulation
+            one_d_path = create_fullpath(request.form['1d_hydrostatic_sim_result_ini'])
+            one_d_ini = _readConfig.InputIni().read_from_inifile(one_d_path)
+            form['one_d_save'] = create_relpath(one_d_ini.saveFp)
         
         if len(error_msg_incon) > 0 or len(error_msg_gener) > 0:
             return render_template('cmesh5.html', 
@@ -751,10 +756,11 @@ def cmesh5_check():
                                    error_msg_incon=error_msg_incon,
                                    error_msg_gener=error_msg_gener)
         
+
         """save"""
         #if validate OK, add params to inifile and save
         msg = cmesh5_write_file(request)
-       
+
         if len(msg) > 0 :
             return render_template('cmesh5.html', form=form, error_msg=msg)
 
@@ -787,19 +793,23 @@ def cmesh5_validate_incon(request:request):
         # use another simulation result as initial condition
         if len(pnPR)==0:
             msg['pnPR'] = \
-                "Please specify Path of SAVE file"
-        elif not os.path.isfile(create_fullpath(pnPR)):
+                "Please specify Path of directory including SAVE file"
+        elif not os.path.isdir(create_fullpath(pnPR)):
             msg['pnPR'] =\
-                 f"result of previous run: {pnPR} is not found."
+                 f"result directory of previous run: {pnPR} is not found."
+        elif not os.path.isfile(os.path.join(create_fullpath(pnPR),SAVE_FILE_NAME)):
+            msg['pnPR'] =\
+                 f"result file 'SAVE' was not found in: {pnPR}."
+
 
     elif type == 1:
         # create initial condition by assigning another 1D sim.
         if len(onedsim)==0:
             msg['onedsim'] = \
-                "Please specify Path of SAVE file"
+                "Please specify Path of input INI file of the 1D vertical simulation"
         elif not os.path.isfile(create_fullpath(onedsim)):
             msg['onedsim'] =\
-                 f"result of 1D simulation: {onedsim} is not found."
+                 f"input INI file of 1D simulation: {onedsim} is not found."
 
     elif type == 2:
         # create new initial condition (hydrostatic pressure & no advection)

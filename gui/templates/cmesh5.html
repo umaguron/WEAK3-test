@@ -316,6 +316,36 @@
                     <p style="color:#198754 ;">{{ short_msg }}</p>
                 </div>
             {% endif %}
+            <div class="row" style="color:#198754 ;">
+                Following files are also required to create TOUGH3 inputs in different environment. 
+                <ul>
+                    <li>
+                    <b>{{ form.configIniFp }}</b>
+                    </li>
+                    <li>
+                    <b>{{ form.mulgridFileFp }}</b>
+                    </li>
+                    <li>
+                    <b>{{ form.topodata_fp }}</b>
+                    </li>
+                    <li>
+                    <b>{{ form.resistivity_structure_fp }}</b>
+                    </li>
+                    {%if form.usesAnotherResAsINCON == "0" %}
+                    <li>
+                    <b>{{form.problemNamePreviousRun}}/{{DEFINE.SAVE_FILE_NAME}}</b>
+                    </li>
+                    {%elif  form.usesAnotherResAsINCON == "1"%}
+                    <li>
+                    <b>{{form['1d_hydrostatic_sim_result_ini']}}</b>
+                    </li>
+                    <li>
+                    <b>{{form.one_d_save}}</b>
+                    </li>
+                    {%endif%}
+                </ul>
+                They must be properly placed with respect to the project root, as described above.
+            </div>
             <hr style="padding: 0px 20px;">
         {% endif %}
         <div class="row">
@@ -345,6 +375,9 @@
             <input type="hidden" value="{{ form.saveDir }}" name="saveDir">
             <input type="hidden" value="{{ form.mulgridFileFp }}" name="mulgridFileFp">
             <input type="hidden" value="{{ form.inputIniFp }}" name="inputIniFp">
+            <input type="hidden" value="{{ form.resistivity_structure_fp }}" name="resistivity_structure_fp">
+            <input type="hidden" value="{{ form.topodata_fp }}" name="topodata_fp">
+            <input type="hidden" value="{{ form.one_d_save }}" name="one_d_save">
             <!-- use default button -->
             <div class="sticky">
                 <div class="row">
@@ -1250,7 +1283,7 @@
             </div>
             <div class="row" id="incon0">        
                 <div class="col">
-                    <label class="form-check-label">Path of "SAVE" file of the previous simulation </label>
+                    <label class="form-check-label">Path of problem directory of the previous simulation that includes "SAVE" file </label>
                     <input type="text" name="problemNamePreviousRun" value="{{form.problemNamePreviousRun}}" class="form-control">
                 </div>
             </div>

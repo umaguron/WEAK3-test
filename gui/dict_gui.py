@@ -102,5 +102,7 @@ PARANAME_INI_GUI_CMESH5 = \
     ['solver','ksp_type','ksp_type'],
     ['solver','pc_type','pc_type'],
     ['solver','ksp_rtol','ksp_rtol'],
+    ['amesh_voronoi','topodata_fp','topodata_fp'],
+    ['mesh','resistivity_structure_fp','resistivity_structure_fp'],
     # ['toughInput','prints_hc_inj','prints_hc_inj'],
 )
