@@ -1,0 +1,46 @@
+# setting
+export REMOTE_STATION=user@xxx.xxx.xxx.xxx
+export PW=XXXXX
+export REMOTE_PRJROOT=Tough3/WEAK3-test 
+export LOCAL_PRJROOT=/Users/matsunagakousei/sourceCodes/WEAK3
+
+
+function get () {
+if [ -z $1 ] ;then 
+cat << EOF
+  get remote file to local.
+  usage: 
+   \$1: path from dir WEAK3-test/
+EOF
+return
+fi
+  echo $1
+  a=${LOCAL_PRJROOT}/${1%/*}
+  echo "FROM:$1 "
+  echo "-> TO:$a"
+  expect -c "set timeout 5; spawn scp -pr ${REMOTE_STATION}:${REMOTE_PRJROOT}/${1} ${a} ; expect password: ; send ${PW}\r ; interact"
+}
+
+
+function send () {
+  if [ -z $1 ] ;then 
+  cat << EOF
+    send local file to remote.
+    usage: 
+    \$1: path from dir WEAK3-test/
+    最下層にのみ*使用可能
+EOF
+  return
+  fi
+  echo $@
+  a=${REMOTE_PRJROOT}/${1%/*}
+  echo "FROM:$b "
+  echo "-> TO:$a"
+  expect -c "set timeout 5; spawn scp -pr $@ ${REMOTE_STATION}:$a ; expect password: ; send ${PW}\r ; interact"
+}
+
+function login () {
+  expect -c "set timeout 5; spawn ssh ${REMOTE_STATION} ; expect password: ; send ${PW}\r ; interact"
+}
+
+
