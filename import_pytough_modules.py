@@ -8,7 +8,7 @@ sys.path.append(os.path.join(baseDir,".."))
 from define import *
 from define_path import *
 try:
-    sys.path.append(PYTOUGH_ROOT_PATH)
-    sys.path.append(IAPWS_ROOT_PATH)
+    sys.path.append(os.path.join(baseDir, PYTOUGH_ROOT_PATH))
+    sys.path.append(os.path.join(baseDir, IAPWS_ROOT_PATH))
 except:
     pass

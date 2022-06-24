@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <p>
+    Created by Plotly -  
+    <a href="https://bit.ly/1Or9igj">plotly.js documentation</a>
+    </p>
+    <div id="tester"></div>
+    <script>
+
+        $(document).ready( function(){
+        // ページ読み込み時に実行したい処理
+            plotSeeds();
+        });
+        var outStr;
+        var CENTER;
+        var INTBL;
+        var radius;
+        var fact1;
+        var nLoop1;
+        var fact2;
+        var nLoop2;
+        var nSeeds;
+        function plotSeeds(){
+            outStr = "x y \n"
+            nSeeds = 0
+
+            CENTER = [Number($('#center_x').val()),Number($('#center_y').val())]
+            INTBL = Number($('#INTBL').val())
+            radius = Number($('#radius').val())
+            fact1 = Number($('#fact1').val())
+            nLoop1 = Number($('#nLoop1').val())
+            fact2 = Number($('#fact2').val())
+            nLoop2 = Number($('#nLoop2').val())
+
+            TESTER = document.getElementById('tester');
+            
+            var easting = [];
+            var northing = [];
+
+            // core zone
+            for (let i = -1 * Math.floor(radius/INTBL); i <= Math.floor(radius/INTBL); i++){
+                x = i * INTBL
+                half_width = (radius**2-x**2)**0.5;
+                residual_y = half_width - Math.floor(half_width/INTBL)*INTBL;
+                expanding = residual_y > INTBL*2.7/4 ? 1 : 0;
+                for (let j = -1 * Math.floor(half_width/INTBL)-expanding; j <= Math.floor(half_width/INTBL)+expanding; j++){
+                    easting.push(x+CENTER[0]);
+                    northing.push(j*INTBL+CENTER[1]);
+                    outStr += String(j*INTBL+CENTER[1])+" "+String(x+CENTER[0])+"\n";
+                    nSeeds++
+                }
+            };
+            // periphery
+            r = radius;
+            newIntbr = INTBL;
+            var tmp;
+            for (let i=1;i<=nLoop1;i++){
+                r = r + newIntbr;
+                enshu = 2*Math.PI*r;
+                if (i==1){
+                    n = Math.floor(enshu/newIntbr);
+                    tmp = n;
+                } else {
+                    n = tmp;
+                }
+                intbrRad = 2*Math.PI / n;
+                for (let j=0; j<=n; j++){
+                    easting.push(r * Math.sin(j*intbrRad) + CENTER[0]);
+                    northing.push(r * Math.cos(j*intbrRad) + CENTER[1]);
+                    outStr += String(r * Math.cos(j*intbrRad) + CENTER[1])+" "+String(r * Math.sin(j*intbrRad) + CENTER[0])+"\n";
+                    nSeeds++;
+                };
+                newIntbr = fact1*newIntbr
+            };
+            for (let i=nLoop1+1;i<=nLoop1+nLoop2;i++){
+                r = r + newIntbr;
+                enshu = 2*Math.PI*r;
+                if (i==1){
+                    n = Math.floor(enshu/newIntbr);
+                    tmp = n;
+                } else {
+                    n = tmp;
+                }
+                intbrRad = 2*Math.PI / n;
+                for (let j=0; j<=n; j++){
+                    easting.push(r * Math.sin(j*intbrRad) + CENTER[0]);
+                    northing.push(r * Math.cos(j*intbrRad) + CENTER[1]);
+                    outStr += String(r * Math.cos(j*intbrRad) + CENTER[1])+" "+String(r * Math.sin(j*intbrRad) + CENTER[0])+"\n";
+                    nSeeds++;
+                };
+                newIntbr = fact2*newIntbr
+
+            };
+
+            
+            var trace1 = {
+                x: easting,
+                y: northing,
+                mode: 'markers',
+                type: 'scatter',
+            };
+            var layout = {
+                autosize: false,
+                height: 600,
+                width: 800,
+                title: "title",
+                margin: { t: 0 },
+                xaxis: {title: "easting"},
+                yaxis: {
+                    title: "northing",
+                    scaleanchor: "x",
+                }
+                
+            };
+            var config = {
+                scrollZoom: true,
+            }
+            Plotly.newPlot( TESTER, [trace1],  layout , config);
+            $('#nseeds').html("<h4>Number of seeds:"+nSeeds+"</h4>")
+            $('#east_seeds').attr("value", easting.join())
+            $('#north_seeds').attr("value", northing.join())            
+        };
+        function WriteToFile(){
+            let blob = new Blob([outStr],{type:"text/plan"});
+            let link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "N"+String(nSeeds)+"_itb"+String(INTBL)+"_r"+String(radius)+"_f1"+String(fact1)+"_nl1"+String(nLoop1)+"_f2"+String(fact2)+"_nl2"+String(nLoop2)+"_C"+String(CENTER[0])+"-"+String(CENTER[0])+'.txt';
+            link.click();
+        };
+    </script>
+    <div id="nseeds"></div>
+    <br>
+    <h4>Core zone</h4>
+    <label>grid center</label>
+    <br>
+    <input type="text" value="0" placeholder="x" id="center_x"> m
+    <input type="text" value="0" placeholder="y" id="center_y"> m
+    <br>
+    <label>grid spacing</label>
+    <br>
+    <input type="text" value="100" id="INTBL"> m
+    <br>
+    <label>radius of core zone</label>
+    <br>
+    <input type="text" value="1000" id="radius"> m
+    <h4>Periphery</h4>
+    <h5>Loop (inner)</h5>
+    <label>factor</label>
+    <br>
+    <input type="text" value="1.1" id="fact1">
+    <br>
+    <label>number of loop</label>
+    <br>
+    <input type="text" value="3" id="nLoop1">
+    <br>
+    <h5>Loop (outer)</h5>
+    <label>factor </label>
+    <br>
+    <input type="text" value="1.2" id="fact2">
+    <br>
+    <label>number of loop</label>
+    <br>
+    <input type="text" value="3" id="nLoop2">
+    <br>
+    <br>
+    <input type="button" value="replot" onclick="plotSeeds()">
+    <input type="button" value="download" onclick="WriteToFile()">
+    <br>
+    <br>
+    <br>
+    <form action="" method="post">
+        <input type="hidden" name="east_seeds" id="east_seeds">
+        <input type="hidden" name="north_seeds" id="north_seeds">
+        <!-- <input type="submit" value="send"> -->
+    </form>
+</body>
+</html>

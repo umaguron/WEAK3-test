@@ -1,5 +1,5 @@
 """
-All environment dependent path shoud be defined here.
+All environment dependent path should be defined here.
 """
 
 """library location"""
