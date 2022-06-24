@@ -8,9 +8,9 @@ export LOCAL_PRJROOT=/Users/matsunagakousei/sourceCodes/WEAK3
 function get () {
 if [ -z $1 ] ;then 
 cat << EOF
-  get remote file to local.
+  copy remote file to local.
   usage: 
-   \$1: path from dir WEAK3-test/
+   \$1: relative path from REMOTE_PRJROOT($REMOTE_STATION:$REMOTE_PRJROOT)
 EOF
 return
 fi
@@ -25,9 +25,9 @@ fi
 function send () {
   if [ -z $1 ] ;then 
   cat << EOF
-    send local file to remote.
+    copy local file to remote.
     usage: 
-    \$1: path from dir WEAK3-test/
+    \$1: relative path from LOCAL_PRJROOT($LOCAL_PRJROOT)
     最下層にのみ*使用可能
 EOF
   return
