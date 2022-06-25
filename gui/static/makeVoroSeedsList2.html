@@ -247,13 +247,16 @@
 
         $(document).ready( function(){
         // ページ読み込み時に実行したい処理
-            plotSeedsCircular();
+            plotSeeds();
             switch_type();
         });
 
         // standby
         $(function () {
-            $('#type').change(function(){switch_type()});
+            $('#type').change(function(){
+                switch_type();
+                plotSeeds();
+            });
         });
 
         function switch_type(){
@@ -301,37 +304,37 @@
             <div class="row">
                 <div class="col-2">
                     <div class="form-group">
-                        <label>grid center x[m]</label>
+                        <label>N-S center [m]</label>
                         <input type="text" value="0" placeholder="x" id="CENTERRECTy"  class="form-control"> 
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>grid center y[m]</label>
+                        <label>E-W center [m]</label>
                         <input type="text" value="0" placeholder="y" id="CENTERRECTx"  class="form-control"> 
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N element x [m]</label>
+                        <label>N-S n-element</label>
                         <input type="text" value="11" id="nElemY" class="form-control" >
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N element y [m]</label>
+                        <label>E-W n-element</label>
                         <input type="text" value="11" id="nElemX" class="form-control" >
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>range x [m]</label>
+                        <label>N-S width [m]</label>
                         <input type="text" value="1000" id="coreRangeY" class="form-control" >
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>range y [m]</label>
+                        <label>E-W width [m]</label>
                         <input type="text" value="1000" id="coreRangeX" class="form-control" >
                     </div>
                 </div>
@@ -346,25 +349,25 @@
             <div class="row">
                 <div class="col-2">
                     <div class="form-group">
-                        <label>factor x</label>
+                        <label>enlargement factor (N-S)</label>
                         <input type="text" value="1.2" id="rectFactY1" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N additional x</label>
+                        <label>n-additional row (N-S)</label>
                         <input type="text" value="10" id="nAddY1" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>factor y</label>
+                        <label>enlargement factor (E-W)</label>
                         <input type="text" value="1.2" id="rectFactX1" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N additional y</label>
+                        <label>n-additional row (E-W)</label>
                         <input type="text" value="10" id="nAddX1" class="form-control">
                     </div>
                 </div>
@@ -377,25 +380,25 @@
             <div class="row">
                 <div class="col-2">
                     <div class="form-group">
-                        <label>factor x</label>
+                        <label>enlargement factor (N-S)</label>
                         <input type="text" value="1" id="rectFactY2" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N additional x</label>
+                        <label>n-additional row (N-S)</label>
                         <input type="text" value="0" id="nAddY2" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>factor y</label>
+                        <label>enlargement factor (E-W)</label>
                         <input type="text" value="1" id="rectFactX2" class="form-control">
                     </div>
                 </div>
                 <div class="col-2">
                     <div class="form-group">
-                        <label>N additional y</label>
+                        <label>n-additional row (E-W)</label>
                         <input type="text" value="0" id="nAddX2" class="form-control">
                     </div>
                 </div>
@@ -407,13 +410,13 @@
             <div class="row">
                 <div class="col-3">
                     <div class="form-group">
-                        <label>grid center x[m]</label>
+                        <label>N-S center [m]</label>
                         <input type="text" value="0" placeholder="x" id="center_y"  class="form-control"> 
                     </div>
                 </div>
                 <div class="col-3">
                     <div class="form-group">
-                        <label>grid center y[m]</label>
+                        <label>E-W center [m]</label>
                         <input type="text" value="0" placeholder="y" id="center_x"  class="form-control"> 
                     </div>
                 </div>
