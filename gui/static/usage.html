@@ -13,7 +13,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>cmesh1</h1>
+        <!-- <h1>cmesh1</h1>
         <div class="row">
             <div class="col">
                 <p>まずはじめに、各種実行ファイルや、インプットファイルの作成場所をsetting.iniに指定する必要がある。<a href="/setting.ini" download>ダウンロード</a></p>
@@ -32,7 +32,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- <tr>
+                    <tr>
                         <th rowspan="3">[toughexec]</th>
                         <td rowspan="3">TOUGHプログラムの置き場所</td>
                         <td><b>BIN_DIR</b></td>
@@ -50,14 +50,14 @@
                     <tr>
                         <td><b>BIN_DIR_LOCAL</b></td>
                         <td>上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。</td>
-                    </tr> -->
+                    </tr>
                     <tr>
                         <th>[toughConfig]</th>
                         <td></td>
                         <td><b>TOUGH_INPUT_DIR</b></td>
                         <td>シミュレーションごとのフォルダがこのディレクトリ配下に作成され、input/output fileが書き出される。</td>
                     </tr>
-                    <!-- <tr>
+                    <tr>
                         <th rowspan="8">[toughConfig]</th>
                         <td rowspan="8"></td>
                         <td><b>t2dataDir</b></td>
@@ -86,10 +86,10 @@
                         <td colspan="2">その他の項目については、以下のようにする。</td>
                     </tr>
                     <tr><td>INPUT_FILENAME</td><td>in</td></tr>
-                    <tr><td>SEGMT_FILENAME</td><td>segmt</td></tr> -->
+                    <tr><td>SEGMT_FILENAME</td><td>segmt</td></tr>
                 </tbody>
             </table>
-        </div>
+        </div> 
         <br>
         <div class="row">
             <div class="col">
@@ -102,9 +102,10 @@
             </div>
         </div>
         <br>
+    -->
         <br>
         <br>
-        <h1>cmesh2</h1>
+        <h1>Create mesh (cmesh2)</h1>
         <br>
         <div class="row">
             <div class="col">
@@ -161,14 +162,14 @@
                     <tr>
                         <th>topodata_fp</th>
                         <td>
-                            <p>地形データ。形式は以下の通り。xは北方向、yは東方向、zは標高。各数値の単位は[km]</p>   
+                            <p>地形データのファイルパス。ファイルの形式は以下の通り。xは北方向、yは東方向、zは標高。各数値の単位は[km]</p>   
                             <img src="/img/topodata.png">
                         </td>
                     </tr>
                     <tr>
                         <th>voronoi_seeds_list_fp</th>
                         <td>
-                            <p>2次元平面グリッドを定義。<a href="https://ja.wikipedia.org/wiki/%E3%83%9C%E3%83%AD%E3%83%8E%E3%82%A4%E5%9B%B3">voronoiメッシュ</a>作成時に使用される、各セルの"seed"(母点)となる座標のリスト。形式は以下の通り。単位は[m]</p>   
+                            <p><a href="https://ja.wikipedia.org/wiki/%E3%83%9C%E3%83%AD%E3%83%8E%E3%82%A4%E5%9B%B3">voronoiメッシュ</a>作成時に使用される、各セルの"seed"(母点)となる座標のリストのファイルパス。形式は以下の通り。単位は[m]</p>   
                             <img src="/img/voro_sample.png">
                         </td>
                     </tr>
@@ -186,7 +187,7 @@
                     </tr>
                     <tr>
                         <th>tolar [m]</th>
-                        <td>AMESHの設定値. the length of the minimum interface between elements.  </td>
+                        <td>AMESHの設定値. "the length of the minimum interface between elements". AMESHからTOUGHグリッドへの変換(mulgrid.from_amesh())でエラーになるときは、より小さな値を設定するとうまくいくことがある。  </td>
                     </tr>
                 </tbody>
             </table>
@@ -332,7 +333,7 @@
         <br>
         <br>
         <br>
-        <h1>cmesh4</h1>
+        <h1>Slice (cmesh4)</h1>
         <div class="row">
             <ul class="list-unstyled">
                 <li>上部に作成されたグリッドファイルと、ここまで入力したメッシュ情報が書き出されたinput.iniのパス、それらが書き出されたディレクトリ（problem directory）が表示されている。</li>

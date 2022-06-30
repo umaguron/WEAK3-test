@@ -1984,7 +1984,7 @@ def show_incon_summary(ini:_readConfig.InputIni):
         res2.append(inc[blk.name].variable[2])
         res3.append(inc[blk.name].variable[3])
     print(f"""
-----INCON: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{INCON_FILE_NAME}
+----INCON: {ini.configuration.TOUGH_INPUT_DIR}/{INCON_FILE_NAME}
     variable 0 max {max(res0)}, min {min(res0)}
     variable 1 max {max(res1)}, min {min(res1)}
     variable 2 max {max(res2)}, min {min(res2)}
@@ -2004,7 +2004,7 @@ def show_incon_summary(ini:_readConfig.InputIni):
             res2.append(save[blk.name].variable[2])
             res3.append(save[blk.name].variable[3])
         print(f"""
-----SAVE: {ini.setting.toughConfig.TOUGH_INPUT_DIR}/{SAVE_FILE_NAME}
+----SAVE: {ini.configuration.TOUGH_INPUT_DIR}/{SAVE_FILE_NAME}
     variable 0 max {max(res0)}, min {min(res0)}
     variable 1 max {max(res1)}, min {min(res1)}
     variable 2 max {max(res2)}, min {min(res2)}

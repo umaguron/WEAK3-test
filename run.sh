@@ -13,8 +13,16 @@ mkdir tempini &>/dev/null
 cp $1 tempini/${suf}_${1////_}
 f=tempini/${suf}_${1////_}
     problemname=`python3 configUtil/parseConfig.py $f toughInput problemname`
-    settingIni=`python3 configUtil/parseConfig.py $f configuration configIni`
-    TID=`python3 configUtil/parseConfig.py $settingIni toughConfig TOUGH_INPUT_DIR`
+    TID=`python3 configUtil/parseConfig.py $f configuration TOUGH_INPUT_DIR 2>/dev/null`
+    if [ -z $TID ]; then
+    settingIni=`python3 configUtil/parseConfig.py $f configuration configIni 2>/dev/null` 
+    TID=`python3 configUtil/parseConfig.py $settingIni toughConfig TOUGH_INPUT_DIR  2>/dev/null`
+    fi
+    if [ -z $TID ]; then
+    echo "TOUGH_INPUT_DIR not found in $f. Exit."
+    exit
+    fi
+
     outfile=`python3 configUtil/parseConfig.py $f toughInput toughoutputfilename`
     meshtype=`python3 configUtil/parseConfigMeshT.py $f`
     t2dirfp=${TID}/${problemname}

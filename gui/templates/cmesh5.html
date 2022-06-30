@@ -320,10 +320,7 @@
                 Following files are also required to create TOUGH3 inputs in different environment. 
                 <ul>
                     <li>
-                    <b>{{ form.configIniFp }}</b>
-                    </li>
-                    <li>
-                    <b>{{ form.mulgridFileFp }}</b>
+                    <b>{{ form.mulgridFileFpRel }}</b>
                     </li>
                     <li>
                     <b>{{ form.topodata_fp }}</b>
@@ -345,35 +342,39 @@
                     {%endif%}
                 </ul>
                 They must be properly placed with respect to the project root, as described above.
+                <br>
+                Following directory also have to be created. 
+                <ul>
+                    <li>
+                    <b>{{ form.saveDirRel }}</b>
+                    </li>
+                </ul>
             </div>
             <hr style="padding: 0px 20px;">
         {% endif %}
         <div class="row">
-            <div class="form-group">
-                <label for="configIniFp">Setting config file</label>
-                <input type="text" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" disabled/>
-            </div>
             <br>
             <div class="form-group">
                 <label for="TOUGH_INPUT_DIR">Full directory path where new problem is to be created </label>
-                <input type="text" value="{{ form.saveDir }}" class="form-control" name="saveDir" disabled/>
+                <input type="text" value="{{ form.saveDirFull }}" class="form-control" name="saveDirFull" disabled/>
             </div>
             <br>
             <div class="form-group">
                 <label for="mulgridFileFp">Mesh file </label>
-                <input type="text" value="{{ form.mulgridFileFp }}" class="form-control" name="mulgridFileFp" disabled/>
+                <input type="text" value="{{ form.mulgridFileFpFull }}" class="form-control" name="mulgridFileFpFull" disabled/>
             </div>
             <div class="form-group">
-                <label for="inputIniFp">Input file </label>
+                <label for="inputIniFp">Original Input file </label>
                 <input type="text" value="{{ form.inputIniFp }}" class="form-control" name="inputIniFp" disabled/>
             </div>
         </div>
         <br>
         
         <form method="post" action="cmesh5_check"  id="cmesh5_check">
-            <input type="hidden" value="{{ form.configIniFp }}" name="configIniFp">
-            <input type="hidden" value="{{ form.saveDir }}" name="saveDir">
-            <input type="hidden" value="{{ form.mulgridFileFp }}" name="mulgridFileFp">
+            <input type="hidden" value="{{ form.saveDirRel }}" name="saveDirRel">
+            <input type="hidden" value="{{ form.saveDirFull }}" name="saveDirFull">
+            <input type="hidden" value="{{ form.mulgridFileFpRel }}" name="mulgridFileFpRel">
+            <input type="hidden" value="{{ form.mulgridFileFpFull }}" name="mulgridFileFpFull">
             <input type="hidden" value="{{ form.inputIniFp }}" name="inputIniFp">
             <input type="hidden" value="{{ form.resistivity_structure_fp }}" name="resistivity_structure_fp">
             <input type="hidden" value="{{ form.topodata_fp }}" name="topodata_fp">

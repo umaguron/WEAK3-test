@@ -53,13 +53,9 @@
         {%- endfor %}
         {% endif %}
         <div class="row">
-            <div class="form-group">
-                <label for="configIniFp">Setting config file</label>
-                <input type="text" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" disabled/>
-            </div>
             <br>
             <div class="form-group">
-                <label for="TOUGH_INPUT_DIR">Full directory path where new problem is to be created </label>
+                <label for="TOUGH_INPUT_DIR">The directory where new problem is to be created </label>
                 <input type="text" value="{{ form.saveDir }}" class="form-control" name="saveDir" disabled/>
             </div>
             <br>
@@ -112,7 +108,6 @@
                         <input type="hidden" value="{{form.original_iniFp}}" class="form-control" name="original_iniFp" />
                         <input type="hidden" value="{{inputIniFp}}" name="inputIniFp">
                         <input type="hidden" value="{{form.saveDir}}" name="saveDir">
-                        <input type="hidden" value="{{form.configIniFp}}"  name="configIniFp">
                         <input type="hidden" value="{{form.mulgridFileFp}}"  name="mulgridFileFp">
                         <input type="hidden" value="{{form.problemName}}"  name="problemName">
                         <input type="hidden" value="{{form.t2GridFp}}"  name="t2GridFp">

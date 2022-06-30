@@ -117,15 +117,15 @@ def cmesh1_check():
 
 @app.route('/cmesh2', methods=['GET', 'POST'])
 def cmesh2():
-    if request.method == 'POST':
-        return render_template('cmesh2.html', form=request.form, created=False)
-    else:
-        return redirect(url_for('index'))
+    return render_template('cmesh2.html', form=request.form, created=False)
+    # if request.method == 'POST':
+    #     return render_template('cmesh2.html', form=request.form, created=False)
+    # else:
+    #     return redirect(url_for('index'))
 
 @app.route('/cmesh2_check', methods=['GET', 'POST'])
 def cmesh2_check():
     if request.method == 'POST':
-        saveDir = request.form['saveDir']
         if int(request.form['createsMesh'])==1:
             """ create new mesh """
             topodata_fp_full = create_fullpath(request.form['topodata_fp'])
@@ -147,8 +147,6 @@ def cmesh2_check():
 
             """ _readConfig.InputIniインスタンス作成"""
             inputIni = _readConfig.InputIni()
-            inputIni.setting = _readConfig.SettingIni(create_fullpath(request.form['configIniFp']))
-            inputIni.configIniFp = create_relpath(request.form['configIniFp'])
             inputIni.toughInput = {}
             inputIni.mesh.type = AMESH_VORONOI
             config = {}
@@ -207,6 +205,10 @@ def cmesh3():
 
 def cmesh3_validate(request:request):
     error_msg = {}
+    if not os.path.isdir(create_fullpath(request.form['saveDir'])):
+        error_msg['saveDir']= f"Problem directory: {request.form['saveDir']}"\
+                              f" was not found. Please create the directory first."
+
     if not os.path.isfile(create_fullpath(request.form['resistivity_structure_fp'])):
         error_msg['resistivity_structure_fp']= \
             f"Resistivity structure data: "\
@@ -280,15 +282,12 @@ def cmesh3_check():
             inputIni.toughInput['rockSecList'] = []
             inputIni.rockSecList = []
         else:
-            # cmesh1からのときもう一度作る
+            # cmesh2からのときもう一度作る
             inputIni = _readConfig.InputIni()
             inputIni.toughInput = {}
             
-        inputIni.setting = _readConfig.SettingIni(create_fullpath(request.form['configIniFp']))
-        inputIni.configIniFp = create_relpath(request.form['configIniFp'])
         inputIni.mesh.type = AMESH_VORONOI
         inputIni.mesh.mulgridFileFp = create_relpath(request.form['mulgridFileFp'])
-        # inputIni.mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
         if int(request.form['createsMesh'])==1:
             config_av = {}
             config_av['amesh_voronoi'] = request.form
@@ -300,6 +299,10 @@ def cmesh3_check():
             geo = mulgrid(inputIni.mesh.mulgridFileFp)
             inputIni.mesh.convention = geo.convention
         
+        """problem dir."""
+        config['configuration'] = {}
+        config['configuration']['TOUGH_INPUT_DIR'] = create_relpath(request.form['saveDir'])
+        inputIni.configuration = _readConfig.InputIni._Configuration().read_from_config(config)
         """problem name"""
         inputIni.toughInput['problemName'] = request.form[f'problemName']
         """resistivity_structure_fp"""
@@ -507,7 +510,6 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     tolar
     top_layer_min_thickness
 
-    configIniFp
     saveDir
     convention
     createsMesh
@@ -542,8 +544,7 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     else:
         # 追記モード
         ret = form
-    ret["configIniFp"] = create_fullpath(ini.configIniFp)
-    ret["saveDir"] = create_fullpath(ini.setting.toughConfig.TOUGH_INPUT_DIR)
+    ret["saveDir"] = create_fullpath(ini.configuration.TOUGH_INPUT_DIR)
     ret["convention"] = ini.mesh.convention
     if hasattr(ini, 'amesh_voronoi'):
         if hasattr(ini.amesh_voronoi, 'topodata_fp')\
@@ -741,7 +742,7 @@ def cmesh5_check():
         msg_top_g, error_msg_gener = cmesh5_validate_gener(request)
         
         form = dict(request.form)
-        form = construct_simulator_paths(form, form['configIniFp'])
+        form = construct_simulator_paths(form)
 
         if request.form['usesAnotherResAsINCON'] == "1":
             # get path of SAVE file of 1d vertical simulation
@@ -864,24 +865,19 @@ def cmesh5_validate_gener(request:request):
 
     return msg_top, msg
 
-def construct_simulator_paths(form, configIniFp):
+def construct_simulator_paths(form):
     """ get logger """
     logger = define_logging.getLogger(
         f"controller.{sys._getframe().f_code.co_name}")
-    """ read path of simulator from setting.ini"""
+    """ read path of simulator"""
     # path of simulators
     form['simulators'] = {}    
-    # parse setting.ini
-    setting = _readConfig.SettingIni(configIniFp)
-    if setting.toughexec.COMM_EXEC is not None:
-        form['simulators']['COMM_EXEC'] = setting.toughexec.COMM_EXEC
-    else:
-        if BIN_DIR is not None:
-            form['simulators']['TOUGH3'] = BIN_DIR
-        if BIN_DIR_LOCAL is not None:
-            form['simulators']['TOUGH3_LOCAL'] = BIN_DIR_LOCAL
-        if BIN_DIR_T2 is not None:
-            form['simulators']['TOUGH2'] = BIN_DIR_T2
+    if BIN_DIR is not None:
+        form['simulators']['TOUGH3'] = BIN_DIR
+    if BIN_DIR_LOCAL is not None:
+        form['simulators']['TOUGH3_LOCAL'] = BIN_DIR_LOCAL
+    if BIN_DIR_T2 is not None:
+        form['simulators']['TOUGH2'] = BIN_DIR_T2
     if len(form['simulators'])==0:
         logger.error(f"please set path of simulator in define_path.py")
         raise FileNotFoundError
@@ -907,8 +903,8 @@ def cmesh5_read_inputIni(request:request):
     config.read(iniFp)
     
     
-    """ read path of simulator from setting.ini"""
-    form = construct_simulator_paths(form, config['configuration']['configini'])
+    """ path of each simulators """
+    form = construct_simulator_paths(form)
     
     """ read param values from config and substitute values to form """
     for sec, key, name in dict_gui.PARANAME_INI_GUI_CMESH5:
@@ -919,17 +915,27 @@ def cmesh5_read_inputIni(request:request):
             logger.debug(f"[{sec}]{key} not found")
     
     """ construct paths """
-    setting = _readConfig.SettingIni(config['configuration']['configini'])
+    if config.has_option('configuration', 'TOUGH_INPUT_DIR'):
+        TOUGH_INPUT_DIR = config['configuration']['TOUGH_INPUT_DIR']
+    elif config.has_option('configuration', 'configini'):
+        setting = _readConfig.SettingIni(config['configuration']['configini'])
+        TOUGH_INPUT_DIR = setting.toughConfig.TOUGH_INPUT_DIR
+    else:
+        logger.error(f"Please specify configutation.TOUGH_INPUT_DIR in '{iniFp}'")
+        raise InvalidToughInputException(f"Please specify configutation.TOUGH_INPUT_DIR in '{iniFp}'")
+
     form['inputIniFp'] = iniFp
-    form['saveDir'] = os.path.join(
-                                setting.toughConfig.TOUGH_INPUT_DIR, 
-                                config['toughInput']['problemName'])
+    form['saveDirRel'] = create_relpath(TOUGH_INPUT_DIR)
+    form['saveDirFull'] = create_fullpath(TOUGH_INPUT_DIR)
     if config.has_option('mesh', 'mulgridFileFp'):
-        form['mulgridFileFp'] = config['mesh']['mulgridFileFp']
+        form['mulgridFileFpRel'] = create_relpath(config['mesh']['mulgridFileFp'])
+        form['mulgridFileFpFull'] = create_fullpath(config['mesh']['mulgridFileFp'])
     elif config.has_option('toughInput', 'mulgridFileName'):
-        form['mulgridFileFp'] = os.path.join(
-                                setting.toughConfig.GRID_DIR, 
-                                config['toughInput']['mulgridFileName'])
+        form['mulgridFileFpRel'] = os.path.join(
+                                    setting.toughConfig.GRID_DIR, 
+                                    config['toughInput']['mulgridFileName'])
+        form['mulgridFileFpFull'] = create_fullpath(form['mulgridFileFpRel'])
+
    
     """parse MOPsXX"""
     for mop in ('mops02','mops03','mops04','mops05','mops06'):
@@ -1081,6 +1087,10 @@ def cmesh5_write_file(request:request):
             logger.debug(info + f"--> ")
             config.set(sec, key, "")
 
+    # configuration
+    if config.has_option('configuration', 'configIni'):
+        config.remove_option('configuration', 'configIni')
+    config.set('configuration', 'TOUGH_INPUT_DIR', create_relpath(form['saveDirRel']))
         
     # GENER 
     idx = 0
@@ -1181,7 +1191,7 @@ def test_create():
         
         # return to cmesh5.html     
         form = dict(request.form)
-        form = construct_simulator_paths(form, form['configIniFp'])
+        form = construct_simulator_paths(form)
         outfp = os.path.join('output', request.form['problemName']+'.ini')
         return render_template('cmesh5.html', form=form, downloadlink=outfp, 
                                 error_msg=error_msg if len(error_msg)>0 else None,

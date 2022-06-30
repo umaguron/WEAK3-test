@@ -22,8 +22,8 @@ _rii = _readConfig.InputIni().read_from_inifile(args.inputIni)
 II = _rii.toughInput
 if not os.path.isfile(_rii.t2FileFp):
     print(f"TOUGH inputfile {_rii.t2FileFp} not found")
-if not os.path.isfile(_rii.setting.toughexec.COMM_EXEC):
-    print(f"TOUGH executable {_rii.setting.toughexec.COMM_EXEC} not found")
+if not os.path.isfile(_rii.configuration.COMM_EXEC):
+    print(f"TOUGH executable {_rii.configuration.COMM_EXEC} not found")
 
 if args.parallel is not None:
     # if the number of processor at parallel execution is specified by argument
@@ -81,18 +81,18 @@ if _rii.toughInput['simulator']==SIMULATOR_NAME_T3:
         os.system(f"""
         module purge
         export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-        {MPIEXEC} -n {nProc} {_rii.setting.toughexec.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
+        {MPIEXEC} -n {nProc} {_rii.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
         """)
     else:
         # mode serial 
         os.system(f"""
         module purge
         export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-        {_rii.setting.toughexec.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
+        {_rii.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
         """)
 if _rii.toughInput['simulator']==SIMULATOR_NAME_T2:
     print("SERIAL")
     os.system(f"""
-    {_rii.setting.toughexec.COMM_EXEC} < {FILENAME_T2DATA} | tee {FILENAME_TOUGH_OUTPUT}
+    {_rii.configuration.COMM_EXEC} < {FILENAME_T2DATA} | tee {FILENAME_TOUGH_OUTPUT}
     """)
 

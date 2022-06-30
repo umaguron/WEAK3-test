@@ -38,7 +38,7 @@ def addResultToLog(inputIni:str, toughResultDir:str=None):
 
     # if dirResult is not given, restore t2dir path from info provided by the ini files
     if toughResultDir is None:
-        toughResultDir = os.path.join(_rii.setting.toughConfig.TOUGH_INPUT_DIR, 
+        toughResultDir = os.path.join(_rii.configuration.TOUGH_INPUT_DIR, 
                                       _rii.toughInput['problemName'])
         # check existence
         if not os.path.exists(toughResultDir):

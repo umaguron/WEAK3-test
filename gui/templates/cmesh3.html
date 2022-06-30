@@ -195,15 +195,6 @@
         {%- endfor %}
         {% endif %}
         <div class="row">
-            <div class="form-group">
-                <label for="configIniFp">Setting config file</label>
-                <input type="text" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" disabled/>
-            </div>
-            <br>
-            <div class="form-group">
-                <label for="TOUGH_INPUT_DIR">Full directory path where new problem is to be created </label>
-                <input type="text" value="{{ form.saveDir }}" class="form-control" name="saveDir" disabled/>
-            </div>
             <br>
             <div class="form-group">
                 <label for="mulgridFileFp">Mesh file </label>
@@ -216,8 +207,6 @@
         <form method="post" action="/cmesh3_check" id="applyForm">
             <!--  -->
             <input type="hidden" value="{{ form.original_iniFp }}" class="form-control" name="original_iniFp" />
-            <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
-            <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" />
             <input type="hidden" value="{{ form.convention }}" class="form-control" name="convention" />
             <input type="hidden" value="{{ form.includesAtmos }}" class="form-control" name="includesAtmos" />
             <input type="hidden" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp" />
@@ -235,6 +224,12 @@
                         <div class="row">
                             <div class="col-12">
                                 <h3>General </h3>
+                            </div>
+                            <div class="col-12 form">
+                                <label> Problem directory (where this problem is to be created)</label>
+                                <!-- <label class="aaa">(説明)</label> -->
+                                <input type="text" name="saveDir" value="{{form.saveDir}}" class="form-control" required>
+                                <div class="invalid-msg">required</div>
                             </div>
                             <div class="col-6 form">
                                 <label>Problem name </label>

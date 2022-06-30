@@ -35,7 +35,6 @@
 PARANAME_INI_GUI_CMESH5 = \
 (
     # section, key, name_in_gui
-    ['configuration','configIni','configIniFp'],
     ['toughInput','simulator','simulator'],
     ['toughInput','problemName','problemName'],
     ['toughInput','module','module'],

@@ -62,6 +62,8 @@ def insertToughInput(conn: sqlite3.Connection,
                'MOPs04','MOPs05','MOPs06','MOPs07','MOPs08','MOPs09',
                'MOPs10','MOPs11','MOPs12','MOPs13','MOPs14','MOPs15',
                'MOPs16','MOPs17']
+    
+    configuration_params = ['configIni']
 
     """ update table toughInput"""
     # search record and check exitence
@@ -76,7 +78,6 @@ def insertToughInput(conn: sqlite3.Connection,
         print(f"[toughinput] inserting new record ...")
         # if record does not exists, insert as new record.
         col_str = f"""
-                configIni,
                 t2dir, 
                 problemName, 
                 updated_time,
@@ -98,7 +99,6 @@ def insertToughInput(conn: sqlite3.Connection,
                 rainfallAnnual_mm ,
                 T_rain """
         value_str = f"""
-                '{ini.configIniFp}', 
                 '{t2dir}', 
                 '{problemname}', 
                 datetime('now','localtime'),
@@ -130,6 +130,11 @@ def insertToughInput(conn: sqlite3.Connection,
                 col_str += f', {sp}' 
                 value_str += f", '{getattr(ini.solver, sp)}'" 
 
+        for cf in configuration_params:
+            if hasattr(ini.configuration, cf):
+                col_str += f', {cf}' 
+                value_str += f", '{getattr(ini.configuration, cf)}'" 
+
         for param in params2:
             if param in II and len(str(II[param]))>0 :
                 col_str += f", {param}"
@@ -145,7 +150,6 @@ def insertToughInput(conn: sqlite3.Connection,
         # if record already exists, replace existence record
         col_str = f"""
                 toughInput_id,
-                configIni, 
                 t2dir, 
                 problemName, 
                 updated_time,
@@ -169,7 +173,6 @@ def insertToughInput(conn: sqlite3.Connection,
 
         value_str = f"""
                 {result[0]}, 
-                '{ini.configIniFp}', 
                 '{t2dir}', 
                 '{problemname}', 
                 datetime('now','localtime'),
@@ -200,7 +203,12 @@ def insertToughInput(conn: sqlite3.Connection,
             if hasattr(ini.solver, sp):
                 col_str += f', {sp}' 
                 value_str += f", '{getattr(ini.solver, sp)}'" 
-        
+
+        for cf in configuration_params:
+            if hasattr(ini.configuration, cf):
+                col_str += f', {cf}' 
+                value_str += f", '{getattr(ini.configuration, cf)}'" 
+
         for param in params2:
             if param in II and len(str(II[param]))>0 :
                 col_str += f", {param}"

@@ -62,8 +62,9 @@ class SettingIni(object):
     # section: toughexec
     class _toughexec(object):
         def __init__(self, config: configparser.ConfigParser):
-            self.COMM_EXEC = None
+            pass
             """ 2022/06/17 No longer necessary. 
+            self.COMM_EXEC = None
             self.BIN_DIR = None
             self.BIN_DIR_T2 = None
             self.BIN_DIR_LOCAL = None
@@ -129,6 +130,7 @@ class InputIni(object):
         self.plot = self._PlotSec()
         self.boundary = self._Boundary()
         self.atmosphere = self._Atmosphere()
+        self.configuration = self._Configuration()
 
     def read_from_inifile(self, inputIniFp:str):
         """ get logger """
@@ -144,21 +146,6 @@ class InputIni(object):
         else:
             logger.error(f"file not found: {inputIniFp}")
             raise FileNotFoundError
-    
-        try:
-            self.configIniFp = self.config.get('configuration', 'configIni')
-        except:
-            logger.warning('configIni not found. use default config' )
-            self.configIniFp = 'setting.ini'
-        logger.info(f"CONFIG FILE :{self.configIniFp}")
-    
-        if not os.path.isfile(os.path.join(baseDir,self.configIniFp)): 
-            logger.error(f"CONFIG FILE:{os.path.join(baseDir,self.configIniFp)} not found")
-            raise FileNotFoundError
-        
-        ### reading setting.ini ###
-        logger.info(f"CONFIG FILE :{self.configIniFp} ")
-        self.setting = SettingIni(os.path.join(baseDir,self.configIniFp))
         
         # read sections
         self.mesh = self._MeshSec().read_from_config(self.config)
@@ -173,6 +160,7 @@ class InputIni(object):
         self.plot = self._PlotSec().read_from_config(self.config)
         self.boundary = self._Boundary().read_from_config(self.config)
         self.atmosphere = self._Atmosphere().read_from_config(self.config)
+        self.configuration = self._Configuration().read_from_config(self.config)
 
         # read section [toughInput]
         # GUIで使うときは[toughInput]セクションが不完全な場合に読み込みが行われるので、
@@ -222,19 +210,19 @@ class InputIni(object):
         #     TID = config['configuration']['TOUGH_INPUT_DIR']
         #     if os.path.isdir(os.path.join(baseDir, TID)):
         #         # overwrite TOUGH_INPUT_DIR in setting.ini
-        #         self.setting.toughConfig.TOUGH_INPUT_DIR = TID
+        #         self.configuration.TOUGH_INPUT_DIR = TID
         #     else:
         #         # if available TOUGH_INPUT_DIR is "not" found in input.ini
-        #         TID = self.setting.toughConfig.TOUGH_INPUT_DIR
+        #         TID = self.configuration.TOUGH_INPUT_DIR
         # except:
         #     # if available TOUGH_INPUT_DIR is "not" found in input.ini
-        #     TID = self.setting.toughConfig.TOUGH_INPUT_DIR
+        #     TID = self.configuration.TOUGH_INPUT_DIR
         # self.t2FileDirFp = os.path.join(baseDir, TID, 
         #                             self.toughInput['problemName'])
 
         self.t2FileDirFp = os.path.join(
                                 baseDir, 
-                                self.setting.toughConfig.TOUGH_INPUT_DIR, 
+                                self.configuration.TOUGH_INPUT_DIR, 
                                 self.toughInput['problemName'])
         if hasattr(self.plot, 'reads_data_from_current_dir'):
             if self.plot.reads_data_from_current_dir:
@@ -291,7 +279,6 @@ class InputIni(object):
         
         ret = {}
 
-        # ret['module'] = os.path.basename(self.setting.toughexec.COMM_EXEC)
         ret['module'] = self.config.get('toughInput', 'module').lower()
         
         """
@@ -304,18 +291,13 @@ class InputIni(object):
             ret['simulator'] = SIMULATOR_NAME_T3
 
         """
-        Define a path of executable.
-            if 'COMM_EXEC' is provided in settingIni file, use it as a path of executable.
-            if 'COMM_EXEC' is not provided, define path of executable newly 
-                by using 'module' in inputIni and 'BIN_DIR' in settingIni.
+        Define a path of executable by using 'module' in inputIni and 'BIN_DIR' in define_path.py.
         """
-        if ret['simulator']==SIMULATOR_NAME_T3 \
-                and self.setting.toughexec.COMM_EXEC is None:
-            self.setting.toughexec.COMM_EXEC = \
+        if ret['simulator']==SIMULATOR_NAME_T3:
+            self.configuration.COMM_EXEC = \
                 os.path.join(BIN_DIR,f"tough3-{ret['module']}")
-        if ret['simulator']==SIMULATOR_NAME_T2 \
-                and self.setting.toughexec.COMM_EXEC is None:
-            self.setting.toughexec.COMM_EXEC = \
+        if ret['simulator']==SIMULATOR_NAME_T2:
+            self.configuration.COMM_EXEC = \
                 os.path.join(BIN_DIR_T2,f"xt2_{ret['module']}")
         if ret['simulator']==SIMULATOR_NAME_T3_LOCAL:
             """
@@ -324,12 +306,12 @@ class InputIni(object):
             """
             ret['simulator'] = SIMULATOR_NAME_T3
             if BIN_DIR_LOCAL is None:
-                self.setting.toughexec.COMM_EXEC = \
+                self.configuration.COMM_EXEC = \
                     os.path.join(BIN_DIR,f"tough3-{ret['module']}")
-                logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not set in settingIni file.")
-                logger.warning(f"             use COMM_EXEC: {self.setting.toughexec.COMM_EXEC}")
+                logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
+                logger.warning(f"             use COMM_EXEC: {self.configuration.COMM_EXEC}")
             else:
-                self.setting.toughexec.COMM_EXEC = \
+                self.configuration.COMM_EXEC = \
                     os.path.join(BIN_DIR_LOCAL,f"tough3-{ret['module']}")
 
         ret['problemName'] = self.config.get('toughInput', 'problemName')
@@ -507,6 +489,39 @@ class InputIni(object):
         
         return ret
     
+    class _Configuration(object):
+
+        def __init__(self):
+            pass 
+
+        def read_from_config(self, config: configparser.ConfigParser):
+            """ get logger """
+            logger = define_logging.getLogger(
+                f"{__class__.__name__}.{sys._getframe().f_code.co_name}")
+
+            try:
+                self.TOUGH_INPUT_DIR = config['configuration']['TOUGH_INPUT_DIR']        
+            except:
+                # for backward compatibility
+                logger.warning('no configuration.TOUGH_INPUT_DIR setting. Instead, try to read TOUGH_INPUT_DIR from configuration.configIni' )
+                if config.has_option('configuration', 'configIni'):
+                    self.configIni = config.get('configuration', 'configIni')
+                else:
+                    logger.error('no configuration setting. use default config' )
+                    self.configIni = 'setting.ini'
+                logger.info(f"CONFIG FILE :{self.configIni}")
+            
+                if not os.path.isfile(os.path.join(baseDir,self.configIni)): 
+                    logger.error(f"CONFIG FILE:{os.path.join(baseDir,self.configIni)} not found")
+                    raise FileNotFoundError(f"CONFIG FILE:{os.path.join(baseDir,self.configIni)} not found")
+                
+                ### reading setting.ini ###
+                logger.info(f"CONFIG FILE :{self.configIni} ")
+                self.setting = SettingIni(os.path.join(baseDir,self.configIni))
+                self.TOUGH_INPUT_DIR = self.setting.toughConfig.TOUGH_INPUT_DIR
+            
+            return self
+
     class _PlotSec(object):
         def __init__(self):
             # set default values
@@ -1041,8 +1056,8 @@ class InputIni(object):
         config.add_section('mesh')
         config.add_section('plot')
         config.add_section('solver')
-        config.set('configuration', 'configIni', self.configIniFp)
-
+        config.set('configuration', 'TOUGH_INPUT_DIR', self.configuration.TOUGH_INPUT_DIR)
+        
         # toughInput
         if hasattr(self, 'toughInput'):
 

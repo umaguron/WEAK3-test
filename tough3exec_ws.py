@@ -266,7 +266,7 @@ def makeToughInput(ini:_readConfig.InputIni):
         # case use result of previous run as initial contion
         pnpr = os.path.join(baseDir, II['problemNamePreviousRun'], SAVE_FILE_NAME)
         previousRunResultFp = \
-            os.path.join(baseDir, ini.setting.toughConfig.TOUGH_INPUT_DIR, 
+            os.path.join(baseDir, ini.configuration.TOUGH_INPUT_DIR, 
                                     II['problemNamePreviousRun'], SAVE_FILE_NAME)
         
         # if inputini.problemNamePreviousRun is arbitrary relative path of problemname including SAVE, 

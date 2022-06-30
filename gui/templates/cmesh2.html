@@ -17,15 +17,6 @@
     {%- endfor %}
     {% endif %}
     <div class="row">
-    <div class="form-group">
-        <label for="configIniFp">Path of setting config file</label>
-        <input type="text" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" disabled/>
-    </div>
-    <br>
-    <div class="form-group">
-        <label for="TOUGH_INPUT_DIR">Full directory path where new problem is to be created </label>
-        <input type="text" value="{{ form.saveDir }}" class="form-control" name="saveDir" disabled/>
-    </div>
     <br>
     </div>
     <br>
@@ -36,8 +27,6 @@
     {% if created %}
     <form method="post" action="/cmesh3">
         <!--  -->
-        <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
-        <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" />
         <input type="hidden" value="{{ form.convention }}" class="form-control" name="convention" />
         <input type="hidden" value="{{ form.includesAtmos }}" class="form-control" name="includesAtmos" />
         <input type="hidden" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp" />
