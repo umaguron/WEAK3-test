@@ -254,6 +254,19 @@ class InputIni(object):
         self.saveFp = os.path.join(
                                 self.t2FileDirFp, 
                                 SAVE_FILE_NAME)
+        
+        logger.info(f"""path constructed:
+        mulgridFileFp   {self.mulgridFileFp}
+        t2FileDirFp     {self.t2FileDirFp}
+        t2FileFp        {self.t2FileFp}
+        t2GridFp        {self.t2GridFp}
+        tOutFileFp      {self.tOutFileFp}
+        resultVtuFileFp {self.resultVtuFileFp}
+        t3outEscapeFp   {self.t3outEscapeFp}
+        savefigFp       {self.savefigFp}
+        inconFp         {self.inconFp}
+        saveFp          {self.saveFp}
+        """)
 
     def validation(self):
         """ get logger """

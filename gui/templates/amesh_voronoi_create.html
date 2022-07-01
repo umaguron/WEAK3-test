@@ -33,6 +33,18 @@
         })
     });
 </script>
+<style>
+    /* inputのすぐ隣に配置するメッセージ要素 */
+    .invalid-msg {
+        font-size: 12px;
+        color: #ff7676;
+        display: none; /* 非表示に */
+    }
+    /* :invalid時だけ隣の要素を表示 */
+    input:invalid + .invalid-msg  {
+        display: block;
+    }
+</style>
 
 <form method="post" action="/cmesh2_check">
     <!-- 前のパートから引き継いだ値 -->
@@ -58,7 +70,7 @@
     <!-- mulgridFileFp -->
     <div class="form-group">
         <label for="mulgridFileFp">Path of mulgrid file</label>
-        <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %}/>
+        <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %} required/>
     </div>
     <br>
     <!-- 新規作成の場合のみ表示 -->
@@ -139,13 +151,15 @@
         <!-- tolar -->
         <div class="form-group">
             <label for="tolar">tolar [m]</label>
-            <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar"/>
+            <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
+            <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
         <br>
         <!-- top_layer_min_thickness -->
         <div class="form-group">
             <label for="top_layer_min_thickness">top_layer_min_thickness [m]</label>
-            <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness"/>
+            <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
+            <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
     </div>
     <br>

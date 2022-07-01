@@ -131,16 +131,25 @@ def cmesh2_check():
             topodata_fp_full = create_fullpath(request.form['topodata_fp'])
             voronoi_seeds_list_fp = create_fullpath(request.form['voronoi_seeds_list_fp'])
 
-            # check file existence
+            """validation"""
             error_msg = {}
             if not os.path.isfile(topodata_fp_full):
                 error_msg["topodata_fp"] = f"{topodata_fp_full}   does not exist. Please create."
             if not os.path.isfile(voronoi_seeds_list_fp):
-                error_msg["voronoi_seeds_list_fp"] = f"{voronoi_seeds_list_fp}   does not exist. Please create."
-            if os.path.isfile(create_fullpath(request.form['mulgridFileFp'])):
+                error_msg["voronoi_seeds_list_fp"] = f"File: {voronoi_seeds_list_fp}   does not exist. Please create."
+            if os.path.isdir(create_fullpath(request.form['mulgridFileFp'])):
+                error_msg["mulgridFile_fp_dir"] = f"{request.form['mulgridFileFp']} is directory. Please specify different file path."
+            elif os.path.isfile(create_fullpath(request.form['mulgridFileFp'])):
                 error_msg["mulgridFile_fp"] = f"{create_fullpath(request.form['mulgridFileFp'])}  already exist. Please specify different file path."
-            if not os.path.isdir(os.path.dirname(request.form['mulgridFileFp'])):
+            if not os.path.isdir(create_fullpath(os.path.dirname(request.form['mulgridFileFp']))):
                 error_msg["mulgridDir"] = f"Directory: {create_fullpath(os.path.dirname(request.form['mulgridFileFp']))} does not exist. Please create it beforehand."
+            try:
+                _ = eval(request.form['layer_thicknesses'])
+                if not isinstance(_, (tuple, list, np.ndarray)):
+                    error_msg["layer_thicknesses"] = f"'layer_thicknesses' must be 'list', 'tuple', or 'numpy.ndarray'."
+            except:
+                error_msg["layer_thicknesses"] = f"error in 'layer_thicknesses': Can not interpret '{request.form['layer_thicknesses']}'."
+
 
             if len(error_msg) > 0:
                 return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
@@ -171,7 +180,7 @@ def cmesh2_check():
             error_msg = {}
             mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
             if not os.path.isfile(mulgridFileFp):
-                error_msg["mulgridFile_fp"] = f"{mulgridFileFp}  not found. Please specify correct file path."
+                error_msg["mulgridFile_fp"] = f"File: {mulgridFileFp}  was not found. Please specify correct file path."
             if len(error_msg) > 0:
                 return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
             
