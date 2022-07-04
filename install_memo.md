@@ -7,7 +7,7 @@
 
 コマンドラインで操作できるつよい人以外は以下をオススメします。
 
-__Github for Desktop__ https://desktop.github.com/
+__Github Desktop__ https://desktop.github.com/
 
 
 
