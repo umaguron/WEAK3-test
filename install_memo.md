@@ -267,7 +267,6 @@ testdata/にテスト用データがおいてある。
 
 |ファイル|説明|
 |-|-|
-|testdata/setting.ini|TOUGH3プログラム本体のパスなど実行環境についての設定|
 |<b>testdata/input.ini</b>|浸透率構造・TOUGH3インプットファイル作成のためのすべての設定が含まれるファイル|
 |testdata/seed.txt|voronoiメッシュの"seed"となる点データ[x,y]|
 |testdata/topo_coarse.dat|地形データ[x,y,elevation] (本白根山が中心)|
@@ -281,9 +280,7 @@ testdata/にテスト用データがおいてある。
 
 シミュレーションの実行ディレクトリ(すべてのinput/outputが書き出される場所)は設定ファイル(input.ini)の場所によらず以下になる。
     
-```.../WEAK3/(setting.iniのTOUGH_INPUT_DIR)/(input.iniのproblemName)```
-
-input.ini の configini= に、setting.ini のパスを設定することで両者は紐付けられる。
+```.../WEAK3/(input.iniのTOUGH_INPUT_DIR)/(input.iniのproblemName)```
 
 ここでは以下になる。
 
