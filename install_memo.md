@@ -339,5 +339,5 @@ mpiexec -n 8 (tough3-eco2n_v2のフルパス) t2data.dat (outputファイル名)
 python3 run.py testdata/input.ini
 ```
 
-出力ファイルについてははTOUGH3マニュアル参照
+出力ファイルについてはTOUGH3マニュアル参照
 
