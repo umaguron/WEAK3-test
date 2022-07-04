@@ -6,6 +6,7 @@
 使い方は適当に調べれば出てきます。
 
 コマンドラインで操作できるつよい人以外は以下をオススメします。
+
 __Github for Desktop__ https://desktop.github.com/
 
 
