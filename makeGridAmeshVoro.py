@@ -65,15 +65,15 @@ def col_name(col_id, convention):
     # 1: 3 characters for layer followed by 2 digits for column 
     # 2: 2 characters for layer followed by 3 digits for column
     if convention==0:
-        if col_id > 27*26*26+26: raise Exception
+        if col_id > 27*26*26+26: raise Exception(f"Too many columns. (must be <= {27*26*26+26} for convention: {convention})")
         ret = int_to_chars(col_id)
         return f"{ret:3}"    
     elif convention==1:
-        if col_id > 99: raise Exception
+        if col_id > 99: raise Exception(f"Too many columns. (must be <= 99 for convention: {convention})")
         ret = col_id
         return f"{ret:2}"    
     elif convention==2:
-        if col_id > 999: raise Exception
+        if col_id > 999: raise Exception(f"Too many columns. (must be <= 999 for convention: {convention})")
         ret = col_id
         return f"{ret:3}"    
     else: raise Exception
@@ -84,15 +84,15 @@ def layer_name(layer_id, convention):
     # 1: 3 characters for layer followed by 2 digits for column 
     # 2: 2 characters for layer followed by 3 digits for column
     if convention==0:
-        if layer_id > 99: raise Exception
+        if layer_id > 99: raise Exception(f"Too many layers. (must be <= 99 for convention: {convention})")
         ret = layer_id
         return f"{ret:2}"    
     elif convention==1:
-        if layer_id > 27*26*26+26: raise Exception
+        if layer_id > 27*26*26+26: raise Exception(f"Too many layers. (must be <= {27*26*26+26} for convention: {convention})")
         ret = int_to_chars(layer_id)
         return f"{ret:3}"    
     elif convention==2:
-        if layer_id > 27*26: raise Exception
+        if layer_id > 27*26: raise Exception(f"Too many layers. (must be <= {27*26} for convention: {convention})")
         ret = int_to_chars(layer_id)
         return f"{ret:2}"    
     else: raise Exception
@@ -266,7 +266,10 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                                      f" than the elevation at the bottom of domain"
                                      f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
                         logger.error(f"Please add more elements in 'layer_thicknesses'.")
-                        raise SurfaceElevationLowerThanBottomLayerException
+                        raise SurfaceElevationLowerThanBottomLayerException(
+                                    f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
+                                    f" than the elevation at the bottom of domain"
+                                    f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
                     f2.write(f"{str(col):3}{elev:>10.1f}\n")
                 break
             else:
@@ -324,7 +327,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
         create_mulgrid_with_topo(ini)
     elif not os.path.isfile(ini.mulgridFileFp):
         print(f"mulgridFileFp not found: {ini.mulgridFileFp}")
-        raise Exception
+        raise Exception(f"mulgridFileFp not found: {ini.mulgridFileFp}")
 
     """
     read mulgraph file that includes topo
