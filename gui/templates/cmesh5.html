@@ -322,9 +322,11 @@
                     <li>
                     <b>{{ form.mulgridFileFpRel }}</b>
                     </li>
+                    {% if topodata_fp %}
                     <li>
                     <b>{{ form.topodata_fp }}</b>
                     </li>
+                    {% endif %}
                     <li>
                     <b>{{ form.resistivity_structure_fp }}</b>
                     </li>

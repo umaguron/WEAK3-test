@@ -550,10 +550,7 @@ def makeToughInput(ini:_readConfig.InputIni):
     ## SOLVR ##
     print("SOLVR")
     dat.solver['type'] = ini.solver.matslv
-    if ini.solver.matslv == 8 \
-        and (ini.solver.ksp_type is not None \
-            or ini.solver.pc_type is not None \
-            or ini.solver.ksp_rtol is not None):
+    if ini.solver.matslv == 8:
         print(f'PETSc solver')
         if ini.solver.ksp_type is not None:
             print(f'   -ksp_type {ini.solver.ksp_type}')
