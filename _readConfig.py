@@ -418,6 +418,8 @@ class InputIni(object):
             float(self.config.get('toughInput', 'T_rain'))
         ret['history_block'] = \
             eval(self.config.get('toughInput', 'history_block'))
+        if not isinstance(ret['history_block'], (list,tuple)):
+            raise Exception(f"history_block must be instance of 'list' or 'tuple' ({ret['history_block']})")
         try:
             ret['history_connection'] = []
             # validation

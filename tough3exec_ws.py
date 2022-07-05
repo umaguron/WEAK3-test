@@ -509,7 +509,12 @@ def makeToughInput(ini:_readConfig.InputIni):
     A list property containing blocks 
     for which time history output is required
     """
-    dat.history_block = II['history_block']
+    if len(II['history_block'])==0:
+        # add the first block to it manualy 
+        # since at least one FOFT*.csv file is required in the visualization stage.
+        dat.history_block = [dat.grid.blocklist[0].name]
+    else:
+        dat.history_block = II['history_block']
     ## COFT ##
     if II['prints_hc_surface']:
         for col in geo.columnlist:
