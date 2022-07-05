@@ -1,0 +1,46 @@
+# setting
+export REMOTE_STATION=user@xxx.xxx.xxx.xxx
+export PW=XXXXX
+export REMOTE_PRJROOT=Tough3/WEAK3-test 
+export LOCAL_PRJROOT=/Users/matsunagakousei/sourceCodes/WEAK3
+
+
+function get () {
+if [ -z $1 ] ;then 
+cat << EOF
+  copy remote file to local.
+  usage: 
+   \$1: relative path from REMOTE_PRJROOT($REMOTE_STATION:$REMOTE_PRJROOT)
+EOF
+return
+fi
+  echo $1
+  a=${LOCAL_PRJROOT}/${1%/*}
+  echo "FROM:$1 "
+  echo "-> TO:$a"
+  scp -pr ${REMOTE_STATION}:${REMOTE_PRJROOT}/${1} ${a}
+}
+
+
+function send () {
+  if [ -z $1 ] ;then 
+  cat << EOF
+    copy local file to remote.
+    usage: 
+    \$1: relative path from LOCAL_PRJROOT($LOCAL_PRJROOT)
+    最下層にのみ*使用可能
+EOF
+  return
+  fi
+  echo $@
+  a=${REMOTE_PRJROOT}/${1%/*}
+  echo "FROM:$b "
+  echo "-> TO:$a"
+  scp -pr $@ ${REMOTE_STATION}:$a
+}
+
+function login () {
+  ssh ${REMOTE_STATION}
+}
+
+
