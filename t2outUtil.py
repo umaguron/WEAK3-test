@@ -521,6 +521,10 @@ def plot_surface_flow_COFT(
         saveDir (str, optional): [description]. Defaults to None.
         xrangeMax (list, optional): range of time to plot. 
     """
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+
     # escape outputfiles
     escape_t3outfiles(ini)
     create_savefig_dir(ini)
@@ -574,10 +578,6 @@ def plot_surface_flow_COFT(
 
     colsName4CalcNetFlow = \
         ['FLOF'] if ii['simulator']=='TOUGH2' else ['FLOW_L', 'FLOW_G']
-    surfaceBudget, _, _ = _sum_COFTcsvs_inDir(
-                        ini.t3outEscapeFp, conn_list_suf, 
-                        colsName4CalcNetFlow,
-                        timemax=None if xrangeMax is None else max(xrangeMax))
     """
     # get time series from COFT csv file
     surfaceBudget = {}    
@@ -585,15 +585,26 @@ def plot_surface_flow_COFT(
         surfaceBudget[obj.label].append(
             _sum_COFTcsvs_inDir(ini.t3outEscapeFp, conn_list_suf, colsName4CalcNetFlow))
     """
-    injBudget, _, _ = _sum_COFTcsvs_inDir(
-                        ini.t3outEscapeFp, conn_list_inj, 
-                        colsName4CalcNetFlow, 
-                        timemax=None if xrangeMax is None else max(xrangeMax))
+    if len(conn_list_suf)>0 :
+        surfaceBudget, _, _ = _sum_COFTcsvs_inDir(
+                            ini.t3outEscapeFp, conn_list_suf, 
+                            colsName4CalcNetFlow,
+                            timemax=None if xrangeMax is None else max(xrangeMax))
+        # surface flow
+        ts_plotter({"ALL":surfaceBudget}, saveDir, "coft_surfaceflow", isXscaleLog, isYscaleLog, inversesY, xrangeMax)
+    else:
+        logger.warning("COFT*.csv files for surface connection has not been created by TOUGH3. Skip")
+
+    if len(conn_list_inj)>0 :
+        injBudget, _, _ = _sum_COFTcsvs_inDir(
+                            ini.t3outEscapeFp, conn_list_inj, 
+                            colsName4CalcNetFlow, 
+                            timemax=None if xrangeMax is None else max(xrangeMax))
+        # inj flow
+        ts_plotter({"ALL": injBudget}, saveDir, "coft_injflow", isXscaleLog, isYscaleLog, inversesY, xrangeMax)
+    else:
+        logger.warning("COFT*.csv files for connection bet. the injblock and domain has not been created by TOUGH3. Skip.")
     
-    # surface flow
-    ts_plotter({"ALL":surfaceBudget}, saveDir, "coft_surfaceflow", isXscaleLog, isYscaleLog, inversesY, xrangeMax)
-    # inj flow
-    ts_plotter({"ALL": injBudget}, saveDir, "coft_injflow", isXscaleLog, isYscaleLog, inversesY, xrangeMax)
 
 def plot_surface_flow_COFT_multiple_area(
         ini:_readConfig.InputIni, dat:t2data, geo:mulgrids, 
