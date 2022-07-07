@@ -84,6 +84,7 @@ conda install matplotlib pandas numpy scipy
 + vtk (python3.9以上である必要)
 + flask
 + iapws
++ dill
 
 コマンド
 
@@ -93,6 +94,7 @@ python3 -m pip install --upgrade Pillow
 pip install vtk
 pip install flask
 pip install iapws
+pip install dill
 ```
 
 注) ライブラリを入れる前にpython3のインタープリタがanacondaのものと同一か確認したほうがよい
@@ -105,7 +107,7 @@ which pip3
 condaはプロキシ設定が正しければ動くはず。
 
 pipについては
-```pip3 install --user (ライブラリ名)```で導入する。
+```pip3 install --user --proxy="http://(プロキシ:ポート)" (ライブラリ名)```　のようにするのが確実。
 <br>
 
 うまく行かないとき-->オフラインで頑張ってインストールする

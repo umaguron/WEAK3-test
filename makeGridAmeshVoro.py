@@ -10,7 +10,8 @@ from pytough_override import mulgridSubVoronoiAmesh
 from scipy.interpolate import LinearNDInterpolator
 import pandas as pd
 import functionUtil as fu
-import pickle
+# import pickle
+import dill as pickle
 import define_logging
 
 vtk = os.path.join(baseDir, "mesh_with_topography.vtk")
@@ -225,14 +226,14 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     print("*** reading topodata and generating interpolating function")
     start = time.perf_counter()
     # create or load resistivity interpolating function 
-    pickled = ini.amesh_voronoi.topodata_fp+"_pickled"
-    if os.path.isfile(pickled):
-        print(f"load pickled interpolating function: {pickled}")
+    pickledtopo = ini.amesh_voronoi.topodata_fp+"_pickled"
+    if os.path.isfile(pickledtopo):
+        print(f"load pickled interpolating function: {pickledtopo}")
         # load selialized interpolating function
-        with open(pickled, 'rb') as f:
+        with open(pickledtopo, 'rb') as f:
             interp = pickle.load(f)   
     else:
-        print(f"create interpolating function and pickle: {pickled}")
+        print(f"create interpolating function and pickle: {pickledtopo}")
         # read data file
         df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
         x = np.array(df['x']) * M_OVER_KM # km to m
@@ -241,7 +242,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
         # interpolating function
         interp = LinearNDInterpolator(list(zip(x,y)), z)
         # serialize and save
-        with open(pickled, 'wb') as f:
+        with open(pickledtopo, 'wb') as f:
             pickle.dump(interp, f)    
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
@@ -347,14 +348,14 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     print(f"*** reading resistivity data and generating interpolating function")
     start = time.perf_counter()
     # create or load resistivity interpolating function 
-    pickled = ini.mesh.resistivity_structure_fp+"_pickled"
-    if os.path.isfile(pickled):
-        logger.debug(f"load pickled interpolating function: {pickled}")
+    pickledres = ini.mesh.resistivity_structure_fp+"_pickled"
+    if os.path.isfile(pickledres):
+        logger.debug(f"load pickled interpolating function: {pickledres}")
         # load selialized interpolating function
-        with open(pickled, 'rb') as f:
+        with open(pickledres, 'rb') as f:
             interpRes = pickle.load(f)   
     else:
-        logger.debug(f"create interpolating function and pickle: {pickled}")
+        logger.debug(f"create interpolating function and pickle: {pickledres}")
         # read data file
         df = pd.read_csv(ini.mesh.resistivity_structure_fp, delim_whitespace=True)
         x = np.array(df['x'])
@@ -364,7 +365,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
         # interpolating function
         interpRes = LinearNDInterpolator(list(zip(x,y,z)), res)
         # serialize and save
-        with open(pickled, 'wb') as f:
+        with open(pickledres, 'wb') as f:
             pickle.dump(interpRes, f)         
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
@@ -374,7 +375,22 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     # convert mulgrid geometry object to t2grid, and set to created t2data
     print(f"*** converting mulgrid object to t2data object")
     start = time.perf_counter()
-    dat.grid.fromgeo(geo_topo)
+
+    pickledgeo = ini.mulgridFileFp+"_t2grid_pickled"
+    # check existence of geo file, and then, updated time difference bet. geo file and pickled file
+    if os.path.isfile(pickledgeo) and os.stat(ini.mulgridFileFp).st_mtime < os.stat(pickledgeo).st_mtime:
+        print(f"load pickled object: {pickledgeo}")
+        # load selialized object
+        with open(pickledgeo, 'rb') as f:
+            dat.grid = pickle.load(f)   
+    else:
+        print(f"create new and pickle: {pickledgeo}")
+        # create t2grid newly 
+        dat.grid.fromgeo(geo_topo)
+        # serialize and save
+        with open(pickledgeo, 'wb') as f:
+            pickle.dump(dat.grid, f)      
+    
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
     

@@ -71,7 +71,7 @@ REGULAR = "REGULAR"
 AMESH_VORONOI = "A_VORO"
 """[plot]"""
 PROFILE_LINES_LIST_DEFAULT = ['x']
-FONT_SIZE = 10
+FONT_SIZE = 6
 
 # resistivity of host rock used in the calculation of HS bounds
 HOSTROCK_RESISTIVITY = 100

@@ -197,7 +197,7 @@
                     n = Math.floor(enshu/newIntbr);
                 } 
                 let intbrRad = 2*Math.PI / n;
-                for (let j=0; j<=n; j++){
+                for (let j=0; j<n; j++){
                     easting.push(r * Math.sin(j*intbrRad) + CENTER[0]);
                     northing.push(r * Math.cos(j*intbrRad) + CENTER[1]);
                     outStr += String(r * Math.cos(j*intbrRad) + CENTER[1])+" "+String(r * Math.sin(j*intbrRad) + CENTER[0])+"\n";
@@ -212,7 +212,7 @@
                     n = Math.floor(enshu/newIntbr);
                 } 
                 let intbrRad = 2*Math.PI / n;
-                for (let j=0; j<=n; j++){
+                for (let j=0; j<n; j++){
                     easting.push(r * Math.sin(j*intbrRad) + CENTER[0]);
                     northing.push(r * Math.cos(j*intbrRad) + CENTER[1]);
                     outStr += String(r * Math.cos(j*intbrRad) + CENTER[1])+" "+String(r * Math.sin(j*intbrRad) + CENTER[0])+"\n";
@@ -238,9 +238,9 @@
             let link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             if ($('#type').val()=='Circular'){
-                link.download = "N"+String(nSeeds)+"_itb"+String(INTBL)+"_r"+String(radius)+"_f1"+String(fact1)+"_nl1"+String(nLoop1)+"_f2"+String(fact2)+"_nl2"+String(nLoop2)+"_C"+String(CENTER[0])+"-"+String(CENTER[0])+'.txt';
+                link.download = "N"+String(nSeeds)+"_itb"+String(INTBL)+"_r"+String(radius)+"_f1"+String(fact1)+"_nl1"+String(nLoop1)+"_f2"+String(fact2)+"_nl2"+String(nLoop2)+"_C"+String(CENTER[1])+"-"+String(CENTER[0])+'.txt';
             } else if ($('#type').val()=='Rectilinear'){
-                link.download = "crx"+String(coreRangeX)+"_cry"+String(coreRangeY)+"_ncx"+String(nElemX)+"_ncy"+String(nElemY)+"_nax1"+String(nAddX1)+"_nay1"+String(nAddY1)+"_fx1"+String(rectFactX1)+"_fy1"+String(rectFactY1)+"_nax1"+String(nAddX2)+"_nay1"+String(nAddY2)+"_fx2"+String(rectFactX2)+"_fy2"+String(rectFactY2)+"_C"+String(CENTER[0])+"-"+String(CENTER[0])+'.txt';
+                link.download = "crx"+String(coreRangeX)+"_cry"+String(coreRangeY)+"_ncx"+String(nElemX)+"_ncy"+String(nElemY)+"_nax1"+String(nAddX1)+"_nay1"+String(nAddY1)+"_fx1"+String(rectFactX1)+"_fy1"+String(rectFactY1)+"_nax1"+String(nAddX2)+"_nay1"+String(nAddY2)+"_fx2"+String(rectFactX2)+"_fy2"+String(rectFactY2)+"_C"+String(CENTER[1])+"-"+String(CENTER[0])+'.txt';
             }
             link.click();
         };
