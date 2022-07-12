@@ -1,15 +1,8 @@
 #-------------------------------------------------------------------------------
-from attr import has
 from import_pytough_modules import *
-#
-from io import DEFAULT_BUFFER_SIZE
 import os
-# import sys
-import datetime
-import math
 import configparser
 import numpy as np
-import pathlib
 from t2data import rocktype, t2block
 from define import *
 import define_logging

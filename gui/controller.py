@@ -1096,6 +1096,9 @@ def cmesh5_write_file(request:request):
             logger.debug(info + f"--> ")
             config.set(sec, key, "")
 
+    # mops16
+    config.set('toughInput', 'mops16', form['mops16_1'])
+
     # configuration
     if config.has_option('configuration', 'configIni'):
         config.remove_option('configuration', 'configIni')
