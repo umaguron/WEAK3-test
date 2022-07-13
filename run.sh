@@ -23,7 +23,7 @@ f=tempini/${suf}_${1////_}
     exit
     fi
 
-    outfile=`python3 configUtil/parseConfig.py $f toughInput toughoutputfilename`
+    outfile=`grep FILENAME_TOUGH_OUTPUT define.py | awk -F= '{print $2}' | sed -e "s/['\"]//g" | sed -e "s/ //g"`
     meshtype=`python3 configUtil/parseConfigMeshT.py $f`
     t2dirfp=${TID}/${problemname}
     outfilefp=${t2dirfp}/$outfile
