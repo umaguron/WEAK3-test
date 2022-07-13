@@ -637,8 +637,8 @@ def create_incon_from_1d_result(ini1d:_readConfig.InputIni,
                 varlists[i] = np.append(varlists[i], var)
 
     for i, varlist in enumerate(varlists):
-        interpFuncs[i] = interpolate.interp1d(z, varlist)
-
+        interpFuncs[i] = interpolate.interp1d(z, varlist, fill_value="extrapolate")
+        
     for col in geoNow.columnlist:
         layer_top = geoNow.column_surface_layer(col)
         for lay in geoNow.layerlist:
