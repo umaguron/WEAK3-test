@@ -434,7 +434,9 @@
             // eliminate duplicated seeds
             let arrDupChked = [];
             easting.forEach((east, i) => {
-                if (arrDupChked.some(seed => seed['e']==east && seed['n']==northing[i])) {
+                if (arrDupChked.some(seed => 
+                        (seed['e']-TOLER<east && east<seed['e']+TOLER) && 
+                        (seed['n']-TOLER<northing[i] && northing[i]<seed['n']+TOLER))) {
                     console.log("duplicated: "+east+", "+northing[i]);
                 } else {
                     arrDupChked.push({'e':east, 'n':northing[i]});
