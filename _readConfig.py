@@ -1,6 +1,7 @@
 #-------------------------------------------------------------------------------
 from import_pytough_modules import *
 import os
+import math
 import configparser
 import numpy as np
 from t2data import rocktype, t2block
