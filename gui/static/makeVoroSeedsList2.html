@@ -44,14 +44,6 @@
         let nLoop1;
         let fact2;
         let nLoop2;
-        let subCENTER1;
-        let subCENTER2;
-        let subRadius1;
-        let subRadius2;
-        let subINTBL1;
-        let subINTBL2;
-        let subOverlap1;
-        let subOverlap2;
         // rectlinear
         let CENTERRECT;
         let coreRangeX;
@@ -231,62 +223,68 @@
                 newIntbr = fact2*newIntbr
             };
 
-            /** refinement of mesh **/
-            /** subsection1 **/
-            // info
-            subCENTER1 = [Number($('#sub_center_x1').val()),Number($('#sub_center_y1').val())]
-            subINTBL1 = Number($('#subINTBL1').val())
-            subRadius1 = Number($('#subRadius1').val()) // radius of the area to create refined seeds zone
-            subOverlap1 = Number($('#subOverlap1').val())
-            let innerR1 = subRadius1 - subOverlap1; // radius of the area in which seeds are to be deleted
-            if (!isNaN(subCENTER1[0]) && !isNaN(subCENTER1[1]) && subINTBL1!=0 && subRadius1!=0){
-                // apply filter to the array to delete seeds located in the subsection 
-                const easting_bf = easting;
-                easting = easting.filter((east,i) => 
-                    (northing[i]-subCENTER1[1])**2 + (east-subCENTER1[0])**2 > innerR1**2);
-                northing = northing.filter((north,i) => 
-                    (north-subCENTER1[1])**2 + (easting_bf[i]-subCENTER1[0])**2 > innerR1**2);
-                // add refined seeds to core zone of subsection
-                for (let i = -1 * Math.floor(subRadius1/subINTBL1); i <= Math.floor(subRadius1/subINTBL1); i++){
-                    let x = i * subINTBL1
-                    let half_width = (subRadius1**2-x**2)**0.5;
-                    let residual_y = half_width - Math.floor(half_width/subINTBL1)*subINTBL1;
-                    let expanding = residual_y > subINTBL1*2.7/4 ? 1 : 0;
-                    // let expanding = 0;
-                    for (let j = -1 * Math.floor(half_width/subINTBL1)-expanding; j <= Math.floor(half_width/subINTBL1)+expanding; j++){
-                        easting.push(x+subCENTER1[0]);
-                        northing.push(j*subINTBL1+subCENTER1[1]);
+            // plot
+            plotly_plot();
+        };
+
+        /** refinement of mesh **/
+        function refine(){
+            // number of section
+            let nSec = Number($('#nSec').val());
+
+            // edit arrays (easting, northing)
+            for (let i=1; i<=nSec; i++){  
+                /** subsection #{i}  **/
+                // info
+                let subCENTER = [Number($('#'+i+' .sub_center_x').val()),Number($('#'+i+' .sub_center_y').val())];
+                let subINTBL = Number($('#'+i+' .subINTBL').val());
+                let subRadius = Number($('#'+i+' .subRadius').val()); // radius of the area to create refined seeds zone
+                let subOverlap = Number($('#'+i+' .subOverlap').val());
+                let refType = $('#'+i+' .refType').val();
+                let innerR = subRadius - subOverlap; // radius of the area in which seeds are to be deleted
+                
+                if (refType=='circular'){
+                    if (!isNaN(subCENTER[0]) && !isNaN(subCENTER[1]) && subINTBL!=0 && subRadius!=0){
+                        // apply filter to the array to delete seeds located in the subsection 
+                        const easting_bf = easting;
+                        easting = easting.filter((east,i) => 
+                            (northing[i]-subCENTER[1])**2 + (east-subCENTER[0])**2 > innerR**2);
+                        northing = northing.filter((north,i) => 
+                            (north-subCENTER[1])**2 + (easting_bf[i]-subCENTER[0])**2 > innerR**2);
+                        // add refined seeds to core zone of subsection
+                        for (let i = -1 * Math.floor(subRadius/subINTBL); i <= Math.floor(subRadius/subINTBL); i++){
+                            let x = i * subINTBL
+                            let half_width = (subRadius**2-x**2)**0.5;
+                            let residual_y = half_width - Math.floor(half_width/subINTBL)*subINTBL;
+                            let expanding = residual_y > subINTBL*2.7/4 ? 1 : 0;
+                            // let expanding = 0;
+                            for (let j = -1 * Math.floor(half_width/subINTBL)-expanding; j <= Math.floor(half_width/subINTBL)+expanding; j++){
+                                easting.push(x+subCENTER[0]);
+                                northing.push(j*subINTBL+subCENTER[1]);
+                            };
+                        };
                     };
+                } else if (refType=='square'){
+                    if (!isNaN(subCENTER[0]) && !isNaN(subCENTER[1]) && subINTBL!=0 && subRadius!=0){
+                        // apply filter to the array to delete seeds located in the subsection 
+                        const easting_bf = easting;
+                        easting = easting.filter((east,i) => 
+                            Math.abs(northing[i]-subCENTER[1])> innerR/2 || Math.abs(east-subCENTER[0]) > innerR/2);
+                        northing = northing.filter((north,i) => 
+                            Math.abs(north-subCENTER[1]) > innerR/2 || Math.abs(easting_bf[i]-subCENTER[0]) > innerR/2);
+                        // add refined seeds to core zone of subsection
+                        for (let i = -1 * Math.floor(subRadius/2/subINTBL); i <= Math.floor(subRadius/2/subINTBL); i++){
+                            let x = i * subINTBL
+                            for (let j = -1 * Math.floor(subRadius/2/subINTBL); j <= Math.floor(subRadius/2/subINTBL); j++){
+                                easting.push(x+subCENTER[0]);
+                                northing.push(j*subINTBL+subCENTER[1]);
+                            };
+                        };
+                    };
+
                 };
             };
-            
-            /** subsection2 **/
-            // info
-            subCENTER2 = [Number($('#sub_center_x2').val()),Number($('#sub_center_y2').val())]
-            subINTBL2 = Number($('#subINTBL2').val())
-            subRadius2 = Number($('#subRadius2').val()) // radius of the area to create refined seeds zone
-            subOverlap2 = Number($('#subOverlap2').val())
-            let innerR2 = subRadius2 - subOverlap2; // radius of the area in which seeds are to be deleted
-            if (!isNaN(subCENTER2[0]) && !isNaN(subCENTER2[1]) && subINTBL2!=0 && subRadius2!=0){
-                // apply filter to the array to delete seeds located in the subsection 
-                const easting_bf = easting;
-                easting = easting.filter((east,i) => 
-                    (northing[i]-subCENTER2[1])**2 + (east-subCENTER2[0])**2 > innerR2**2);
-                northing = northing.filter((north,i) => 
-                    (north-subCENTER2[1])**2 + (easting_bf[i]-subCENTER2[0])**2 > innerR2**2);            
-                // core zone of subsection
-                for (let i = -1 * Math.floor(subRadius2/subINTBL2); i <= Math.floor(subRadius2/subINTBL2); i++){
-                    let x = i * subINTBL2
-                    let half_width = (subRadius2**2-x**2)**0.5;
-                    let residual_y = half_width - Math.floor(half_width/subINTBL2)*subINTBL2;
-                    let expanding = residual_y > subINTBL2*2.7/4 ? 1 : 0;
-                    // let expanding = 0;
-                    for (let j = -1 * Math.floor(half_width/subINTBL2)-expanding; j <= Math.floor(half_width/subINTBL2)+expanding; j++){
-                        easting.push(x+subCENTER2[0]);
-                        northing.push(j*subINTBL2+subCENTER2[1]);
-                    };
-                };
-            };
+
             // plot
             plotly_plot();
         };
@@ -515,6 +513,57 @@
                 $('#circular').hide('fast');
             }
         };
+
+        function addRefinementSection(){
+            id = Number($('#nSec').val())+1;
+            $('#nSec').val(id);
+            info = id > 1 ? '<p>is overwritten by:</p>' : '' 
+            $('#refinement_sec').append(
+                '<div id="'+id+'">\
+                    '+info+'\
+                    <h5>#'+id+'</h5>\
+                    <div class="row">\
+                        <div class="col-2">\
+                            <label >area type</label>\
+                            <select class="refType form-select btn btn-sm  btn-outline-success dropdown-toggle" >\
+                                <option value="square">square</option>\
+                                <option value="circular">circular</option>\
+                            </select>\
+                        </div>\
+                        <div class="col-2">\
+                            <div class="form-group">\
+                                <label>N-S center [m]</label>\
+                                <input type="number" value="0" step="100" placeholder="x"  class="sub_center_y form-control form-control-sm"> \
+                            </div>\
+                        </div>\
+                        <div class="col-2">\
+                            <div class="form-group">\
+                                <label>E-W center [m]</label>\
+                                <input type="number" value="0" step="100" placeholder="y"  class="sub_center_x form-control form-control-sm"> \
+                            </div>\
+                        </div>\
+                        <div class="col-2">\
+                            <div class="form-group">\
+                                <label>grid spacing [m]</label>\
+                                <input type="number" value="0" step="10" class="subINTBL form-control form-control-sm" >\
+                            </div>\
+                        </div>\
+                        <div class="col-2">\
+                            <div class="form-group">\
+                                <label>radius/edge length [m]</label>\
+                                <input type="number" value="0" step="100" class="subRadius form-control form-control-sm" >\
+                            </div>\
+                        </div>\
+                        <div class="col-2">\
+                            <div class="form-group">\
+                                <label>periphery overlap [m]</label>\
+                                <input type="number" value="0" step="10" class="subOverlap form-control form-control-sm" >\
+                            </div>\
+                        </div>\
+                    </div>\
+                </div>'
+            );
+        }
 
     </script>
 </head>
@@ -772,78 +821,28 @@
                     </div>
                 </div>
             </div>
-            <br>
-            <br>
-            <h5>Local refinement 1</h5>
-            <div class="row">
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>N-S center [m]</label>
-                        <input type="text" value="0" placeholder="x" id="sub_center_y1"  class="form-control"> 
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>E-W center [m]</label>
-                        <input type="text" value="500" placeholder="y" id="sub_center_x1"  class="form-control"> 
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>grid spacing [m]</label>
-                        <input type="text" value="60" id="subINTBL1" class="form-control" >
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>radius [m]</label>
-                        <input type="text" value="400" id="subRadius1" class="form-control" >
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>periphery overlap [m]</label>
-                        <input type="text" value="50" id="subOverlap1" class="form-control" >
-                    </div>
-                </div>
-            </div>
-            <br>
-            <h5>Local refinement 2</h5>
-            <div class="row">
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>N-S center [m]</label>
-                        <input type="text" value="0" placeholder="x" id="sub_center_y2"  class="form-control"> 
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>E-W center [m]</label>
-                        <input type="text" value="500" placeholder="y" id="sub_center_x2"  class="form-control"> 
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>grid spacing [m]</label>
-                        <input type="text" value="40" id="subINTBL2" class="form-control" >
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>radius [m]</label>
-                        <input type="text" value="200" id="subRadius2" class="form-control" >
-                    </div>
-                </div>
-                <div class="col-3">
-                    <div class="form-group">
-                        <label>periphery overlap [m]</label>
-                        <input type="text" value="0" id="subOverlap2" class="form-control" >
-                    </div>
-                </div>
-            </div>
-            <br>
         </div>
-       
+
+        
+        <br>
+        <br>
+        <div class="row">
+            <div class="col-4">
+                <h5>Local refinement</h5>
+            </div>
+            <div class="col-4">
+                <button id="add_refinement" class="btn btn-sm btn-outline-success col-12" onclick="addRefinementSection()">add</button>
+            </div>
+            <div class="col-4">
+                <button id="refine" class="btn btn-sm btn-primary col-12" onclick="refine()">refine</button>
+            </div>
+        </div>
+        <input type="hidden" id="nSec" value="0">
+        <div id="refinement_sec">
+            <!-- refinement sections are added here -->
+        </div>
+        <br>
+        
         <br>
         <form action="" method="post">
             <input type="hidden" name="east_seeds" id="east_seeds">
