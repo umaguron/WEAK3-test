@@ -1,12 +1,13 @@
 #-------------------------------------------------------------------------------
 from import_pytough_modules import *
 import os
-import math
 import configparser
 import numpy as np
 from t2data import rocktype, t2block
 from define import *
 import define_logging
+import traceback
+import math
 
 # get directory name where this script is located
 # import pathlib
@@ -163,6 +164,7 @@ class InputIni(object):
         try:
             self.toughInput = self._readInputIniToughInput()
         except:
+            logger.error(traceback.format_exc())
             logger.warning("Section [toughInput] is incomplete. Reading is skipped. "
             "InputIni.construct_path() is skipped."" InputIni.validation() is skipped.")
             # 自作の例外クラスをraise
@@ -269,7 +271,9 @@ class InputIni(object):
         logger.debug(repr(self.toughInput))
         if self.mesh.type==AMESH_VORONOI and self.toughInput['seedFlg']:
             for rock in self.rockSecList:
-                if rock.formula_permeability is None: raise Exception
+                if rock.formula_permeability is None: 
+                    logger.error(traceback.format_exc())
+                    raise Exception
     
     def rocktypeDuplicateCheck(self):
         # if rocktype name is duplicated, then exit.
@@ -367,8 +371,11 @@ class InputIni(object):
 
         # if no inconfile given, 
         # hydrostatic pressure is applied as initial condition.
-        ret['problemNamePreviousRun'] = \
-            self.config.get('toughInput', 'problemNamePreviousRun')
+        try:
+            ret['problemNamePreviousRun'] = \
+                self.config.get('toughInput', 'problemNamePreviousRun')
+        except:
+            ret['problemNamePreviousRun'] = ""
         try:
             ret['water_table_elevation'] = \
                 float(self.config['toughInput']['water_table_elevation'])
