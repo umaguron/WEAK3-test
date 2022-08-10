@@ -331,8 +331,9 @@ def cmesh3_check():
         inputIni.boundary.boundary_side_permeable =  True if 'boundary_side_permeable' in request.form else False
         """atmosphere"""
         config['atmosphere'] = {}
-        config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
-        config['atmosphere']['PRIMARY_AIR'] = request.form[f'atmos_primary']
+        # config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
+        config['atmosphere']['includesAtmos'] = request.form[f'includesAtmos']
+        config['atmosphere']['PRIMARY_AIR'] = '[]' # 仮 (cmesh5で埋める)
         config['atmosphere']['density'] = request.form[f'atmos_density']
         config['atmosphere']['porosity'] = request.form[f'atmos_porosity']
         config['atmosphere']['permeability'] = (f'[{request.form["atmos_permeability_x"]}, '
@@ -584,7 +585,8 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     ret["resistivity_structure_fp"] = create_relpath(ini.mesh.resistivity_structure_fp)
     ret["seedFlg"] = "uses" if ini.toughInput['seedFlg'] else ""
     ret["boundary_side_permeable"] = "uses" if ini.boundary.boundary_side_permeable else ""
-    ret["includes_atmos"] = "uses" if ini.atmosphere.includesAtmos else ""
+    # ret["includes_atmos"] = "uses" if ini.atmosphere.includesAtmos else ""
+    ret["includesAtmos"] = "True" if ini.atmosphere.includesAtmos else "False"
     if ini.atmosphere.atmos.nad >= 1:
         ret["atmos_tortuosity"] =  ini.atmosphere.atmos.tortuosity
     if ini.atmosphere.atmos.nad >= 2:
