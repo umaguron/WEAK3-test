@@ -88,7 +88,6 @@ PARANAME_INI_GUI_CMESH5 = \
     ['toughInput','rainfallAnnual_mm','rainfallAnnual_mm'],
     ['toughInput','T_rain','T_rain'],
     ['toughInput','generSecList','generSecList'],
-    ['toughInput','PRIMARY_default','PRIMARY_default'],
     ['toughInput','history_block','history_block'],
     ['toughInput','history_connection','history_connection'],
     ['toughInput','prints_hc_surface','prints_hc_surface'],
@@ -103,5 +102,6 @@ PARANAME_INI_GUI_CMESH5 = \
     ['solver','ksp_rtol','ksp_rtol'],
     ['amesh_voronoi','topodata_fp','topodata_fp'],
     ['mesh','resistivity_structure_fp','resistivity_structure_fp'],
+    ['atmosphere','includesAtmos','includesAtmos'],
     # ['toughInput','prints_hc_inj','prints_hc_inj'],
 )

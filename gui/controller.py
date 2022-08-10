@@ -334,6 +334,9 @@ def cmesh3_check():
         # config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
         config['atmosphere']['includesAtmos'] = request.form[f'includesAtmos']
         config['atmosphere']['PRIMARY_AIR'] = '[]' # 仮 (cmesh5で埋める)
+        # cmesh3の処理に追加しようと思ったがやめた。現段階ではP,Tの設定をcmesh3ではしない。
+        # config['atmosphere']['primary_tmp_pres'] = request.form[f'primary_tmp_pres']
+        # config['atmosphere']['primary_tmp_temp'] = request.form[f'primary_tmp_temp']
         config['atmosphere']['density'] = request.form[f'atmos_density']
         config['atmosphere']['porosity'] = request.form[f'atmos_porosity']
         config['atmosphere']['permeability'] = (f'[{request.form["atmos_permeability_x"]}, '
@@ -602,6 +605,21 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     ret["atmos_conductivity"] =  ini.atmosphere.atmos.conductivity
     ret["atmos_specific_heat"] =  ini.atmosphere.atmos.specific_heat
     ret["atmos_primary"] =  ini.atmosphere.PRIMARY_AIR
+
+    # cmesh3で表示しようかと思ったがやめる。かわりにcmesh5のprimary variablesで設定する。
+    # if 'module' in ini.toughInput \
+    #         and hasattr(ini.atmosphere, 'PRIMARY_AIR') \
+    #         and len(ini.atmosphere.PRIMARY_AIR)>0:
+    #     if EOS2 == ini.toughInput['module'].lower().strip():
+    #         ret["primary_tmp_pres"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_EOS2_PRES]
+    #         ret["primary_tmp_temp"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_EOS2_TEMP]
+    #     elif ECO2N in ini.toughInput['module'].lower().strip():
+    #         ret["primary_tmp_pres"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_ECO2N_PRES]
+    #         ret["primary_tmp_temp"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_ECO2N_TEMP]
+    # else:
+    #     ret["primary_tmp_pres"] = ""
+    #     ret["primary_tmp_temp"] = ""
+
 
     for rock_id, rock in enumerate(ini.rockSecList):
         logger.debug(rock.secName)
@@ -1009,6 +1027,20 @@ def cmesh5_read_inputIni(request:request):
                 and len(config['toughInput']['initial_t_grad']) > 0:
         form["usesAnotherResAsINCON"] = "2"
 
+    """parse PRIMARY variables"""
+    try:
+        pa = eval(config['atmosphere']['PRIMARY_AIR'])
+        for i, p in enumerate(pa):
+            form[f'primary_atm_{i+1}'] = p
+    except:
+        logger.warning("cannot read [atmosphere] PRIMARY_AIR")
+    try:
+        pd = eval(config['toughInput']['PRIMARY_default'])
+        for i, p in enumerate(pd):
+            form[f'primary_def_{i+1}'] = p
+    except:
+        logger.warning("cannot read [toughInput] PRIMARY_default")
+                
     """parse GENER section"""
     if  config.has_option('toughInput', 'generSecList') \
                 and len(config['toughInput']['generSecList']) > 0:
@@ -1111,7 +1143,23 @@ def cmesh5_write_file(request:request):
     if config.has_option('configuration', 'configIni'):
         config.remove_option('configuration', 'configIni')
     config.set('configuration', 'TOUGH_INPUT_DIR', create_relpath(form['saveDirRel']))
-        
+
+    # primary variables
+    pr_len = 0
+    if form['module']==EOS2:
+        pr_len = 3
+    elif ECO2N in form['module']:
+        pr_len = 4
+    pd = [None for _ in range(pr_len)]
+    pa = [None for _ in range(pr_len)]
+    for i in range(pr_len):
+        if f'primary_def_{i+1}' in form:
+            pd[i] = float(form[f'primary_def_{i+1}'])
+        if f'primary_atm_{i+1}' in form:
+            pa[i] = float(form[f'primary_atm_{i+1}'])
+    config.set('toughInput', 'PRIMARY_default', repr(pd))
+    config.set('atmosphere', 'PRIMARY_AIR', repr(pa))
+
     # GENER 
     idx = 0
     for i in range(int(form['gener_length'])):

@@ -57,9 +57,21 @@
                     }
                 }
             }
-            // PRIMARY_default
-            if($('#cmesh5_check [name="PRIMARY_default"]').val().length==0){
-                fill_primary_default();
+            /* eos depending variables */
+            let def_txt_eos;
+            if ($('#module').val()=='{{DEFINE.EOS2}}') {
+                def_txt_eos = DEFAULTS_TEXT_DEPEND_EOS['eos2'];
+            } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {       
+                def_txt_eos = DEFAULTS_TEXT_DEPEND_EOS['eco2n'];
+            };
+            // primary variables
+            for (let i=1; i <= def_txt_eos['primary'].length; i++){
+                if ($('#cmesh5_check [name="primary_def_'+i+'"]').val().length==0){
+                    $('#cmesh5_check [name="primary_def_'+i+'"]').val(def_txt_eos['primary'][i-1]);
+                };
+                if ($('#cmesh5_check [name="primary_atm_'+i+'"]').val().length==0){
+                    $('#cmesh5_check [name="primary_atm_'+i+'"]').val(def_txt_eos['primary'][i-1]);
+                };
             }
         }
         function overwrites_by_default_values() {
@@ -78,20 +90,23 @@
                     $('#cmesh5_check [name="'+key+'"][value="'+DEFAULTS_RADIO_SELEC_V2[key]+'"]').prop('checked', true);
                 }
             }
-            // PRIMARY_default
-            fill_primary_default();
+            /* eos depending variables */
+            let def_txt_eos;
+            if ($('#module').val()=='{{DEFINE.EOS2}}') {
+                def_txt_eos = DEFAULTS_TEXT_DEPEND_EOS['eos2'];
+            } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {       
+                def_txt_eos = DEFAULTS_TEXT_DEPEND_EOS['eco2n'];
+            };
+            // primary variables
+            for (let i=1; i <= def_txt_eos['primary'].length; i++){
+                $('#cmesh5_check [name="primary_def_'+i+'"]').val(def_txt_eos['primary'][i-1]);
+                $('#cmesh5_check [name="primary_atm_'+i+'"]').val(def_txt_eos['primary'][i-1]);
+            };
         }
-        function fill_primary_default() {
-            for(var key in DEFAULTS_PRIMARY_default) {
-                if ($('#cmesh5_check #module').val()=='{{DEFINE.EOS2}}') {
-                    $('#cmesh5_check [name="PRIMARY_default"]').val(DEFAULTS_PRIMARY_default['eos2']);
-                } else if ($('#cmesh5_check #module').val()=='{{DEFINE.ECO2N_V2}}') {
-                    $('#cmesh5_check [name="PRIMARY_default"]').val(DEFAULTS_PRIMARY_default['eco2n']);
-                }
-            }
-        }
+
         // multi
         function autofill_module_dependent() {
+            let pr_dict;
             if ($('#module').val()=='{{DEFINE.EOS2}}') {
                 $('#cmesh5_check [name="num_components"]').val(2);
                 $('#cmesh5_check [name="num_equations"]').val(3);
@@ -100,6 +115,8 @@
                 $('.injTypeEco2N').hide('fast');
                 $('.injTypeEos2').show('fast');
                 $('#eco2n_selecline').hide('fast');
+                pr_dict = PRIMARY_DESCRIPTION['EOS2'];
+                $('[name="primary_atm_4"]').prop('required', false);
             } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {
                 $('#cmesh5_check [name="num_components"]').val(3);
                 $('#cmesh5_check [name="num_equations"]').val(4);
@@ -108,25 +125,70 @@
                 $('.injTypeEco2N').show('fast');
                 $('.injTypeEos2').hide('fast');
                 $('#eco2n_selecline').show('fast');
+                pr_dict = PRIMARY_DESCRIPTION['ECO2N_V2'];
+                $('[name="primary_atm_4"]').prop('required', true);
             }
+            // primary variables
+            $('.pr_row-1').hide('fast');
+            $('.pr_row-2').hide('fast');
+            $('.pr_row-3').hide('fast');
+            $('.pr_row-4').hide('fast');
+            $('.pr_text_1p_row-1').empty();
+            $('.pr_text_1p_row-2').empty();
+            $('.pr_text_1p_row-3').empty();
+            $('.pr_text_1p_row-4').empty();
+            $('.pr_text_2p_row-1').empty();
+            $('.pr_text_2p_row-2').empty();
+            $('.pr_text_2p_row-3').empty();
+            $('.pr_text_2p_row-4').empty();
+            $('#pr_caution').empty();
+            $('#pr_caution').append(pr_dict['caution']);
+            for (let i=1; i<=pr_dict['length'];i++){
+                $('.pr_row-'+i).show('fast');
+                $('.pr_text_1p_row-'+i).append(pr_dict['description_one_p'][i-1]);
+                $('.pr_text_2p_row-'+i).append(pr_dict['description_two_p'][i-1]);
+            };
+            // update primary variables input fields based on INCON info
+            incon_switch('fast');
         };
         function incon_switch(speed) {
+            let pridef_disable_switch = [false, false, false, false];
             if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==0) {
-               $('#incon0').show(speed);
-               $('#incon1').hide(speed);
-               $('#incon2').hide(speed);
-               $('#incon_wt').hide(speed);
+                $('#incon0').show(speed);
+                $('#incon1').hide(speed);
+                $('#incon2').hide(speed);
+                $('#incon_wt').hide(speed);
+                pridef_disable_switch = [true, true, true, true];
             } else if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==1) {
                 $('#incon0').hide(speed);
                 $('#incon1').show(speed);
                 $('#incon2').hide(speed);
                 $('#incon_wt').show(speed);
+                if ($('#module').val()=='{{DEFINE.EOS2}}') {
+                    pridef_disable_switch = [true, true, false, true]
+                } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {
+                    pridef_disable_switch = [true, false, false, true]
+                }
             } else if ($('#cmesh5_check [name="usesAnotherResAsINCON"]:checked').val()==2) {
                 $('#incon0').hide(speed);
                 $('#incon1').hide(speed);
                 $('#incon2').show(speed);
                 $('#incon_wt').show(speed);
+                if ($('#module').val()=='{{DEFINE.EOS2}}') {
+                    pridef_disable_switch = [true, true, false, true]
+                } else if ($('#module').val()=='{{DEFINE.ECO2N_V2}}') {
+                    pridef_disable_switch = [true, false, false, true]
+                }
             }  
+            // also switch primary default
+            $('[name="primary_def_1"]').prop('disabled', pridef_disable_switch[0]);
+            $('[name="primary_def_2"]').prop('disabled', pridef_disable_switch[1]);
+            $('[name="primary_def_3"]').prop('disabled', pridef_disable_switch[2]); 
+            $('[name="primary_def_4"]').prop('disabled', pridef_disable_switch[3]);
+            $('[name="primary_def_1"]').prop('required', !pridef_disable_switch[0]);
+            $('[name="primary_def_2"]').prop('required', !pridef_disable_switch[1]);
+            $('[name="primary_def_3"]').prop('required', !pridef_disable_switch[2]); 
+            $('[name="primary_def_4"]').prop('required', !pridef_disable_switch[3]);
         }
         function calc_t_cond(){
             $('#cmesh5_check [name="initial_t_grad"]').val($('#cmesh5_check [name="cfr"]').val()/$('#cmesh5_check [name="thermal_cond"]').val()*1000)
@@ -381,6 +443,7 @@
             <input type="hidden" value="{{ form.resistivity_structure_fp }}" name="resistivity_structure_fp">
             <input type="hidden" value="{{ form.topodata_fp }}" name="topodata_fp">
             <input type="hidden" value="{{ form.one_d_save }}" name="one_d_save">
+            <input type="hidden" value="{{ form.includesAtmos }}" class="form-control" name="includesAtmos" id="includesAtmos" />
             <!-- use default button -->
             <div class="sticky">
                 <div class="row">
@@ -406,12 +469,6 @@
                     <label>Problem name </label>
                     <input type="text" name="problemName" value="{{form.problemName}}" class="form-control" required>
                     <div class="invalid-msg">required</div>
-                </div>
-                <div class="col-6 form">
-                    <label>Default of primary valiables</label>
-                    <input type="text" name="PRIMARY_default" value="{{form.PRIMARY_default}}" class="form-control" pattern="{{PATTERN.numlist}}" title="{{TITLE.numlist}}" required>
-                    <div class="invalid-msg">{{TITLE.numlist}}</div>
-                    <!--default primary values used for creating initial condition-->
                 </div>
             </div>
             <br><br>
@@ -485,6 +542,79 @@
                                 <div class="invalid-msg">{{TITLE.int}}</div>
                             </td>
                             <td>number of secondary parameters in the PAR-array (see Figure 6) other than component mass fractions. Available options include NB = 6 (no diffusion) and NB = 8 (include diffusion).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <br>
+            <!--primary variables-->
+            <h4>Primary variables</h4>
+            <div class="row">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">#</th>
+                            <th rowspan="2">subsurface</th>
+                            <th class="pr_atm" id="pr_atm_head" rowspan="2">atmosphere</th>
+                            <td colspan="2"><b>descriptions</b> (<span id="pr_caution" ></span>)</td>
+                        </tr>
+                        <tr>
+                            <td>single phase condition</td>
+                            <td>two phase condition</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="pr_row-1">
+                            <th>1</th>
+                            <td>
+                                <input type="text" name="primary_def_1" value="{{form.primary_def_1}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_atm">
+                                <input type="text" name="primary_atm_1" value="{{form.primary_atm_1}}" class="form-control pr_atm_form" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_text_1p_row-1"></td>
+                            <td class="pr_text_2p_row-1"></td>
+                        </tr>
+                        <tr class="pr_row-2">
+                            <th>2</th>
+                            <td>
+                                <input type="text" name="primary_def_2" value="{{form.primary_def_2}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_atm">
+                                <input type="text" name="primary_atm_2" value="{{form.primary_atm_2}}" class="form-control pr_atm_form" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_text_1p_row-2"></td>
+                            <td class="pr_text_2p_row-2"></td>
+                        </tr>
+                        <tr class="pr_row-3">
+                            <th>3</th>
+                            <td>
+                                <input type="text" name="primary_def_3" value="{{form.primary_def_3}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_atm">
+                                <input type="text" name="primary_atm_3" value="{{form.primary_atm_3}}" class="form-control pr_atm_form" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_text_1p_row-3"></td>
+                            <td class="pr_text_2p_row-3"></td>
+                        </tr>
+                        <tr class="pr_row-4">
+                            <th>4</th>
+                            <td>
+                                <input type="text" name="primary_def_4" value="{{form.primary_def_4}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_atm">
+                                <input type="text" name="primary_atm_4" value="{{form.primary_atm_4}}" class="form-control pr_atm_form" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" required>
+                                <div class="invalid-msg">{{TITLE.float}}</div>
+                            </td>
+                            <td class="pr_text_1p_row-4"></td>
+                            <td class="pr_text_2p_row-4"></td>
                         </tr>
                     </tbody>
                 </table>
