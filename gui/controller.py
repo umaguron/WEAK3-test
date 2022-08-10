@@ -286,10 +286,16 @@ def cmesh3_check():
         """ _readConfig.InputIniインスタンス作成"""
         if len(request.form["original_iniFp"])>0:
             # cmesh3_readFromIniからのとき、ファイルから読み込み、画面で入力された値で上書きする
-            inputIni = _readConfig.InputIni().read_from_inifile(request.form["original_iniFp"])
-            # rockSecListをリセットしておく
-            inputIni.toughInput['rockSecList'] = []
-            inputIni.rockSecList = []
+            try:
+                # cmesh3_readFromIniで完全なiniファイルを読んだ場合
+                inputIni = _readConfig.InputIni().read_from_inifile(request.form["original_iniFp"])
+                # rockSecListをリセットしておく
+                inputIni.toughInput['rockSecList'] = []
+                inputIni.rockSecList = []
+            except InvalidToughInputException:
+                # cmesh3_readFromIniで不完全なiniファイル読んだ場合(cmesh4終了時にできるiniなど)、もう一度作る
+                inputIni = _readConfig.InputIni()
+                inputIni.toughInput = {}
         else:
             # cmesh2からのときもう一度作る
             inputIni = _readConfig.InputIni()
