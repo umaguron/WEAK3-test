@@ -236,7 +236,7 @@
                         <label >Disable</label>\
                     </div>\
                 </div>\
-                <div class="row">\
+                <div class="row g-2">\
                     <div class="col-6">\
                         <label >Type</label>\
                         <select class="form-select btn btn-outline-primary dropdown-toggle injTypeEos2" aria-label="Default select example" name="gener_'+ gener_id + '_type_eos2">\
@@ -249,28 +249,26 @@
                             <option value="COM3">COM3: CO2</option>\
                         </select>\
                     </div>\
-                </div>\
-                <div class="row">\
-                    <div class="col">\
+                    <div class="col-6">\
+                    </div>\
+                    <div class="col-12">\
                         <label >Injection blocks</label>\
                         <input type="text" name="gener_'+gener_id+ '_injblock" value="" class="form-control form-control-sm"  pattern="{{PATTERN.blklist_in_js}}">\
                         <div class="invalid-msg">{{TITLE.blklist}}</div>\
                     </div>\
-                </div>\
-                <div class="row">\
                     <div class="col-6">\
                         <label >Flux</label>\
                         <input type="text" name="gener_'+gener_id+ '_flux" value="" class="form-control form-control-sm"  pattern="{{PATTERN.numlist_in_js}}">\
                         <div class="invalid-msg">{{TITLE.numlist}}</div>\
                     </div>\
                     <div class="col-6">\
-                        <h6>Temperature</h6>\
+                        <label>Temperature</label>\
                         <div class="input-group ">\
                             <div class="form-group">\
-                                <input type="text" name="gener_'+gener_id+ '_heat" value="" class="form-control" pattern="{{PATTERN.float_in_js}}" >\
+                                <input type="text" name="gener_'+gener_id+ '_heat" value="" class="form-control form-control-sm" pattern="{{PATTERN.float_in_js}}" >\
                                 <div class="invalid-msg">{{TITLE.float}}</div>\
                             </div>\
-                            <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_'+ gener_id + '_heatUnit">\
+                            <select class="form-select btn btn-sm btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_'+ gener_id + '_heatUnit">\
                                 <option value="tempc">(°C)</option>\
                             </select>\
                         </div>\
@@ -1529,7 +1527,7 @@
                             <label >Disable</label>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row g-2">
                         <div class="col-6">
                             <label >Type</label>
                             <select class="form-select btn btn-outline-primary dropdown-toggle injTypeEos2" aria-label="Default select example" name="gener_{{ gener_id }}_type_eos2">
@@ -1542,28 +1540,26 @@
                                 <option value="COM3" {% if form['gener_' ~ gener_id ~ '_type_eco2n']=="COM3" %} selected {% endif %}>COM3: CO2</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col">
+                        <div class="col-6">
+                        </div>
+                        <div class="col-12">
                             <label >Injection blocks</label>
                             <input type="text" name="gener_{{gener_id}}_injblock" value="{{form['gener_' ~ gener_id ~ '_injblock']}}" class="form-control form-control-sm"  pattern="{{PATTERN.blklist}}">
                             <div class="invalid-msg">{{TITLE.blklist}}</div>
                         </div>
-                    </div>
-                    <div class="row">
                         <div class="col-6">
                             <label >Flux</label>
                             <input type="text" name="gener_{{gener_id}}_flux" value="{{form['gener_' ~ gener_id ~ '_flux']}}" class="form-control form-control-sm"  pattern="{{PATTERN.numlist}}">
                             <div class="invalid-msg">{{TITLE.numlist}}</div>
                         </div>
                         <div class="col-6">
-                            <h6>Temperature</h6>
+                            <label>Temperature</label>
                             <div class="input-group ">
                                 <div class="form-group">
-                                    <input type="text" name="gener_{{gener_id}}_heat" value="{{form['gener_' ~ gener_id ~ '_heat']}}" class="form-control" pattern="{{PATTERN.float}}" >
+                                    <input type="text" name="gener_{{gener_id}}_heat" value="{{form['gener_' ~ gener_id ~ '_heat']}}" class="form-control form-control-sm" pattern="{{PATTERN.float}}" >
                                     <div class="invalid-msg">{{TITLE.float}}</div>
                                 </div>
-                                <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_{{ gener_id }}_heatUnit">
+                                <select class="form-select btn btn-sm btn-outline-primary dropdown-toggle" aria-label="Default select example" name="gener_{{ gener_id }}_heatUnit">
                                     <option value="tempc" {% if form['gener_' ~ gener_id ~ '_heatUnit']=="tempc" %} selected {% endif %}>(°C)</option>
                                 </select>
                             </div>
