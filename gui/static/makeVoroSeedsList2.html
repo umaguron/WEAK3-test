@@ -460,6 +460,40 @@
             link.click();
         };
 
+        /** READ FROM FILE **/
+        function fileChanged(input) {
+
+            console.log(input);
+            for (let i = 0; i < input.files.length; i++) {
+                console.log(input.files[i]);
+            }
+            if (input.files.length == 0) {
+                console.log('No file selected');
+                return;
+            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                // readAsTextで読み込まれたときの処理
+                // console.log(reader.result);
+                easting = [];
+                northing = [];
+                let fileContentArray = reader.result.split(/\r\n|\n/);
+                for(let line = 1; line < fileContentArray.length-1; line++){
+                    // console.log(line + " --> "+ fileContentArray[line].split(" "));
+                    northing.push(Number(fileContentArray[line].split(" ")[0]));
+                    easting.push(Number(fileContentArray[line].split(" ")[1]));
+                }
+                plotly_plot();
+                $('#uploadmsg').empty();
+                $('#uploadmsg').show();
+                $('#uploadmsg').append("Seeds have been read from file.");
+                blinkElem('#uploadmsg', 2);
+                $('#uploadmsg').fadeOut(4000);
+
+            };
+            reader.readAsText(file);
+        }
 
         /** READY  **/
         // ページ読み込み時に実行したい処理
@@ -842,13 +876,29 @@
             <!-- refinement sections are added here -->
         </div>
         <br>
-        
+        <br>
+        <hr>
+        <h4>Load seeds from file</h4>
+        <div class="row g-4">
+            <div class="col">
+                <label class="form-label"></label>
+                <input type="file" class="form-control" onchange="fileChanged(this)">
+            </div>
+            <div class="col-12">
+                <b><div class="col-12" id="uploadmsg" style="color: red;"></div></b>
+            </div>
+        </div>
+        <br>
+        <br>
+        <br>
+                   
         <br>
         <form action="" method="post">
             <input type="hidden" name="east_seeds" id="east_seeds">
             <input type="hidden" name="north_seeds" id="north_seeds">
             <!-- <input type="submit" value="send"> -->
         </form>
+
     </div>
 </body>
 </html>
