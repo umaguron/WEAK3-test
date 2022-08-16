@@ -23,16 +23,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("inputIni", 
             help="fullpath of toughInput setting input.ini", type=str)
-    parser.add_argument("-fa","--force_overwrite_all", 
-            help="recreate all existing grid and input file", action='store_true')
     parser.add_argument("-f","--force_overwrite_t2data", 
-            help="use existing mulgrid file and recreate existing t2data file", action='store_true')
+            help="if given, use existing mulgrid file and overwrite existing t2data file", action='store_true')
+    parser.add_argument("-fa","--force_overwrite_all", 
+            help="if given, recreate all existing grid and input file", action='store_true')
     parser.add_argument("-view","--open_viewer", 
-            help="open window viewing figures, insted of saving image", action='store_true')
+            help="if given, open window viewing figures, insted of saving image", action='store_true')
     parser.add_argument("-all","--plot_all_layers", 
-            help="saving figures for all layers", action='store_true')
+            help="if given, saving figures for all layers", action='store_true')
     parser.add_argument("-layer","--layer", 
-            help="name of layer to plot", type=int)
+            help="if the layer number 'LAYER' is given, saving a figure of the specified layer", type=int)
     # parser.add_argument("-p","--showsProfile", 
     #         help="if given, show grid profile", action='store_true')
     args = parser.parse_args()

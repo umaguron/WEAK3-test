@@ -5,6 +5,7 @@ from imp import init_builtin
 import os 
 import sys
 import pathlib
+import time
 
 from numpy import isin
 # from unittest import result
@@ -658,22 +659,24 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni):
     logger = define_logging.getLogger(
         f"controller.{sys._getframe().f_code.co_name}")
     
+    timestamp = time.time()
+    
     show_images = {}
     shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
-                    create_fullpath("gui/static/output/"))
+                    create_fullpath(f"gui/static/output/{IMG_LAYER_SURFACE}_{timestamp}.png"))
     show_images['layer'] = \
-        {'path':f'output/{IMG_LAYER_SURFACE}.png',
+        {'path':f'output/{IMG_LAYER_SURFACE}_{timestamp}.png',
          'caption':'IMG_LAYER_SURFACE'}
     
     show_images['slice'] = {}
     for l, line in enumerate(inputIni.plot.profile_lines_list):
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.png"),
-                        create_fullpath("gui/static/output/"))
+                        create_fullpath(f"gui/static/output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png"))
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
-                        create_fullpath("gui/static/output/"))
+                        create_fullpath(f"gui/static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png"))
         show_images['slice'][f'{l}'] = \
-            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}.png',
-             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}.png',
+            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
+             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
              'caption':repr(line)}
         
     logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
@@ -1130,11 +1133,24 @@ def cmesh5_write_file(request:request):
         else:
             info = f"[{sec:<15}] {key:<25}: (not found)         "
         if name in form:
-            logger.debug(info + f"--> {form[name]}")
-            config.set(sec, key, form[name])
+            # cmesh5入力値がある場合
+            if config.has_section(sec):
+                # 元ファイルにセクションがあるとき、値を更新
+                logger.debug(info + f"--> {form[name]}")
+                config.set(sec, key, form[name])
+            else:
+                # 元ファイルにセクションがないとき、何もしない
+                logger.debug(info + f"--> ")
         else:
-            logger.debug(info + f"--> ")
-            config.set(sec, key, "")
+            # cmesh5入力値がない場合
+            if config.has_section(sec):
+                # 元ファイルにセクションがあるとき、値を更新(空白に置き換え)
+                logger.debug(info + f"--> ")
+                config.set(sec, key, "")
+            else:
+                print(sec)
+                # 元ファイルにセクションがないとき、何もしない
+                logger.debug(info + f"--> ")
 
     # mops16
     config.set('toughInput', 'mops16', form['mops16_1'])
@@ -1158,6 +1174,7 @@ def cmesh5_write_file(request:request):
         if f'primary_atm_{i+1}' in form:
             pa[i] = float(form[f'primary_atm_{i+1}'])
     config.set('toughInput', 'PRIMARY_default', repr(pd))
+    if not config.has_section('atmosphere'): config.add_section('atmosphere')
     config.set('atmosphere', 'PRIMARY_AIR', repr(pa))
 
     # GENER 
