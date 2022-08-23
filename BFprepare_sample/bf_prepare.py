@@ -12,7 +12,7 @@ import re
 """
 
 ######## SETTING #########
-prjRoot = '/Users/matsunagakousei/sourceCodes/TOUGH3/'
+prjRoot = '/.../WEAK3-test/' # プロジェクトルートのフルパスを書く
 resultDirName = 'result/'
 inputDirName = 'input/'
 baseIniFileName = 'base.ini'
