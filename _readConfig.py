@@ -174,6 +174,7 @@ class InputIni(object):
         try:
             self.construct_path()
         except:
+            logger.error(traceback.format_exc())
             logger.warning("Fail to construct path in InputIni.construct_path(). Skip.")
     
         self.validation()
