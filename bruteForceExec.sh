@@ -27,6 +27,7 @@ do
     outfilefp=${t2dirfp}/$outfile
 echo ---- PN: $TID/$problemname
 echo ---- CLEAN: $TID/$problemname
+continue
     [ -z $TID ] ||  rm -r $t2dirfp
 echo ---- MAKE GRID
     if [ $meshtype == REGULAR ]; then python3 makeGrid.py $f -f
