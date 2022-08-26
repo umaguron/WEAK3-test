@@ -1,8 +1,8 @@
 # setting
 export REMOTE_STATION=user@xxx.xxx.xxx.xxx
 export PW=XXXXX
-export REMOTE_PRJROOT=Tough3/WEAK3-test 
-export LOCAL_PRJROOT=/Users/matsunagakousei/sourceCodes/WEAK3
+export REMOTE_PRJROOT=.../WEAK3-test # after ~/
+export LOCAL_PRJROOT=/.../WEAK3-test # from /
 
 
 function get () {
