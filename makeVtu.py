@@ -77,7 +77,7 @@ II = ini.toughInput
 
 t2o.create_savefig_dir(ini)
 # make grid
-makeGridFunc.makeGrid(ini)
+makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper.strip() == REGULAR else False)
 
 # check file existence
 
@@ -159,6 +159,7 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
                 plot_limits=ini.plot.slice_plot_limits,
                 colourbar_limits=t2o.get_cbar_limits(var_name),
                 colourmap=colourmap,
+                contour_label_format='%.1f',
                 grid=dat.grid,
                 plt=plt,
                 flow_arrow_width=0.0015,

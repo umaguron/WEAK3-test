@@ -23,7 +23,7 @@ parser.add_argument("-f","--force_overwrite_t2data",
 parser.add_argument("-all","--plot_all_layers", 
         help="(Only valid for type: A_VORO) if given, saving figures for all layers", action='store_true')
 parser.add_argument("-layer","--layer", 
-        help="(Only valid for type: A_VORO) if the layer number 'LAYER' is given, saving a figure of the specified layer", type=int)
+        help="(Only valid for type: A_VORO) if the layer index 'LAYER' (type: str) is given, saving a figure of the specified layer", type=str)
 args = parser.parse_args()
 ## get directory name where this script is located
 import pathlib

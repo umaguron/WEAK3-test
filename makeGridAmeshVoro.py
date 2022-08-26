@@ -32,7 +32,7 @@ def main():
     parser.add_argument("-all","--plot_all_layers", 
             help="if given, saving figures for all layers", action='store_true')
     parser.add_argument("-layer","--layer", 
-            help="if the layer number 'LAYER' is given, saving a figure of the specified layer", type=int)
+            help="if the layer index 'LAYER' is given, saving a figure of the specified layer", type=str)
     # parser.add_argument("-p","--showsProfile", 
     #         help="if given, show grid profile", action='store_true')
     args = parser.parse_args()

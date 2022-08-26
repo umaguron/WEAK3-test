@@ -190,7 +190,7 @@ iapwsについては以下でもOK
     ~/.sqlitercを作っておく。
     ファイルの中身は以下のようにする。
     ```
-    .mode column
+    .mode csv
     .width 0
     .headers on
     .nullvalue NULL

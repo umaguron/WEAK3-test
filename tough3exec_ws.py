@@ -594,7 +594,7 @@ def makeToughInput(ini:_readConfig.InputIni):
     dat.write('tmp')
     # add additional keyword
     with open('tmp', 'r') as tmp, open(ini.t2FileFp, 'w') as f, \
-        open('t2data_ENDCY_replace.dat', 'r') as a:
+        open(os.path.join(baseDir, 't2data_ENDCY_replace.dat'), 'r') as a:
         for line in tmp:
             if 'ENDCY' in line:
                 for line_add in a:
