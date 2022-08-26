@@ -46,7 +46,7 @@ IMG_RESIS_SLICE_X = 'resistivity_slice-x'
 IMG_RESIS_SLICE_Y = 'resistivity_slice-y'
 IMG_RESIS_SLICE_Z = 'resistivity_slice-z'
 IMG_RESIS_SLICE_LINE = 'resistivity_slice-line'
-IMG_RESIS_LAYER = 'resistivity_slice-line'
+IMG_RESIS_LAYER = 'resistivity_layer-'
 IMG_TOPO = 'topo'
 
 
