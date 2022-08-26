@@ -1185,8 +1185,8 @@
                             <th>TSTART</th>
                             <td>0</td>
                             <td>
-                                <input type="text" name="tstart" value="{{form.tstart}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
-                                <div class="invalid-msg">{{TITLE.float}}</div>
+                                <input type="text" name="tstart" value="{{form.tstart}}" class="form-control" pattern="{{PATTERN.float_extended}}" title="{{TITLE.float}}" >
+                                <div class="invalid-msg">{{TITLE.float_extended}}</div>
                             </td>
                             <td>starting time of simulation in seconds (default is 0).</td>
                         </tr>
@@ -1194,8 +1194,8 @@
                             <th>TIMAX</th>
                             <td>infinite</td>
                             <td>
-                                <input type="text" name="tstop" value="{{form.tstop}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
-                                <div class="invalid-msg">{{TITLE.float}}</div>
+                                <input type="text" name="tstop" value="{{form.tstop}}" class="form-control" pattern="{{PATTERN.float_extended}}" title="{{TITLE.float_extended}}" >
+                                <div class="invalid-msg">{{TITLE.float_extended}}</div>
                             </td>
                             <td>time in seconds at which simulation should stop (default is infinite).</td>
                         </tr>
@@ -1927,8 +1927,8 @@
                                     <tr>
                                         <th>ksp_rtol</th>
                                         <td>
-                                            <input type="text" name="ksp_rtol" value="{{form.ksp_rtol}}" class="form-control" pattern="{{PATTERN.float}}" title="{{TITLE.float}}" >
-                                            <div class="invalid-msg">{{TITLE.float}}</div>
+                                            <input type="text" name="ksp_rtol" value="{{form.ksp_rtol}}" class="form-control" pattern="{{PATTERN.float_none_ok}}" title="{{TITLE.float_none_ok}}" >
+                                            <div class="invalid-msg">{{TITLE.float_none_ok}}</div>
                                         </td>
                                         <td>relative convergence tolerance (any real number) </td>                            
                                     </tr>

@@ -654,7 +654,7 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     
     return ret
 
-def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni):
+def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]):
     """ get logger """
     logger = define_logging.getLogger(
         f"controller.{sys._getframe().f_code.co_name}")
@@ -664,21 +664,40 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni):
     show_images = {}
     shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
                     create_fullpath(f"gui/static/output/{IMG_LAYER_SURFACE}_{timestamp}.png"))
-    show_images['layer'] = \
+    show_images['layer_surface'] = \
         {'path':f'output/{IMG_LAYER_SURFACE}_{timestamp}.png',
          'caption':'IMG_LAYER_SURFACE'}
     
-    show_images['slice'] = {}
+    show_images['slice_vertical'] = {}
     for l, line in enumerate(inputIni.plot.profile_lines_list):
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.png"),
                         create_fullpath(f"gui/static/output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png"))
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
                         create_fullpath(f"gui/static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png"))
-        show_images['slice'][f'{l}'] = \
+        show_images['slice_vertical'][f'{l}'] = \
             {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
              'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
              'caption':repr(line)}
+ 
+    show_images['slice_horizontal'] = {}
+    for layer in layers:
         
+        orginal_perm = os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ','_')}.png")
+        copied_perm = create_fullpath(f"gui/static/output/{IMG_PERM_LAYER}{layer.replace(' ','_')}_{timestamp}.png")
+        if os.path.isfile(orginal_perm):
+            shutil.copy2(orginal_perm, copied_perm)
+
+        orginal_res = os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ','_')}.png")
+        copied_res = create_fullpath(f"gui/static/output/{IMG_RESIS_LAYER}{layer.replace(' ','_')}_{timestamp}.png")
+        print(orginal_res)
+        if os.path.isfile(orginal_res):
+            shutil.copy2(orginal_res, copied_res)
+        
+        show_images['slice_horizontal'][f'{layer}'] = \
+            {'resis_path':f'output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'perm_path':f'output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'caption':repr(layer)}
+
     logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
     
     return show_images
@@ -736,10 +755,27 @@ def cmesh4_visualize():
         
         logger.debug(ini.plot.profile_lines_list)
         
-        # create slices
-        makeGridAmeshVoro.visualize(ini,geo_topo,variable_res,variable_perm, fex='png')
+        # create vertical slices
+        makeGridAmeshVoro.visualize_vslice(ini,geo_topo,variable_res,variable_perm,fex='png')
+        
+        # create horizontal slices
+        try:
+            tmp = eval(form['horizontal']) 
+            if isinstance(tmp, list):
+                layers = tmp
+            else:
+                layers = []
+        except:
+            layers = []
+
+        for layer in layers:
+            makeGridAmeshVoro.visualize_layer(ini,geo_topo,variable_res,variable_perm,
+                                            layer_no_to_plot=layer, fex='png')
+            makeGridAmeshVoro.visualize_layer(ini,geo_topo,variable_res,variable_perm,
+                                            layer_no_to_plot=layer, fex='pdf')
+
         # copy created slice images to static/output
-        show_images = copy_visualized_mulgrid_imgs(ini)
+        show_images = copy_visualized_mulgrid_imgs(ini, layers=layers)
         
         return render_template('cmesh4.html', 
                                form=form,
