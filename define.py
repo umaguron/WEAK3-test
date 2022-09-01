@@ -89,7 +89,8 @@ CBAR_LIM_NaCl_CONTENT = [0, 0.02]
 CBAR_LIM_LOG10RES = [-0.5,3.5]
 CBAR_LIM_LOG10PERM = [-10,-20]
 CBAR_LIM_TEMP = [0,270]
-CBAR_LIM_SAT = [0,0.2]
+# CBAR_LIM_SAT = [0,0.2]
+CBAR_LIM_SAT = None
 
 # The appropriate unit name is selected in the t2outUtil.get_unit method based on the FLAG NAME.
 UNIT_NaCl_CONTENT = 'wt%'
@@ -98,7 +99,7 @@ UNIT_SAT = None
 
 # The appropriate unit name is selected in the t2outUtil.get_contour_intbal method based on the FLAG NAME.
 CONTOUR_TEMP = [25,50,100,150,200,250,290,300]
-CONTOUR_SAT = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+CONTOUR_SAT = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 CONTOUR_RES = False
 
 """figure"""
@@ -106,10 +107,12 @@ CMAP_PERMEABILITY = "gist_rainbow"
 CMAP_RESISTIVITY = "gist_rainbow"
 
 # CBARLIMIT_DEFAULT_HEAT = [-0.5, 1]
-CBARLIMIT_DEFAULT_HEAT = [-0.69, 7.21]
+# CBARLIMIT_DEFAULT_HEAT = [-0.69, 7.21]
+CBARLIMIT_DEFAULT_HEAT = None
 # CBARLIMIT_DEFAULT_FLOW = [-1e-5, 1e-5]
 #CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 1.825e-5]
-CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 2.2e-5]
+# CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 2.2e-5]
+CBARLIMIT_DEFAULT_FLOW = None
 
 TOPO_MAP_SYMBOL = {'Yugama':(2286,-62),
                    'sessho': (459, 2255),

@@ -77,7 +77,7 @@ II = ini.toughInput
 
 t2o.create_savefig_dir(ini)
 # make grid
-makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper.strip() == REGULAR else False)
+makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper().strip() == REGULAR else False)
 
 # check file existence
 
@@ -189,8 +189,8 @@ def original_surfacemap(variable_name:str, values:list,
 
     if cbarlim is None:
         # full range
-        cbarlim = (max([v for v in values if v is not None]), 
-                   min([v for v in values if v is not None]))
+        cbarlim = (min([v for v in values if v is not None]), 
+                   max([v for v in values if v is not None]))
     # reset figure
     plt.figure()
     # plot flow data
