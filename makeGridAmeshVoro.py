@@ -569,24 +569,28 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     np.save(os.path.join(ini.savefigFp, PICKLED_MULGRID_RES), variable_res)
     
     """visualize"""
-    visualize(ini, 
-              geo_topo, 
-              variable_res,
-              variable_perm,
-              fex=fex, 
-              open_viewer=open_viewer, 
-              plot_all_layers=plot_all_layers,
-              layer_no_to_plot=layer_no_to_plot)
+    visualize_vslice(ini, 
+                     geo_topo, 
+                     variable_res,
+                     variable_perm,
+                     fex=fex, 
+                     open_viewer=open_viewer)
+    visualize_layer(ini, 
+                    geo_topo, 
+                    variable_res,
+                    variable_perm,
+                    fex=fex, 
+                    open_viewer=open_viewer, 
+                    plot_all_layers=plot_all_layers,
+                    layer_no_to_plot=layer_no_to_plot)
  
     
-def visualize(ini:_readConfig.InputIni,
-                geo_topo: mulgrid,
-                variable_resistivity: np.array,
-                variable_permeability: np.array,
-                fex='pdf',
-                open_viewer=False,
-                plot_all_layers=False,
-                layer_no_to_plot=None ):
+def visualize_vslice(ini:_readConfig.InputIni,
+                     geo_topo: mulgrid,
+                     variable_resistivity: np.array,
+                     variable_permeability: np.array,
+                     fex='pdf',
+                     open_viewer=False):
     """_summary_
 
     Args:
@@ -597,10 +601,6 @@ def visualize(ini:_readConfig.InputIni,
         fex (str, optional): extention of created figures. Defaults to 'pdf'.
         open_viewer (bool, optional): 
             If True, open window viewing figures, insted of saving image. Defaults to True.
-        plot_all_layers(bool, optional):
-            If True, create horizontal slice for all layers.
-        layer_no_to_plot (int, optional):
-            If not none, a horizontal slice of specified layer number is created.
     """
     
     if open_viewer:
@@ -723,52 +723,6 @@ def visualize(ini:_readConfig.InputIni,
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.{fex}"))
             plt.close()
 
-    # plot for all layer
-    if plot_all_layers:
-        for layer in geo_topo.layer:
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
-                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
-            if not open_viewer:
-                # invert y axis
-                lim = plt.ylim()    
-                plt.ylim((lim[1],lim[0]))
-                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
-                plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
-                                colourmap=CMAP_RESISTIVITY, plt=plt,
-                                colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
-            if not open_viewer:
-                # invert y axis
-                lim = plt.ylim()    
-                plt.ylim((lim[1],lim[0]))
-                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer}.{fex}"))
-                plt.close()
-    
-    if layer_no_to_plot is not None:
-        for layer in geo_topo.layer:
-            if layer_no_to_plot != int(layer): continue
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
-                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
-            if not open_viewer:
-                # invert y axis
-                lim = plt.ylim()    
-                plt.ylim((lim[1],lim[0]))
-                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer}.{fex}"))
-                plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
-                                colourmap=CMAP_RESISTIVITY, plt=plt,
-                                colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
-            if not open_viewer:
-                # invert y axis
-                lim = plt.ylim()    
-                plt.ylim((lim[1],lim[0]))
-                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer}.{fex}"))
-                plt.close()
-
     # topo
     elevations, X, Y = [], [], []
     for col in geo_topo.columnlist:
@@ -805,6 +759,85 @@ def visualize(ini:_readConfig.InputIni,
     # if not open_viewer:
     #     plt.savefig(os.path.join(ini.t2FileDirFp, f"resistivity_slice-{angle}."+fex))
     #     plt.close()
+
+def visualize_layer(ini:_readConfig.InputIni,
+                    geo_topo: mulgrid,
+                    variable_resistivity: np.array,
+                    variable_permeability: np.array,
+                    fex='pdf',
+                    open_viewer=False,
+                    plot_all_layers=False,
+                    layer_no_to_plot=None ):
+    """_summary_
+
+    Args:
+        ini (_readConfig.InputIni): _description_
+        geo_topo (mulgrid): _description_
+        variable_resistivity (np.array): loaded array of (ini.savefigFp)/(PICKLED_MULGRID_PERM)
+        variable_permeability (np.array): loaded array of (ini.savefigFp)/(PICKLED_MULGRID_RES)
+        fex (str, optional): extention of created figures. Defaults to 'pdf'.
+        open_viewer (bool, optional): 
+            If True, open window viewing figures, insted of saving image. Defaults to True.
+        plot_all_layers(bool, optional):
+            If True, create horizontal slice for all layers.
+        layer_no_to_plot (str, optional):
+            If not none, a horizontal slice of specified index is created.
+    """
+    if open_viewer:
+        # open viewer
+        plt = None
+    else:
+        # save image insted of opening viewer
+        import matplotlib.pyplot as plt
+        plt.rcParams["font.size"] = FONT_SIZE
+    
+    # plot for all layer
+    if plot_all_layers:
+        for layer in geo_topo.layer:
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
+                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+                                colourbar_limits=CBAR_LIM_LOG10PERM)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
+                plt.close()
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
+                                colourmap=CMAP_RESISTIVITY, plt=plt,
+                                colourbar_limits=CBAR_LIM_LOG10RES,
+                                column_names=True)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ', '_')}.{fex}"))
+                plt.close()
+    
+    if layer_no_to_plot is not None:
+        for layer in geo_topo.layer:
+            # if layer_no_to_plot != int(layer): continue
+            if layer_no_to_plot != layer: continue
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
+                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+                                colourbar_limits=CBAR_LIM_LOG10PERM)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
+                plt.close()
+            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
+                                colourmap=CMAP_RESISTIVITY, plt=plt,
+                                colourbar_limits=CBAR_LIM_LOG10RES,
+                                column_names=True)
+            if not open_viewer:
+                # invert y axis
+                lim = plt.ylim()    
+                plt.ylim((lim[1],lim[0]))
+                plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ', '_')}.{fex}"))
+                plt.close()
+
 
 
 def get_outer_boundary_blocks(geo:mulgrid, grid:t2grid, convention:int):
@@ -957,7 +990,7 @@ def blockname(colname, layname, convention):
     elif convention == 1:
         blkname = f'{layname:>3}{colname:>2}'
     elif convention == 2:
-        blkname = f'{layname:>3}{colname:>3}'
+        blkname = f'{layname:>2}{colname:>3}'
     return blkname
 
 
