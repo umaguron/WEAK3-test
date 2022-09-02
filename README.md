@@ -24,9 +24,7 @@ install_memo.md 参照
 ```
 WEAK3/ <--プロジェクトルート 
     |
-    |-- makeGrid.py:            (1a)浸透率構造メッシュ(直交格子, 地形なし)作成プログラム
-    |
-    |-- makeGridAmeshVoro.py:   (1b)浸透率構造メッシュ(voronoi grid, 地形あり)作成プログラム
+    |-- makeGrid.py:            (1)浸透率構造メッシュ作成プログラム
     |
     |-- tough3exec_ws.py:       (2)TOUGH3 input file作成プログラム
     |
@@ -88,7 +86,7 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
 
      ```bash
      # 実行コマンドの例
-     python3 makeGridAmeshVoro.py input.ini -f   # create mesh
+     python3 makeGrid.py input.ini -f   # create mesh
      python3 tough3exec_ws.py input.ini -f   # create TOUGH3 inputs
      python3 run.py input.ini   # run TOUGH3
      python3 update_log.py -ini input.ini   # register the results to database 
@@ -111,11 +109,12 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
 
 # GUIによるinput.ini作成
 
-基本的に各自のマシン上で動かす。(WS上で実行する方法はあるはず。詳しい人教えてください。)
+基本的に各自のマシン上で動かす。(XSS対策などを全くしていないため、web上に公開してはいけない)
 
 1. 仮想サーバの起動
    ```
    python3 gui/controller.py
+   # 開発用サーバがデバッグモードで起動される
    ```
 
 2. 起動できたら <http:/localhost:8000> にブラウザでアクセスする。
