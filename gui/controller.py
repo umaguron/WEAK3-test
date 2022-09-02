@@ -1,13 +1,9 @@
-from ast import Name
-from distutils.command.config import config
-from imp import init_builtin
 # from distutils.log import error
 import os 
 import sys
 import pathlib
 import time
 
-from numpy import isin
 # from unittest import result
 baseDir = pathlib.Path(__file__).parent.resolve()
 sys.path.append(baseDir)
@@ -16,6 +12,7 @@ projRoot = os.path.abspath(os.path.join(baseDir,".."))
 from import_pytough_modules import *
 import _readConfig
 import makeGridAmeshVoro
+import makeGridFunc
 import tough3exec_ws
 from flask import Flask
 from flask import render_template
@@ -421,7 +418,7 @@ def cmesh3_check():
                     inputIni.toughInput['rockSecList'] = [name]
                     inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, config)]
                 else:
-                    inputIni.toughInput['rockSecList'].append(Name)
+                    inputIni.toughInput['rockSecList'].append(name)
                     inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, config))
         
         """check & create"""
@@ -1304,7 +1301,8 @@ def test_create():
         os.makedirs(ini.t2FileDirFp, exist_ok=True)
         if not os.path.isfile(ini.t2FileFp):
             if not os.path.isfile(ini.t2GridFp):
-                makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
+                # makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
+                makeGridFunc.makeGrid(ini=ini, overWrites=False, showsProfiles=False)
             tough3exec_ws.makeToughInput(ini)
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
         else:
