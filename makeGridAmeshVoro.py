@@ -659,14 +659,21 @@ def visualize_vslice(ini:_readConfig.InputIni,
 
     for x in xslices:
         linex = np.array([[x,geo_topo.bounds[0][1]],[x,geo_topo.bounds[1][1]]])
-        geo_topo.slice_plot(line=linex, variable=np.log10(variable_permeability), 
-                            colourmap=CMAP_PERMEABILITY, plt=plt,
-                            colourbar_limits=CBAR_LIM_LOG10PERM)
+        geo_topo.slice_plot(line=linex, 
+                            variable=np.log10(variable_permeability), 
+                            variable_name='log10 permeability',
+                            colourmap=CMAP_PERMEABILITY, 
+                            plt=plt,
+                            colourbar_limits=CBAR_LIM_LOG10PERM,
+                            )
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_X}{x}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=linex, variable=np.log10(variable_resistivity), 
-                            colourmap=CMAP_RESISTIVITY, plt=plt,
+        geo_topo.slice_plot(line=linex, 
+                            variable=np.log10(variable_resistivity), 
+                            variable_name='log10 resistivity',
+                            colourmap=CMAP_RESISTIVITY, 
+                            plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_X}{x}.{fex}"))
@@ -674,21 +681,29 @@ def visualize_vslice(ini:_readConfig.InputIni,
     
     for y in yslices:
         liney = np.array([[geo_topo.bounds[0][0],y],[geo_topo.bounds[1][0],y]])
-        geo_topo.slice_plot(line=liney, variable=np.log10(variable_permeability), 
-                            colourmap=CMAP_PERMEABILITY, plt=plt,
+        geo_topo.slice_plot(line=liney, 
+                            variable=np.log10(variable_permeability), 
+                            variable_name='log10 permeability',
+                            colourmap=CMAP_PERMEABILITY, 
+                            plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Y}{y}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=liney, variable=np.log10(variable_resistivity), 
-                            colourmap=CMAP_RESISTIVITY, plt=plt,
+        geo_topo.slice_plot(line=liney, 
+                            variable=np.log10(variable_resistivity), 
+                            variable_name='log10 resistivity',
+                            colourmap=CMAP_RESISTIVITY, 
+                            plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_Y}{y}.{fex}"))
             plt.close()
     
     for z in zslices:
-        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_permeability),
+        geo_topo.layer_plot(layer=int(z), 
+                            variable=np.log10(variable_permeability),
+                            variable_name='log10 permeability',
                             colourmap=CMAP_PERMEABILITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
@@ -697,7 +712,9 @@ def visualize_vslice(ini:_readConfig.InputIni,
             plt.ylim((lim[1],lim[0]))
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_Z}{z}.{fex}"))
             plt.close()
-        geo_topo.layer_plot(layer=int(z), variable=np.log10(variable_resistivity),
+        geo_topo.layer_plot(layer=int(z), 
+                            variable=np.log10(variable_resistivity),
+                            variable_name='log10 resistivity',
                             colourmap=CMAP_RESISTIVITY, plt=plt,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
@@ -708,15 +725,21 @@ def visualize_vslice(ini:_readConfig.InputIni,
             plt.close()
 
     for l, line in enumerate(ini.plot.profile_lines_list):
-        geo_topo.slice_plot(line=line, variable=np.log10(variable_permeability), 
-                            colourmap=CMAP_PERMEABILITY, plt=plt,
+        geo_topo.slice_plot(line=line, 
+                            variable=np.log10(variable_permeability), 
+                            variable_name='log10 permeability',
+                            colourmap=CMAP_PERMEABILITY,
+                            plt=plt,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.{fex}"))
             plt.close()
-        geo_topo.slice_plot(line=line, variable=np.log10(variable_resistivity), 
-                            colourmap=CMAP_RESISTIVITY, plt=plt,
+        geo_topo.slice_plot(line=line, 
+                            variable=np.log10(variable_resistivity), 
+                            variable_name='log10 resistivity',
+                            colourmap=CMAP_RESISTIVITY,
+                            plt=plt,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
@@ -794,8 +817,12 @@ def visualize_layer(ini:_readConfig.InputIni,
     # plot for all layer
     if plot_all_layers:
         for layer in geo_topo.layer:
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
-                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+            geo_topo.layer_plot(layer=layer, 
+                                variable=np.log10(variable_permeability),
+                                variable_name='log10 permeability',
+                                colourmap=CMAP_PERMEABILITY, 
+                                plt=plt, 
+                                column_names=True,
                                 colourbar_limits=CBAR_LIM_LOG10PERM)
             if not open_viewer:
                 # invert y axis
@@ -803,8 +830,11 @@ def visualize_layer(ini:_readConfig.InputIni,
                 plt.ylim((lim[1],lim[0]))
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
-                                colourmap=CMAP_RESISTIVITY, plt=plt,
+            geo_topo.layer_plot(layer=layer, 
+                                variable=np.log10(variable_resistivity),
+                                variable_name='log10 resistivity',
+                                colourmap=CMAP_RESISTIVITY, 
+                                plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
                                 column_names=True)
             if not open_viewer:
@@ -818,8 +848,12 @@ def visualize_layer(ini:_readConfig.InputIni,
         for layer in geo_topo.layer:
             # if layer_no_to_plot != int(layer): continue
             if layer_no_to_plot != layer: continue
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_permeability),
-                                colourmap=CMAP_PERMEABILITY, plt=plt, column_names=True,
+            geo_topo.layer_plot(layer=layer, 
+                                variable=np.log10(variable_permeability),
+                                variable_name='log10 permeability',
+                                colourmap=CMAP_PERMEABILITY, 
+                                plt=plt, 
+                                column_names=True,
                                 colourbar_limits=CBAR_LIM_LOG10PERM)
             if not open_viewer:
                 # invert y axis
@@ -827,8 +861,11 @@ def visualize_layer(ini:_readConfig.InputIni,
                 plt.ylim((lim[1],lim[0]))
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
-            geo_topo.layer_plot(layer=layer, variable=np.log10(variable_resistivity),
-                                colourmap=CMAP_RESISTIVITY, plt=plt,
+            geo_topo.layer_plot(layer=layer, 
+                                variable=np.log10(variable_resistivity),
+                                variable_name='log10 resistivity',
+                                colourmap=CMAP_RESISTIVITY, 
+                                plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
                                 column_names=True)
             if not open_viewer:
