@@ -60,7 +60,7 @@
     });
 </script>
 <!--  -->
-<div class="row">
+<div class="row g-3">
     <div class="col-6">
         <h3 class="col">Rocktype #{{ rock_id }}</h3>
     </div>
@@ -69,7 +69,7 @@
     </div>
 </div>
 <br>
-<div class="row">
+<div class="row g-3">
     <div class="col-3">
         <label>name</label>
         <input type="text" name="rock{{ rock_id }}_name" value="{{form['rock' ~ rock_id ~ '_name']}}" class="form-control" pattern="{{PATTERN['blkname']}}" title="{{TITLE['blkname']}}">
@@ -113,7 +113,7 @@
 </div>
 <!--  -->
 <br>
-<div class="row">
+<div class="row g-3">
     <div class="col-6">
         <h6>Relative permeability (optional)</h6>
         <div class="input-group ">
@@ -152,7 +152,7 @@
 <br>
 <!-- regionSec -->
 <div class="row">
-    <h4 class="col-6">Rectanglar region (required)</h4>
+    <h4 class="col-6">Rectanglar region <span class="badge rounded-pill text-bg-primary">required</span></h4>
     <button type="button" class="btn btn-outline-primary btn-small col-2" id="rock{{ rock_id }}_addRegion">add</button>
 </div> 
 <input type="hidden" value="{{form['rock' ~ rock_id ~ '_region_length']}}" class="form-control" id="rock{{ rock_id }}_region_length" name="rock{{ rock_id }}_region_length" />
@@ -161,7 +161,7 @@
     {% if form['rock' ~ rock_id ~ '_region_length'] %}
         {% for reg_id in range(form['rock' ~ rock_id ~ '_region_length']|int) %}
             <h6 class="col">#{{reg_id}}</h6>
-            <div class="row">
+            <div class="row g-3">
                 <div class="col-2">
                     <label >x min [m]</label>
                     <input type="text" name="rock{{rock_id}}_reg{{reg_id}}_xmin" value="{{form['rock' ~ rock_id ~ '_reg' ~ reg_id ~ '_xmin']}}" class="form-control form-control-sm rocktype_region_min{{rock_id}}"  pattern="{{PATTERN['float']}}">
@@ -208,9 +208,9 @@
 <!--  -->
 <div class="row">
     <div class="col">
-        <h4 class="col">blockList</h4>
+        <h4 class="col">blockList <span class="badge rounded-pill text-bg-secondary">optional</span> </h4>
         {% if rock_id==0 %}
-        <div class="col-12">(description)</div>
+        <div class="col-12">List of element name like ['  a 1', 'abc 2', ...]</div>
         {% endif %}
         <div class="col-12">
             <input type="text" name="rock{{ rock_id }}_blockList" value="{{form['rock' ~ rock_id ~ '_blockList']}}" class="form-control" pattern="{{PATTERN['blklist']}}" title="{{TITLE['blklist']}}">
@@ -219,19 +219,22 @@
     </div>
 </div>
 {% if rock_id==0 %}
-<br><br>
+<br>
 {% endif %}
-
+<br>
 <div class="row">
-    <h4 class="col-12">formula_porosity</h4>
+    <h4 class="col-12">rock_assign_condition <span class="badge rounded-pill text-bg-primary">required</span></h4>
     {% if rock_id==0 %}
-    <div class="col-12">Define formula of block-by-block porosity calculater</div>
-    <div class="col-12">After the evaluation, calculated porosity is substituted in variable "porosity".</div>
+    <div class="col-12">Assignable ranges also can be defined here.</div>
+    <div class="col-12">This rocktype is assigned to the block for which the expression is evaluated as True by python. </div>
+    <div class="col-12">Note that this rock type can only be assigned if both 'rock_assign_condition' and 'Rectanglar region' are satisfied.</div>
+    <div class="col-12">If you do not use this condition, enter 'True'.</div>
     {% endif %}
     <div class="col-12">
-        <input type="text" name="rock{{rock_id}}_formula_porosity" value="{{form['rock' ~ rock_id ~ '_formula_porosity']}}" class="form-control">
+        <input type="text" name="rock{{rock_id}}_rock_assign_condition" value="{{form['rock' ~ rock_id ~ '_rock_assign_condition']}}" class="form-control">
     </div>
 </div>
+<br>
 {% if rock_id==0 %}
 <h6>Available parameter & function</h6>
 <table class="table table-striped">
@@ -267,6 +270,14 @@
             <th>fu.HS_U_conductivity2porosity(rho, cond_matrix, cond_liq, upper, lower)</th>
             <td>(defined in functionUtil.py) return porosity calculated using HS_U model</td>
         </tr>
+        <tr>
+            <th>porosity</th>
+            <td>block-by-block porosity defined at <b>formula_porosity</b></td>
+        </tr>
+        <tr>
+            <th>perm</th>
+            <td>block-by-block permeability defined at <b>formula_permeability</b></td>
+        </tr>
     </tbody>
 </table>
 <br><br>
@@ -274,8 +285,39 @@
 
 <!--  -->
 <div class="row">
-    <h4 class="col-12">formula_permeability</h4>
+    <h5 class="col-12">formula_porosity  <span class="badge rounded-pill text-bg-secondary">optional</span> </h5>
     {% if rock_id==0 %}
+    <div class="col-12">Define formula of block-by-block porosity calculater</div>
+    <div class="col-12">After the evaluation, calculated porosity is substituted in variable "porosity".</div>
+    {% endif %}
+    <div class="col-12">
+        <input type="text" name="rock{{rock_id}}_formula_porosity" value="{{form['rock' ~ rock_id ~ '_formula_porosity']}}" class="form-control">
+    </div>
+</div>
+{% if rock_id==0 %}
+<br>
+<h6>Available parameter & function</h6>
+<table class="table table-striped">
+    <thead>
+        <tr></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth, fu.HS_U_conductivity2porosity()</th>
+            <td>(as described above)</td>
+        </tr>
+
+        </tbody>
+</table>
+<br>
+{% endif %}
+<br>
+
+<!--  -->
+<div class="row">
+    <h5 class="col-12">formula_permeability <span class="badge rounded-pill text-bg-secondary">optional</span></h5>
+    {% if rock_id==0 %}
+    <div class="col-12" ><b>Required if [seedFlg] is True.</b></div>
     <div class="col-12">Define formula of block-by-block permeability calculater</div>
     <div class="col-12">After the evaluation, calculated permeability is substituted in variable "perm".</div>
     <div class="col-12">If [seedFlg] is True, "perm" is used to calculate block by block PMX value.</div>
@@ -285,6 +327,7 @@
     </div>
 </div>
 {% if rock_id==0 %}
+<br>
 <h6>Available parameter & function</h6>
 <table class="table table-striped">
     <thead>
@@ -292,49 +335,12 @@
     </thead>
     <tbody>
         <tr>
-            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth</th>
+            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth, fu.HS_U_conductivity2porosity()</th>
             <td>(as described above)</td>
         </tr>
         <tr>
             <th>porosity</th>
-            <td>block-by-block porosity defined by formula_porosity</td>
-        </tr>
-        </tbody>
-</table>
-<br><br>
-{% endif %}
-
-<!--  -->
-<div class="row">
-    <h4 class="col-12">rock_assign_condition</h4>
-    {% if rock_id==0 %}
-    <div class="col-12">Assignable ranges also can be defined here.</div>
-    <div class="col-12">This rocktype is assigned to the block for which the expression is evaluated as True by python. </div>
-    <div class="col-12">Note that this rock type can only be assigned if both 'rock_assign_condition' and 'Rectanglar region' are satisfied.</div>
-    <div class="col-12">If you do not use this condition, enter 'True'.</div>
-    {% endif %}
-    <div class="col-12">
-        <input type="text" name="rock{{rock_id}}_rock_assign_condition" value="{{form['rock' ~ rock_id ~ '_rock_assign_condition']}}" class="form-control">
-    </div>
-</div>
-{% if rock_id==0 %}
-<h6>Available parameter & function</h6>
-<table class="table table-striped">
-    <thead>
-        <tr></tr>
-    </thead>
-    <tbody>
-        <tr>
-            <th>k_x, k_y, k_z, rho, phi, x, y, z, surface, depth</th>
-            <td>(as described above)</td>
-        </tr>
-        <tr>
-            <th>porosity</th>
-            <td>block-by-block porosity defined by formula_porosity</td>
-        </tr>
-        <tr>
-            <th>perm</th>
-            <td>block-by-block permeability defined by formula_permeability</td>
+            <td>block-by-block porosity defined at <b>formula_porosity</b></td>
         </tr>
     </tbody>
 </table>
