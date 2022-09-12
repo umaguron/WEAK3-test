@@ -11,6 +11,8 @@ import math
 import _readConfig
 import shutil
 import copy
+import dill as pickle
+import define_logging
 # get directory name where this script is located
 import pathlib
 baseDir = pathlib.Path(__file__).parent.resolve()
@@ -39,6 +41,11 @@ def main():
     
 
 def makeToughInput(ini:_readConfig.InputIni):
+
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+
     II = ini.toughInput
     ## create t2data, t2grid object
     # read mulgrid file
@@ -172,6 +179,20 @@ def makeToughInput(ini:_readConfig.InputIni):
 
     ## INCON ##
     inc = None
+
+    # prepare
+    if EOS2 == II['module'].strip().lower():
+        ID_P = INCON_ID_EOS2_PRES
+        ID_T = INCON_ID_EOS2_TEMP
+        ID_Xs = [INCON_ID_EOS2_XCO2]
+    if EOS3 == II['module'].strip().lower():
+        ID_P = INCON_ID_EOS3_PRES
+        ID_T = INCON_ID_EOS3_TEMP
+        ID_Xs = [INCON_ID_EOS3_XAIR]
+    if ECO2N in II['module'].strip().lower():
+        ID_P = INCON_ID_ECO2N_PRES
+        ID_T = INCON_ID_ECO2N_TEMP
+        ID_Xs = [INCON_ID_ECO2N_XSAL, INCON_ID_ECO2N_XCO2]
     
     if II['use_1d_result_as_incon'] and len(II['problemNamePreviousRun']) == 0:
         ini1d = _readConfig.InputIni().read_from_inifile(II['1d_hydrostatic_sim_result_ini'])
@@ -182,23 +203,11 @@ def makeToughInput(ini:_readConfig.InputIni):
         # if no incon given
         # apply hydrostatic pressure as initial condition
         inc = dat.grid.incons()
-        G = II['gravity'] if 'gravity' in II else 9.8
+        G = II['gravity'] if 'gravity' in II else GRAV_ACCEL
         for blk in dat.grid.blocklist:
             if blk.atmosphere:
                 continue
             else:
-                if EOS2 == II['module'].strip().lower():
-                    ID_P = INCON_ID_EOS2_PRES
-                    ID_T = INCON_ID_EOS2_TEMP
-                    ID_Xs = [INCON_ID_EOS2_XCO2]
-                if EOS3 == II['module'].strip().lower():
-                    ID_P = INCON_ID_EOS3_PRES
-                    ID_T = INCON_ID_EOS3_TEMP
-                    ID_Xs = [INCON_ID_EOS3_XAIR]
-                if ECO2N in II['module'].strip().lower():
-                    ID_P = INCON_ID_ECO2N_PRES
-                    ID_T = INCON_ID_ECO2N_TEMP
-                    ID_Xs = [INCON_ID_ECO2N_XSAL, INCON_ID_ECO2N_XCO2]
                 
                 if ini.toughInput['water_table_elevation'] is None:
                     if ini.mesh.type == AMESH_VORONOI:
@@ -228,39 +237,6 @@ def makeToughInput(ini:_readConfig.InputIni):
                         for id in ID_Xs:
                             var[id] = II['PRIMARY_default'][id]
                         inc[blk.name].variable = var
-        
-        # if 'specifies_variable_INCON' is True, 
-        # original INCON for arbitrary spatial range & value specified on primary_sec_list in ini_file
-        # overwrites default_incon.
-        if II['specifies_variable_INCON']:
-            print("[tough3exec] overwrite default incon")
-            # apply primary variable to the region
-            for p_sec in ini.primary_sec_list:
-                print(f"REGION: {p_sec.secName}")
-                count = 0
-                for blk in dat.grid.blocklist:
-                    if not blk.atmosphere:
-                        if p_sec.xmin <= blk.centre[0] < p_sec.xmax \
-                            and p_sec.ymin <= blk.centre[1] < p_sec.ymax \
-                            and p_sec.zmin <= blk.centre[2] < p_sec.zmax :
-                            if  EOS2 == II['module'].strip().lower():
-                                inc[blk.name].variable[INCON_ID_EOS2_TEMP] = p_sec.value[INCON_ID_EOS2_TEMP]
-                                inc[blk.name].variable[INCON_ID_EOS2_XCO2] = p_sec.value[INCON_ID_EOS2_XCO2]
-                            if  EOS3 == II['module'].strip().lower():
-                                inc[blk.name].variable[INCON_ID_EOS3_XAIR] = p_sec.value[INCON_ID_EOS3_XAIR]
-                                inc[blk.name].variable[INCON_ID_EOS3_TEMP] = p_sec.value[INCON_ID_EOS3_TEMP]
-                            if  ECO2N in II['module'].strip().lower():    
-                                inc[blk.name].variable[INCON_ID_ECO2N_XSAL] = p_sec.value[INCON_ID_ECO2N_XSAL]
-                                inc[blk.name].variable[INCON_ID_ECO2N_XCO2] = p_sec.value[INCON_ID_ECO2N_XCO2]
-                                inc[blk.name].variable[INCON_ID_ECO2N_TEMP] = p_sec.value[INCON_ID_ECO2N_TEMP]
-                            count += 1
-                            
-                print(f"    x: {p_sec.xmin}m - {p_sec.xmax}m")
-                print(f"    y: {p_sec.ymin}m - {p_sec.ymax}m")
-                print(f"    z: {p_sec.zmin}m - {p_sec.zmax}m")
-                print(f"    PRIMARY: {p_sec.value}\tnCELLS: {count}")
-        
-        
         print("[tough3exec] INCON created (hydrostatic)")
     else:
         # case use result of previous run as initial contion
@@ -280,10 +256,128 @@ def makeToughInput(ini:_readConfig.InputIni):
         inc = t2incon(previousRunResultFp)
         print(f"\n[tough3exec] USE RESULT OF RUN: {II['problemNamePreviousRun']} AS INCON\n")
 
-    # atmosphere INCON
+    ## atmosphere INCON
     if ini.atmosphere.includesAtmos: 
         # TODO magic constantの除去
         inc['ATM 0'].variable = ini.atmosphere.PRIMARY_AIR
+
+    ## manually setting INCON 
+    # if 'specifies_variable_INCON' is True, 
+    # the INCON created so far will be overwritten by primary variables specified in 
+    #    p_sec.variables (section: p_sec.secName, key: 'variables' in ini-file).
+    # The assignment is valid in the spatial range that satisfies the condition, 
+    #    p_sec.assigning_condition. (section: p_sec.secName, key: 'assigning_condition' in ini-file).
+    if II['specifies_variable_INCON']:
+        print("\n[tough3exec] VARIABLE_INCON - overwrite default incon")
+
+        # if mesh type is A_VORO, load resistivity interpolating function 
+        if ini.mesh.type.upper().strip()==AMESH_VORONOI:
+            pickledres = ini.mesh.resistivity_structure_fp+"_pickled"
+            if os.path.isfile(pickledres):
+                logger.debug(f"load pickled interpolating function: {pickledres}")
+                # load selialized interpolating function
+                with open(pickledres, 'rb') as f:
+                    interpRes = pickle.load(f)  
+            else:
+                raise Exception(f"pickled interpolating function not found: {pickledres}")
+        else:
+            interpRes = None
+
+
+        # apply primary variable to the region
+        for p_sec in ini.primary_sec_list:
+            print(f"*** PRIMARY REGION: {p_sec.secName}")
+            count = 0
+            for blk in dat.grid.blocklist:
+                """
+                skip atmosphere block
+                """
+                if blk.atmosphere:
+                    continue
+                """
+                prepare variables, which are evaluated in judging assigning_condition
+                """
+                # blk position
+                x = blk.centre[0]
+                y = blk.centre[1]
+                z = blk.centre[2]
+                surface = geo.column[geo.column_name(blk.name)].surface
+                depth = surface - z
+                # properties of current rocktype
+                phi = blk.rocktype.porosity
+                k_x = blk.rocktype.permeability[0]
+                k_y = blk.rocktype.permeability[1]
+                k_z = blk.rocktype.permeability[2]
+                # For each block, calc resistivity value at the center of the block 
+                # by interpolation, 
+                if interpRes is not None: rho = interpRes(blk.centre)[0]
+                # judge current blk satisfies the p_sec assigning condition by evaluating given formula 
+                applies = eval(p_sec.assigning_condition) 
+                """
+                If the property of the current block satisfies the p_sec assigning condition, or, 
+                if current blk included in p_sec.blockList, 
+                    assign primary variables of section p_sec to current blk
+                """
+                if applies or p_sec.isBlkInBlockList(blk):
+                    for idx, value in enumerate(p_sec.variables):
+                        if value is None:
+                            # If the given value (p_sec.variables[idx]) is 'None', 
+                            # INCON[idx] is not overwritten.
+                            continue
+                        elif idx==ID_P and KW_LITHOS in str(value).lower():
+                            # if keyword 'lithos' found in p_sec.variables[ID_P],
+                            # assigning lithostatic pressure.
+                            inc[blk.name].variable[idx] = ini.atmosphere.PRIMARY_AIR[ID_P] + OVERBURDEN_DENSITY * G * depth
+                        elif idx==ID_P and KW_HYDRST in str(value).lower():
+                            # if keyword 'hydrst' found in p_sec.variables[ID_P],
+                            # assigning hydrostatic pressure.
+                            inc[blk.name].variable[idx] = ini.atmosphere.PRIMARY_AIR[ID_P] + WATER_DENSITY * G * depth
+                        else:
+                            inc[blk.name].variable[idx] = value
+                    count += 1
+                else:
+                    continue   
+
+            #     if not blk.atmosphere:
+            #         if p_sec.xmin <= blk.centre[0] < p_sec.xmax \
+            #             and p_sec.ymin <= blk.centre[1] < p_sec.ymax \
+            #             and p_sec.zmin <= blk.centre[2] < p_sec.zmax :
+            #             if  EOS2 == II['module'].strip().lower():
+            #                 inc[blk.name].variable[INCON_ID_EOS2_TEMP] = p_sec.value[INCON_ID_EOS2_TEMP]
+            #                 inc[blk.name].variable[INCON_ID_EOS2_XCO2] = p_sec.value[INCON_ID_EOS2_XCO2]
+            #             if  EOS3 == II['module'].strip().lower():
+            #                 inc[blk.name].variable[INCON_ID_EOS3_XAIR] = p_sec.value[INCON_ID_EOS3_XAIR]
+            #                 inc[blk.name].variable[INCON_ID_EOS3_TEMP] = p_sec.value[INCON_ID_EOS3_TEMP]
+            #             if  ECO2N in II['module'].strip().lower():    
+            #                 inc[blk.name].variable[INCON_ID_ECO2N_XSAL] = p_sec.value[INCON_ID_ECO2N_XSAL]
+            #                 inc[blk.name].variable[INCON_ID_ECO2N_XCO2] = p_sec.value[INCON_ID_ECO2N_XCO2]
+            #                 inc[blk.name].variable[INCON_ID_ECO2N_TEMP] = p_sec.value[INCON_ID_ECO2N_TEMP]
+            #             count += 1
+                        
+            # print(f"    x: {p_sec.xmin}m - {p_sec.xmax}m")
+            # print(f"    y: {p_sec.ymin}m - {p_sec.ymax}m")
+            # print(f"    z: {p_sec.zmin}m - {p_sec.zmax}m")
+            print(f"      PRIMARY: {p_sec.variables}")
+            print(f"    CONDITION: {p_sec.assigning_condition}")
+            print(f"       nCELLS: {count}")
+            
+        # save INCON profiles as *.pdf
+        import matplotlib.pyplot as plt
+        for i in range(inc.num_variables):
+            for l, line in enumerate(ini.plot.profile_lines_list):
+                geo.slice_plot(line=line, 
+                    variable=inc.variable[:,i],
+                    title=f"INCON variable#{i}",
+                    variable_name=f"INCON #{i}",
+                    plot_limits=ini.plot.slice_plot_limits,
+                    grid=dat.grid,
+                    plt=plt)
+                fp = os.path.join(baseDir, ini.t2FileDirFp, f'{IMG_INCON(i)}.{l}.pdf')
+                plt.savefig(fp)
+                print("saved:", fp)
+                plt.close()
+
+        print("[tough3exec] VARIABLE_INCON - finished\n")
 
     ## GENER ##
     gener_conn = [] # for COFT setting

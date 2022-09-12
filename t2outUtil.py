@@ -2574,7 +2574,7 @@ def surface_flow_map_from_listing(ini:_readConfig.InputIni,
 
 def surface_flow_map_from_COFT(ini:_readConfig.InputIni, dat:t2data, geo:mulgrid):
     """[summary]
-    全timestepにおけるsurfaceflowをCOTから作成
+    全timestepにおけるsurfaceflowをCOFTから作成
 
     Args:
         ini (_readConfig.InputIni): [description]

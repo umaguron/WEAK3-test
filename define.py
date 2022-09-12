@@ -48,6 +48,7 @@ IMG_RESIS_SLICE_Z = 'resistivity_slice-z'
 IMG_RESIS_SLICE_LINE = 'resistivity_slice-line'
 IMG_RESIS_LAYER = 'resistivity_layer-'
 IMG_TOPO = 'topo'
+IMG_INCON = lambda index: f'incon{index}_slice-line'
 
 
 """log"""
@@ -72,6 +73,10 @@ AMESH_VORONOI = "A_VORO"
 """[plot]"""
 PROFILE_LINES_LIST_DEFAULT = ['x']
 FONT_SIZE = 6
+
+""" Miscellaneous keywords or values"""
+KW_LITHOS = "lithos"
+KW_HYDRST = "hydrst"
 
 # resistivity of host rock used in the calculation of HS bounds
 HOSTROCK_RESISTIVITY = 100
@@ -145,6 +150,8 @@ HUGE_VOLUME = 1e40
 BOUND_BLK_CONN_DISTANCE = 100
 M_OVER_KM = 1000
 WATER_DENSITY = 998.
+OVERBURDEN_DENSITY = 2500.
+GRAV_ACCEL = 9.80665
 
 
 """Database"""
