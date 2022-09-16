@@ -193,6 +193,7 @@ def makeToughInput(ini:_readConfig.InputIni):
         ID_P = INCON_ID_ECO2N_PRES
         ID_T = INCON_ID_ECO2N_TEMP
         ID_Xs = [INCON_ID_ECO2N_XSAL, INCON_ID_ECO2N_XCO2]
+    G = II['gravity'] if 'gravity' in II else GRAV_ACCEL
     
     if II['use_1d_result_as_incon'] and len(II['problemNamePreviousRun']) == 0:
         ini1d = _readConfig.InputIni().read_from_inifile(II['1d_hydrostatic_sim_result_ini'])
@@ -203,7 +204,6 @@ def makeToughInput(ini:_readConfig.InputIni):
         # if no incon given
         # apply hydrostatic pressure as initial condition
         inc = dat.grid.incons()
-        G = II['gravity'] if 'gravity' in II else GRAV_ACCEL
         for blk in dat.grid.blocklist:
             if blk.atmosphere:
                 continue
