@@ -134,7 +134,7 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
         print(f"    Already exist. skip creating {fn}")
         return fp
 
-    if FLAG_NAME_RES in var_name.lower():
+    if FLAG_NAME_RES == var_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         variable = t2o.calc_bulk_resistivity(t2o.dfCleanElem2(df_elem))
         colourmap = CMAP_RESISTIVITY
     elif FLAG_NAME_FLOW in var_name.lower():
