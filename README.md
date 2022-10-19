@@ -66,7 +66,8 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
     サンプル
     
     * iniSample/input_voronoi_no_pmx.ini
-    * testdata/input.ini
+    * testdata/ksv/input.ini
+    * testdata/shirane_vicinity/input.ini
     
     手動で頑張っても良いが、htmlによる支援ツールを使うのがおすすめ。（__GUIによるinput.ini作成__ 参照）
 
