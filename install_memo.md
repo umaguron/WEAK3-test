@@ -269,7 +269,7 @@ testdata/にいくつかテスト用データがおいてある。
 
 |ファイル|説明|
 |-|-|
-|<b>testdata/ksv/input.ini</b>|浸透率構造・TOUGH3インプットファイル作成のためのすべての設定が含まれるファイル|
+|<b>testdata/ksv/input_ksv.ini</b>|浸透率構造・TOUGH3インプットファイル作成のためのすべての設定が含まれるファイル|
 |testdata/ksv/seed.txt|voronoiメッシュの"seed"となる点データ[x,y]|
 |testdata/topo_coarse.dat|地形データ[x,y,elevation] (本白根山が中心)|
 |testdata/cellCenterResistivity.txt|浸透率構造作成のもととなる比抵抗構造データ[x,y,z,resistivity] (Matsunaga et al., 2022)|
@@ -280,9 +280,9 @@ testdata/にいくつかテスト用データがおいてある。
 
 ### インプットファイルの作成
 
-シミュレーションの実行ディレクトリ(すべてのinput/outputが書き出される場所)は設定ファイル(input.ini)の場所によらず以下になる。
+シミュレーションの実行ディレクトリ(すべてのinput/outputが書き出される場所)は設定ファイル(input_ksv.ini)の場所によらず以下になる。
     
-```.../WEAK3/(input.iniのTOUGH_INPUT_DIR)/(input.iniのproblemName)```
+```.../WEAK3/(input_ksv.iniのTOUGH_INPUT_DIR)/(input_ksv.iniのproblemName)```
 
 ここでは以下になる。
 
@@ -297,21 +297,21 @@ cd ..../WEAK3
 
 ```
 # メッシュ、浸透率構造の作成
-python3 makeGridAmeshVoro.py testdata/ksv/input.ini
+python3 makeGridAmeshVoro.py testdata/ksv/input_ksv.ini
 ```
 作成されるファイル
 |||
 |-|-|
-|testdata/result/ksv/input.ini|testdata/ksv/input.iniのコピー|
+|testdata/result/ksv/input_ksv.ini|testdata/ksv/input_ksv.iniのコピー|
 |testdata/result/ksv/t2data.dat.grid|浸透率構造のファイル|
 |testdata/result/ksv/layer_surface.pdf|作成したメッシュのplan view|
-|testdata/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input.iniの[plot] profile_lines_listで指定する)|
-|testdata/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input.iniの[plot] profile_lines_listで指定する)|
+|testdata/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
+|testdata/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
 |testdata/result/ksv/topo.pdf|作成されたメッシュから書いた地形図|
-|testdata/ksv/grid.geo|メッシュ定義ファイル(パスはinput.iniの[mesh]mulgridFileFpに指定されたもの)|
+|testdata/ksv/grid.geo|メッシュ定義ファイル(input_ksv.iniの[mesh]mulgridFileFpに指定されたもの)|
 ```
 # TOUGH3 インプットファイルの作成
-python3 tough3exec_ws.py testdata/ksv/input.ini
+python3 tough3exec_ws.py testdata/ksv/input_ksv.ini
 ```
 
 作成されるファイル
@@ -338,7 +338,7 @@ mpiexec -n 8 (tough3-eco2n_v2のフルパス) t2data.dat (outputファイル名)
 以下でも同じように実行可能
 
 ```
-python3 run.py testdata/ksv/input.ini
+python3 run.py testdata/ksv/input_ksv.ini
 ```
 
 出力ファイルについてはTOUGH3マニュアル参照
