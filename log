@@ -1,2 +1,3 @@
 cd `dirname $0`
-sqlite3 log.db < log_check.sql 
+sqlite3 log.db < log_check.sql |\
+ awk -F, 'NR==1{printf "%-7s %-130s %10s %14s %10s %17s %8s %20s %8s %8s %8s\n", "id", "t2dir", "module", "total_year", "t_steps", "dt_last", "status", "update_date", "gener", "flux", "temp"}{if(NR>1)printf "%-7s %-130s %10s %12.2f %10s %15.2f %8s %20s %8s %8s %8s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11}'

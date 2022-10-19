@@ -23,6 +23,12 @@ class Const(object):
     PATTERN['float'] = "([-]?\d*\.?\d*|[-]?\d*\.?\d*[eE][+-]?\d+)"
     PATTERN['float_in_js'] = "([-]?\\\d*\\\.?\\\d*|[-]?\\\d*\\\.?\\\d*[eE][+-]?\\\d+)"
     TITLE['float'] = "数値を入力(e.g., 1.0, 1.5e+04)"
+
+    PATTERN['float_none_ok'] = "([-]?\d*\.?\d*|[-]?\d*\.?\d*[eE][+-]?\d+|None *)"
+    TITLE['float_none_ok'] = "数値を入力(e.g., 1.0, 1.5e+04)"
+
+    PATTERN['float_extended'] = "([-]?\d*\.?\d*|[-]?\d*\.?\d*[eE][+-]?\d+|((\d*\.?\d*|\d*\.?\d*[eE][+-]?\d+)\*)+(\d*\.?\d*|\d*\.?\d*[eE][+-]?\d+))"
+    TITLE['float_extended'] = "数値を入力(e.g., 1.0, 1.5e+04)"
     
     PATTERN['list'] = "\[ *((\S*) *, *)*(\S*) *,? *\]"
     PATTERN['list_in_js'] = "\\\[ *((\\\S*) *, *)*(\\\S*) *,? *\\\]"
@@ -47,6 +53,9 @@ class Const(object):
     
     PATTERN['plot_line'] = ".*"
     TITLE['plot_line'] = ""
+
+    PATTERN['simple_list'] = " *\[.*\] *"
+    TITLE['simple_list'] = ""
 
     # define.pyの中身をそのまま使いたい
     DEFINE = define

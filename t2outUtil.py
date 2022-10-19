@@ -2476,13 +2476,13 @@ def get_cbar_limits(variable_name):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower(): 
+    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
         return CBAR_LIM_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower(): 
+    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
         return CBAR_LIM_SAT
-    elif FLAG_NAME_RES in variable_name.lower():
+    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         return CBAR_LIM_LOG10RES 
-    elif FLAG_NAME_X_NACL_L in variable_name.lower(): 
+    elif FLAG_NAME_X_NACL_L in variable_name.lower().strip(): 
         return CBAR_LIM_NaCl_CONTENT
     else: 
         return None
@@ -2512,11 +2512,11 @@ def get_contour_intbal(variable_name):
     """
     This method selects the appropriate contour interbal from define.py based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower(): 
+    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
         return CONTOUR_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower(): 
+    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
         return CONTOUR_SAT
-    elif FLAG_NAME_RES in variable_name.lower(): 
+    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         return CONTOUR_RES
     else: 
         return False
@@ -2574,7 +2574,7 @@ def surface_flow_map_from_listing(ini:_readConfig.InputIni,
 
 def surface_flow_map_from_COFT(ini:_readConfig.InputIni, dat:t2data, geo:mulgrid):
     """[summary]
-    全timestepにおけるsurfaceflowをCOTから作成
+    全timestepにおけるsurfaceflowをCOFTから作成
 
     Args:
         ini (_readConfig.InputIni): [description]

@@ -121,6 +121,9 @@
                                     <li>Create slices using the PyTOUGH method mulgrid.slice_plot().</li>
                                     <li>Value in the followng boxes are passed to the method as argument "line". (See details for PyTOUGH User's guide)</li>
                                 </ul>
+                            </div>
+                            <h3>Vertical</h3>
+                            <div class="col-12">
                                 <ul class="list-unstyled">
                                     <li>Available types of value are as follows: 
                                         <ul>
@@ -186,6 +189,27 @@
                                 <input type="text" name="zmax" value="{{form.zmax}}" class="form-control" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}">
                                 <div class="invalid-msg">{{TITLE['float']}}</div>
                             </div>
+                        </div>
+                        <br>                           
+                        <div class="row">
+                            <h3>Horizontal</h3>
+                            <div class="col-12">
+                                <ul class="list-unstyled">
+                                    <li>Specify list of layer index</li> 
+                                    <li>examples:</li>
+                                    <li> 
+                                        <ul style="font-family: 'Menlo';font-size: small;">
+                                            <li>for convention 0 --> ['&nbsp;9','49'] </li>
+                                            <li>for convention 1 --> ['&nbsp;&nbsp;9','&nbsp;49','999'] </li>
+                                            <li>for convention 2 --> ['&nbsp;d', 'ef'] </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-12">
+                                <input type="text" name="horizontal" value="{{form.horizontal}}" class="form-control" pattern="{{PATTERN['simple_list']}}" title="{{TITLE['plot_line']}}">
+                                <div class="invalid-msg">{{TITLE['simple_list']}}</div>
+                            </div>
                         </div>                           
                         <br>
                         <div class="row">
@@ -208,7 +232,7 @@
                     </div>
                     <div class="row">
                         <div class="col-12">
-                            <img src="{{show_images.layer.path}}" class="img-fluid" alt="{{show_images.layer.path}}" title="{{show_images.layer.caption}}">
+                            <img src="{{show_images.layer_surface.path}}" class="img-fluid" alt="{{show_images.layer_surface.path}}" title="{{show_images.layer_surface.caption}}">
                         </div>
                     </div> 
                 </div> 
@@ -218,7 +242,8 @@
         <div class="row g-4">
             <div class="card">
                 <div class="card-body">
-                    {% for line_idx, image in show_images.slice.items() -%}
+                    <h3>Vertical</h3>
+                    {% for line_idx, image in show_images.slice_vertical.items() -%}
                     <div class="row">
                         <div class="col-12">
                             <h3>line #{{line_idx}}</h3>
@@ -246,6 +271,41 @@
                 </div> 
             </div> 
         </div>
+        <br>
+        {% if show_images.slice_horizontal %}
+        <div class="row g-4">
+            <div class="card">
+                <div class="card-body">
+                    <h3>Horizontal</h3>
+                    {% for line_idx, image in show_images.slice_horizontal.items() -%}
+                    <div class="row">
+                        <div class="col-12">
+                            <h3>layer {{line_idx}}</h3>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-6">
+                            <h5>Resistivity</h5>
+                        </div>
+                        <div class="col-6">
+                            <h5>Permeability</h5>
+                        </div>
+                    </div> 
+                    <div class="row">
+                        <div class="col-6">
+                            <img src="{{image.resis_path}}" class="img-fluid" alt="{{image.resis_path}}" title="{{image.resis_path}}">
+                        </div>
+                        <div class="col-6">
+                            <img src="{{image.perm_path}}" class="img-fluid" alt="{{image.perm_path}}" title="{{image.perm_path}}">
+                        </div>
+                    </div> 
+                    <br>
+                    {%- endfor %}
+                </div> 
+            </div> 
+        </div>
+        {% endif %}
             
 
         <div class="row">

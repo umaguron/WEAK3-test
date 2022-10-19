@@ -1,12 +1,9 @@
-from ast import Name
-from distutils.command.config import config
-from imp import init_builtin
 # from distutils.log import error
 import os 
 import sys
 import pathlib
+import time
 
-from numpy import isin
 # from unittest import result
 baseDir = pathlib.Path(__file__).parent.resolve()
 sys.path.append(baseDir)
@@ -15,6 +12,7 @@ projRoot = os.path.abspath(os.path.join(baseDir,".."))
 from import_pytough_modules import *
 import _readConfig
 import makeGridAmeshVoro
+import makeGridFunc
 import tough3exec_ws
 from flask import Flask
 from flask import render_template
@@ -286,10 +284,16 @@ def cmesh3_check():
         """ _readConfig.InputIniインスタンス作成"""
         if len(request.form["original_iniFp"])>0:
             # cmesh3_readFromIniからのとき、ファイルから読み込み、画面で入力された値で上書きする
-            inputIni = _readConfig.InputIni().read_from_inifile(request.form["original_iniFp"])
-            # rockSecListをリセットしておく
-            inputIni.toughInput['rockSecList'] = []
-            inputIni.rockSecList = []
+            try:
+                # cmesh3_readFromIniで完全なiniファイルを読んだ場合
+                inputIni = _readConfig.InputIni().read_from_inifile(request.form["original_iniFp"])
+                # rockSecListをリセットしておく
+                inputIni.toughInput['rockSecList'] = []
+                inputIni.rockSecList = []
+            except InvalidToughInputException:
+                # cmesh3_readFromIniで不完全なiniファイル読んだ場合(cmesh4終了時にできるiniなど)、もう一度作る
+                inputIni = _readConfig.InputIni()
+                inputIni.toughInput = {}
         else:
             # cmesh2からのときもう一度作る
             inputIni = _readConfig.InputIni()
@@ -325,8 +329,12 @@ def cmesh3_check():
         inputIni.boundary.boundary_side_permeable =  True if 'boundary_side_permeable' in request.form else False
         """atmosphere"""
         config['atmosphere'] = {}
-        config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
-        config['atmosphere']['PRIMARY_AIR'] = request.form[f'atmos_primary']
+        # config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
+        config['atmosphere']['includesAtmos'] = request.form[f'includesAtmos']
+        config['atmosphere']['PRIMARY_AIR'] = '[]' # 仮 (cmesh5で埋める)
+        # cmesh3の処理に追加しようと思ったがやめた。現段階ではP,Tの設定をcmesh3ではしない。
+        # config['atmosphere']['primary_tmp_pres'] = request.form[f'primary_tmp_pres']
+        # config['atmosphere']['primary_tmp_temp'] = request.form[f'primary_tmp_temp']
         config['atmosphere']['density'] = request.form[f'atmos_density']
         config['atmosphere']['porosity'] = request.form[f'atmos_porosity']
         config['atmosphere']['permeability'] = (f'[{request.form["atmos_permeability_x"]}, '
@@ -410,7 +418,7 @@ def cmesh3_check():
                     inputIni.toughInput['rockSecList'] = [name]
                     inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, config)]
                 else:
-                    inputIni.toughInput['rockSecList'].append(Name)
+                    inputIni.toughInput['rockSecList'].append(name)
                     inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, config))
         
         """check & create"""
@@ -578,7 +586,8 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     ret["resistivity_structure_fp"] = create_relpath(ini.mesh.resistivity_structure_fp)
     ret["seedFlg"] = "uses" if ini.toughInput['seedFlg'] else ""
     ret["boundary_side_permeable"] = "uses" if ini.boundary.boundary_side_permeable else ""
-    ret["includes_atmos"] = "uses" if ini.atmosphere.includesAtmos else ""
+    # ret["includes_atmos"] = "uses" if ini.atmosphere.includesAtmos else ""
+    ret["includesAtmos"] = "True" if ini.atmosphere.includesAtmos else "False"
     if ini.atmosphere.atmos.nad >= 1:
         ret["atmos_tortuosity"] =  ini.atmosphere.atmos.tortuosity
     if ini.atmosphere.atmos.nad >= 2:
@@ -594,6 +603,21 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     ret["atmos_conductivity"] =  ini.atmosphere.atmos.conductivity
     ret["atmos_specific_heat"] =  ini.atmosphere.atmos.specific_heat
     ret["atmos_primary"] =  ini.atmosphere.PRIMARY_AIR
+
+    # cmesh3で表示しようかと思ったがやめる。かわりにcmesh5のprimary variablesで設定する。
+    # if 'module' in ini.toughInput \
+    #         and hasattr(ini.atmosphere, 'PRIMARY_AIR') \
+    #         and len(ini.atmosphere.PRIMARY_AIR)>0:
+    #     if EOS2 == ini.toughInput['module'].lower().strip():
+    #         ret["primary_tmp_pres"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_EOS2_PRES]
+    #         ret["primary_tmp_temp"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_EOS2_TEMP]
+    #     elif ECO2N in ini.toughInput['module'].lower().strip():
+    #         ret["primary_tmp_pres"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_ECO2N_PRES]
+    #         ret["primary_tmp_temp"] =  ini.atmosphere.PRIMARY_AIR[INCON_ID_ECO2N_TEMP]
+    # else:
+    #     ret["primary_tmp_pres"] = ""
+    #     ret["primary_tmp_temp"] = ""
+
 
     for rock_id, rock in enumerate(ini.rockSecList):
         logger.debug(rock.secName)
@@ -627,29 +651,50 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     
     return ret
 
-def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni):
+def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]):
     """ get logger """
     logger = define_logging.getLogger(
         f"controller.{sys._getframe().f_code.co_name}")
     
+    timestamp = time.time()
+    
     show_images = {}
     shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
-                    create_fullpath("gui/static/output/"))
-    show_images['layer'] = \
-        {'path':f'output/{IMG_LAYER_SURFACE}.png',
+                    create_fullpath(f"gui/static/output/{IMG_LAYER_SURFACE}_{timestamp}.png"))
+    show_images['layer_surface'] = \
+        {'path':f'output/{IMG_LAYER_SURFACE}_{timestamp}.png',
          'caption':'IMG_LAYER_SURFACE'}
     
-    show_images['slice'] = {}
+    show_images['slice_vertical'] = {}
     for l, line in enumerate(inputIni.plot.profile_lines_list):
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.png"),
-                        create_fullpath("gui/static/output/"))
+                        create_fullpath(f"gui/static/output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png"))
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
-                        create_fullpath("gui/static/output/"))
-        show_images['slice'][f'{l}'] = \
-            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}.png',
-             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}.png',
+                        create_fullpath(f"gui/static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png"))
+        show_images['slice_vertical'][f'{l}'] = \
+            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
+             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
              'caption':repr(line)}
+ 
+    show_images['slice_horizontal'] = {}
+    for layer in layers:
         
+        orginal_perm = os.path.join(inputIni.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ','_')}.png")
+        copied_perm = create_fullpath(f"gui/static/output/{IMG_PERM_LAYER}{layer.replace(' ','_')}_{timestamp}.png")
+        if os.path.isfile(orginal_perm):
+            shutil.copy2(orginal_perm, copied_perm)
+
+        orginal_res = os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ','_')}.png")
+        copied_res = create_fullpath(f"gui/static/output/{IMG_RESIS_LAYER}{layer.replace(' ','_')}_{timestamp}.png")
+        print(orginal_res)
+        if os.path.isfile(orginal_res):
+            shutil.copy2(orginal_res, copied_res)
+        
+        show_images['slice_horizontal'][f'{layer}'] = \
+            {'resis_path':f'output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'perm_path':f'output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'caption':repr(layer)}
+
     logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
     
     return show_images
@@ -707,10 +752,27 @@ def cmesh4_visualize():
         
         logger.debug(ini.plot.profile_lines_list)
         
-        # create slices
-        makeGridAmeshVoro.visualize(ini,geo_topo,variable_res,variable_perm, fex='png')
+        # create vertical slices
+        makeGridAmeshVoro.visualize_vslice(ini,geo_topo,variable_res,variable_perm,fex='png')
+        
+        # create horizontal slices
+        try:
+            tmp = eval(form['horizontal']) 
+            if isinstance(tmp, list):
+                layers = tmp
+            else:
+                layers = []
+        except:
+            layers = []
+
+        for layer in layers:
+            makeGridAmeshVoro.visualize_layer(ini,geo_topo,variable_res,variable_perm,
+                                            layer_no_to_plot=layer, fex='png')
+            makeGridAmeshVoro.visualize_layer(ini,geo_topo,variable_res,variable_perm,
+                                            layer_no_to_plot=layer, fex='pdf')
+
         # copy created slice images to static/output
-        show_images = copy_visualized_mulgrid_imgs(ini)
+        show_images = copy_visualized_mulgrid_imgs(ini, layers=layers)
         
         return render_template('cmesh4.html', 
                                form=form,
@@ -1001,6 +1063,20 @@ def cmesh5_read_inputIni(request:request):
                 and len(config['toughInput']['initial_t_grad']) > 0:
         form["usesAnotherResAsINCON"] = "2"
 
+    """parse PRIMARY variables"""
+    try:
+        pa = eval(config['atmosphere']['PRIMARY_AIR'])
+        for i, p in enumerate(pa):
+            form[f'primary_atm_{i+1}'] = p
+    except:
+        logger.warning("cannot read [atmosphere] PRIMARY_AIR")
+    try:
+        pd = eval(config['toughInput']['PRIMARY_default'])
+        for i, p in enumerate(pd):
+            form[f'primary_def_{i+1}'] = p
+    except:
+        logger.warning("cannot read [toughInput] PRIMARY_default")
+                
     """parse GENER section"""
     if  config.has_option('toughInput', 'generSecList') \
                 and len(config['toughInput']['generSecList']) > 0:
@@ -1090,11 +1166,24 @@ def cmesh5_write_file(request:request):
         else:
             info = f"[{sec:<15}] {key:<25}: (not found)         "
         if name in form:
-            logger.debug(info + f"--> {form[name]}")
-            config.set(sec, key, form[name])
+            # cmesh5入力値がある場合
+            if config.has_section(sec):
+                # 元ファイルにセクションがあるとき、値を更新
+                logger.debug(info + f"--> {form[name]}")
+                config.set(sec, key, form[name])
+            else:
+                # 元ファイルにセクションがないとき、何もしない
+                logger.debug(info + f"--> ")
         else:
-            logger.debug(info + f"--> ")
-            config.set(sec, key, "")
+            # cmesh5入力値がない場合
+            if config.has_section(sec):
+                # 元ファイルにセクションがあるとき、値を更新(空白に置き換え)
+                logger.debug(info + f"--> ")
+                config.set(sec, key, "")
+            else:
+                print(sec)
+                # 元ファイルにセクションがないとき、何もしない
+                logger.debug(info + f"--> ")
 
     # mops16
     config.set('toughInput', 'mops16', form['mops16_1'])
@@ -1103,7 +1192,24 @@ def cmesh5_write_file(request:request):
     if config.has_option('configuration', 'configIni'):
         config.remove_option('configuration', 'configIni')
     config.set('configuration', 'TOUGH_INPUT_DIR', create_relpath(form['saveDirRel']))
-        
+
+    # primary variables
+    pr_len = 0
+    if form['module']==EOS2:
+        pr_len = 3
+    elif ECO2N in form['module']:
+        pr_len = 4
+    pd = [None for _ in range(pr_len)]
+    pa = [None for _ in range(pr_len)]
+    for i in range(pr_len):
+        if f'primary_def_{i+1}' in form:
+            pd[i] = float(form[f'primary_def_{i+1}'])
+        if f'primary_atm_{i+1}' in form:
+            pa[i] = float(form[f'primary_atm_{i+1}'])
+    config.set('toughInput', 'PRIMARY_default', repr(pd))
+    if not config.has_section('atmosphere'): config.add_section('atmosphere')
+    config.set('atmosphere', 'PRIMARY_AIR', repr(pa))
+
     # GENER 
     idx = 0
     for i in range(int(form['gener_length'])):
@@ -1195,7 +1301,8 @@ def test_create():
         os.makedirs(ini.t2FileDirFp, exist_ok=True)
         if not os.path.isfile(ini.t2FileFp):
             if not os.path.isfile(ini.t2GridFp):
-                makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
+                # makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
+                makeGridFunc.makeGrid(ini=ini, overWrites=False, showsProfiles=False)
             tough3exec_ws.makeToughInput(ini)
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
         else:

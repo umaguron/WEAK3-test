@@ -36,12 +36,10 @@ def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=Fa
     # create save dir. 
     os.makedirs(t2FileDirFp, exist_ok=True) 
 
-    if os.path.exists(mulgridFileFp) and not overWrites:
-        return
     ######
 
-    if os.path.isfile(mulgridFileFp) and not overWrites:
-        sys.exit(f"mulgrid file : {mulgridFileFp} exists")
+    if os.path.isfile(t2GridFp) and not overWrites:
+        sys.exit(f"t2Grid file : {t2GridFp} exists")
 
     ## create grid ##
     # new t2data object
@@ -67,8 +65,8 @@ def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=Fa
         print(f"gridtype: radial")
         rblocks = ini.mesh.rblocks
         zblocks = ini.mesh.zblocks
-        # printBlockInfo(rblocks,"[rBLOCKS]")
-        # printBlockInfo(zblocks,"[zBLOCKS]")
+        printBlockInfo(rblocks,"[rBLOCKS]")
+        printBlockInfo(zblocks,"[zBLOCKS]")
         # [radial origin(starting radius), 
         #  vertical origin (position of the top layer)]
         origin = [0, 0]
@@ -138,9 +136,21 @@ def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=Fa
     geo.atmosphere_connection = 1e-9
 
     if showsProfiles:
-        geo.slice_plot(line=90, block_names=False, rocktypes=dat.grid)
-        geo.slice_plot(line=0, block_names=True, rocktypes=dat.grid)
-        geo.layer_plot(None, column_names=True)
+        # open viewer
+        plt = None
+    else:
+        # save image insted of opening viewer
+        import matplotlib.pyplot as plt
+
+    geo.slice_plot(line=90, block_names=False, rocktypes=dat.grid, plt=plt)
+    if not showsProfiles:
+        plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_deg90.pdf"))
+    geo.slice_plot(line=0, block_names=True, rocktypes=dat.grid, plt=plt)
+    if not showsProfiles:
+        plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_deg0.pdf"))
+    # geo.layer_plot(None, column_names=True, plt=plt)
+    # if not showsProfiles:
+    #     plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_layer.pdf"))
 
     # save mulgrid object
     geo.write(mulgridFileFp)

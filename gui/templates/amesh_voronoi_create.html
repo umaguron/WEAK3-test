@@ -118,7 +118,8 @@
             </label>
         </div>
         <div class="form-check">
-            <input type="radio" value="False" class="form-check-input" name="includesAtmos" {% if form.includesAtmos == "False" %} checked {% endif %}/>
+            <!-- Disable because it may cause unexpected errors -->
+            <input type="radio" value="False" class="form-check-input" name="includesAtmos" {% if form.includesAtmos == "False" %} checked {% endif %} disabled/>
             <label class="form-check-label" for="convention">
                 no atmosphere block
             </label>

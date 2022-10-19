@@ -40,14 +40,15 @@ IMG_LAYER_SURFACE = 'layer_surface'
 IMG_PERM_SLICE_X = 'permeability_slice-x'
 IMG_PERM_SLICE_Y = 'permeability_slice-y'
 IMG_PERM_SLICE_Z = 'permeability_slice-z'
-IMG_PERM_SLICE_LINE = 'permeability_layer-'
-IMG_PERM_LAYER = 'permeability_slice-line'
+IMG_PERM_SLICE_LINE = 'permeability_slice-line'
+IMG_PERM_LAYER = 'permeability_layer-'
 IMG_RESIS_SLICE_X = 'resistivity_slice-x'
 IMG_RESIS_SLICE_Y = 'resistivity_slice-y'
 IMG_RESIS_SLICE_Z = 'resistivity_slice-z'
 IMG_RESIS_SLICE_LINE = 'resistivity_slice-line'
-IMG_RESIS_LAYER = 'resistivity_slice-line'
+IMG_RESIS_LAYER = 'resistivity_layer-'
 IMG_TOPO = 'topo'
+IMG_INCON = lambda index: f'incon{index}_slice-line'
 
 
 """log"""
@@ -73,6 +74,10 @@ AMESH_VORONOI = "A_VORO"
 PROFILE_LINES_LIST_DEFAULT = ['x']
 FONT_SIZE = 6
 
+""" Miscellaneous keywords or values"""
+KW_LITHOS = "lithos"
+KW_HYDRST = "hydrst"
+
 # resistivity of host rock used in the calculation of HS bounds
 HOSTROCK_RESISTIVITY = 100
 
@@ -89,7 +94,8 @@ CBAR_LIM_NaCl_CONTENT = [0, 0.02]
 CBAR_LIM_LOG10RES = [-0.5,3.5]
 CBAR_LIM_LOG10PERM = [-10,-20]
 CBAR_LIM_TEMP = [0,270]
-CBAR_LIM_SAT = [0,0.2]
+# CBAR_LIM_SAT = [0,0.2]
+CBAR_LIM_SAT = None
 
 # The appropriate unit name is selected in the t2outUtil.get_unit method based on the FLAG NAME.
 UNIT_NaCl_CONTENT = 'wt%'
@@ -98,7 +104,7 @@ UNIT_SAT = None
 
 # The appropriate unit name is selected in the t2outUtil.get_contour_intbal method based on the FLAG NAME.
 CONTOUR_TEMP = [25,50,100,150,200,250,290,300]
-CONTOUR_SAT = [0, 0.1, 0.2, 0.3, 0.4, 0.5]
+CONTOUR_SAT = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 CONTOUR_RES = False
 
 """figure"""
@@ -106,10 +112,12 @@ CMAP_PERMEABILITY = "gist_rainbow"
 CMAP_RESISTIVITY = "gist_rainbow"
 
 # CBARLIMIT_DEFAULT_HEAT = [-0.5, 1]
-CBARLIMIT_DEFAULT_HEAT = [-0.69, 7.21]
+# CBARLIMIT_DEFAULT_HEAT = [-0.69, 7.21]
+CBARLIMIT_DEFAULT_HEAT = None
 # CBARLIMIT_DEFAULT_FLOW = [-1e-5, 1e-5]
 #CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 1.825e-5]
-CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 2.2e-5]
+# CBARLIMIT_DEFAULT_FLOW = [-0.515e-5, 2.2e-5]
+CBARLIMIT_DEFAULT_FLOW = None
 
 TOPO_MAP_SYMBOL = {'Yugama':(2286,-62),
                    'sessho': (459, 2255),
@@ -142,6 +150,8 @@ HUGE_VOLUME = 1e40
 BOUND_BLK_CONN_DISTANCE = 100
 M_OVER_KM = 1000
 WATER_DENSITY = 998.
+OVERBURDEN_DENSITY = 2500.
+GRAV_ACCEL = 9.80665
 
 
 """Database"""

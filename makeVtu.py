@@ -77,7 +77,7 @@ II = ini.toughInput
 
 t2o.create_savefig_dir(ini)
 # make grid
-makeGridFunc.makeGrid(ini)
+makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper().strip() == REGULAR else False)
 
 # check file existence
 
@@ -114,7 +114,7 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif \
         args.writesVtu = False
 
 # define function
-def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=None, saveDir:str=None, overWrites=False):
+def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=None, saveDir:str=None, overWrites=False, extension="pdf"):
     if ini.toughInput['simulator']==SIMULATOR_NAME_T3:
         floColName = 'FLOW'
         temp = "TEMP"
@@ -128,13 +128,13 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
     
     saveDir = os.path.join(saveDir, "slice_images")
     os.makedirs(saveDir, exist_ok=True)
-    fn = f'{var_name}_{timeNow}_line{l}.pdf'
+    fn = f'{var_name}_{timeNow}_line{l}.{extension}'
     fp = os.path.join(saveDir, fn)
     if os.path.isfile(fp) and not overWrites:
         print(f"    Already exist. skip creating {fn}")
         return fp
 
-    if FLAG_NAME_RES in var_name.lower():
+    if FLAG_NAME_RES == var_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         variable = t2o.calc_bulk_resistivity(t2o.dfCleanElem2(df_elem))
         colourmap = CMAP_RESISTIVITY
     elif FLAG_NAME_FLOW in var_name.lower():
@@ -159,6 +159,7 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
                 plot_limits=ini.plot.slice_plot_limits,
                 colourbar_limits=t2o.get_cbar_limits(var_name),
                 colourmap=colourmap,
+                contour_label_format='%.1f',
                 grid=dat.grid,
                 plt=plt,
                 flow_arrow_width=0.0015,
@@ -175,21 +176,21 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
 def original_surfacemap(variable_name:str, values:list, 
                         ini:_readConfig.InputIni, geo:mulgrid, 
                         title, cbarlim=None ,info:str="", saveDir:str=None,
-                        overWrites=False):
+                        overWrites=False, extension='pdf'):
     if saveDir is None:
         saveDir = ini.t2FileDirFp
     saveDir = os.path.join(saveDir, "sufmap_images")
     os.makedirs(saveDir, exist_ok=True)
     
-    fn = os.path.join(saveDir, f'surfaceflow_{variable_name}_{info}.pdf')
+    fn = os.path.join(saveDir, f'surfaceflow_{variable_name}_{info}.{extension}')
     if os.path.isfile(fn) and not overWrites:
         print(f"    Already exist. skip creating surfaceflow_{variable_name}_{info}.pdf")
         return fn
 
     if cbarlim is None:
         # full range
-        cbarlim = (max([v for v in values if v is not None]), 
-                   min([v for v in values if v is not None]))
+        cbarlim = (min([v for v in values if v is not None]), 
+                   max([v for v in values if v is not None]))
     # reset figure
     plt.figure()
     # plot flow data
@@ -315,7 +316,9 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
             df_conn = lst2.connection.DataFrame
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, dat, plt, saveDir=ini.t2FileDirFp, df_conn=df_conn)
+                    fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, dat, plt, 
+                                       saveDir=ini.t2FileDirFp, df_conn=df_conn,
+                                       extension='png' if args.createGif else 'pdf')
                     if fp is not None and os.path.isfile(fp): 
                         fp_var_list_list[l][i].append(fp)
                     
@@ -395,7 +398,9 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
             df_elem = out
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    fp = original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, saveDir=ini.t2FileDirFp, df_conn=None)
+                    fp = original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, 
+                                       saveDir=ini.t2FileDirFp, df_conn=None,
+                                       extension='png' if args.createGifCsv else 'pdf')
                     if fp is not None: fp_var_list_list[l][i].append(fp) 
 
         # print(fp_var1_list)
@@ -503,8 +508,8 @@ if args.interval is not None:
             for j, (key,val) in enumerate(fd.items()):
                 timeNow=timesteps[i]
                 title = f"{key}/m^2 \n t={t2o.sec2year(timeNow)}"
-                fn1 = original_surfacemap(key, val, ini, geo, title, info=f"lim0_time{i}", saveDir=ini.t2FileDirFp)
-                fn2 = original_surfacemap(key, val, ini, geo, title, info=f"lim1_time{i}", saveDir=ini.t2FileDirFp, cbarlim=t2o.get_cbar_limits_flow(key))
+                fn1 = original_surfacemap(key, val, ini, geo, title, info=f"lim0_time{i}", saveDir=ini.t2FileDirFp, extension='png')
+                fn2 = original_surfacemap(key, val, ini, geo, title, info=f"lim1_time{i}", saveDir=ini.t2FileDirFp, cbarlim=t2o.get_cbar_limits_flow(key), extension='png')
                 fps1[j].append(fn1)
                 fps2[j].append(fn2)
         else:
@@ -512,8 +517,10 @@ if args.interval is not None:
             for j, (key,val) in enumerate(fd.items()):
                 timeNow=timesteps[i]
                 title = f"{key}/m^2 \n t={t2o.sec2year(timeNow)}"
-                fn1 = original_surfacemap(key, val, ini, geo, title, info=f"lim0_time{i}", saveDir=ini.t2FileDirFp)
-                fn2 = original_surfacemap(key, val, ini, geo, title, info=f"lim1_time{i}", saveDir=ini.t2FileDirFp, cbarlim=t2o.get_cbar_limits_flow(key))
+                fn1 = original_surfacemap(key, val, ini, geo, title, info=f"lim0_time{i}", saveDir=ini.t2FileDirFp, extension='png')
+                fn2 = original_surfacemap(key, val, ini, geo, title, info=f"lim1_time{i}", saveDir=ini.t2FileDirFp, cbarlim=t2o.get_cbar_limits_flow(key), extension='png')
+                original_surfacemap(key, val, ini, geo, title, info=f"lim0_time{i}", saveDir=ini.t2FileDirFp, extension='pdf')
+                original_surfacemap(key, val, ini, geo, title, info=f"lim1_time{i}", saveDir=ini.t2FileDirFp, cbarlim=t2o.get_cbar_limits_flow(key), extension='pdf')
                 fps1[j].append(fn1)
                 fps2[j].append(fn2)
 

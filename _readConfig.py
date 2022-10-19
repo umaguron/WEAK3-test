@@ -6,6 +6,8 @@ import numpy as np
 from t2data import rocktype, t2block
 from define import *
 import define_logging
+import traceback
+import math
 
 # get directory name where this script is located
 # import pathlib
@@ -162,6 +164,7 @@ class InputIni(object):
         try:
             self.toughInput = self._readInputIniToughInput()
         except:
+            logger.error(traceback.format_exc())
             logger.warning("Section [toughInput] is incomplete. Reading is skipped. "
             "InputIni.construct_path() is skipped."" InputIni.validation() is skipped.")
             # 自作の例外クラスをraise
@@ -171,6 +174,7 @@ class InputIni(object):
         try:
             self.construct_path()
         except:
+            logger.error(traceback.format_exc())
             logger.warning("Fail to construct path in InputIni.construct_path(). Skip.")
     
         self.validation()
@@ -268,7 +272,9 @@ class InputIni(object):
         logger.debug(repr(self.toughInput))
         if self.mesh.type==AMESH_VORONOI and self.toughInput['seedFlg']:
             for rock in self.rockSecList:
-                if rock.formula_permeability is None: raise Exception
+                if rock.formula_permeability is None: 
+                    logger.error(traceback.format_exc())
+                    raise Exception
     
     def rocktypeDuplicateCheck(self):
         # if rocktype name is duplicated, then exit.
@@ -366,8 +372,11 @@ class InputIni(object):
 
         # if no inconfile given, 
         # hydrostatic pressure is applied as initial condition.
-        ret['problemNamePreviousRun'] = \
-            self.config.get('toughInput', 'problemNamePreviousRun')
+        try:
+            ret['problemNamePreviousRun'] = \
+                self.config.get('toughInput', 'problemNamePreviousRun')
+        except:
+            ret['problemNamePreviousRun'] = ""
         try:
             ret['water_table_elevation'] = \
                 float(self.config['toughInput']['water_table_elevation'])
@@ -601,13 +610,34 @@ class InputIni(object):
     class _PrimarySec(object):
         def __init__(self, primarySecName, config: configparser.ConfigParser):
             self.secName = primarySecName
-            self.value = eval(config.get(primarySecName, 'value'))
-            self.xmin = float(config.get(primarySecName, 'xmin'))
-            self.xmax = float(config.get(primarySecName, 'xmax'))
-            self.ymin = float(config.get(primarySecName, 'ymin'))
-            self.ymax = float(config.get(primarySecName, 'ymax'))
-            self.zmin = float(config.get(primarySecName, 'zmin'))
-            self.zmax = float(config.get(primarySecName, 'zmax'))
+            self.variables = eval(config[primarySecName]['variables'])
+            # self.xmin = float(config.get(primarySecName, 'xmin'))
+            # self.xmax = float(config.get(primarySecName, 'xmax'))
+            # self.ymin = float(config.get(primarySecName, 'ymin'))
+            # self.ymax = float(config.get(primarySecName, 'ymax'))
+            # self.zmin = float(config.get(primarySecName, 'zmin'))
+            # self.zmax = float(config.get(primarySecName, 'zmax'))
+            self.assigning_condition = config[primarySecName]['assigning_condition']
+            self.blockList = eval(config[primarySecName]['blockList'])
+
+        def isBlkInBlockList(self, blk:t2block):
+            """[summary]
+            Check if the given block is included in self.blockList, 
+                which are defined at regionSecList.
+
+            Returns:
+                True or False
+            """
+            """ get logger """
+            logger = define_logging.getLogger(
+                f"{__class__.__name__}.{sys._getframe().f_code.co_name}")
+
+            # block
+            if blk.name in self.blockList: 
+                logger.debug(f"     blk'{blk.name}': True")
+                return True
+            return False
+
 
     class _RocktypeSec(object):
         def __init__(self, rocktypeSecName, config: configparser.ConfigParser):

@@ -11,11 +11,11 @@ EOF
 exit
 fi
 
-sqlite3 log.db << EOF
+sqlite3 log.db << EOF | awk -F, 'NR==1{printf "%-110s %10s %14s %10s %17s %18s %18s %25s %8s %12s %5s %5s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12}{if(NR>1)printf "%-110s %10s %12.2f %10s %15.2f %15.3f %15.3f %25s %8s %10.2f %5s %5s\n", $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12}'
 select 
     --a.toughinput_id,
     --a.configIni,
-    a.t2dir as t2dir_________________________________________________________________________________________________________________________________________, 
+    a.t2dir as t2dir, 
     a.module ,
     --a.problemName ,
     --a.t2DataFileName ,
@@ -61,7 +61,7 @@ select
     --a.num_element_axis1,
     --a.num_element_axis2,
     --a.num_element_axis3,
-    b.total_time/3600/24/365 as total_year___________, 
+    b.total_time/3600/24/365 as total_year, 
     b.time_steps, 
     b.last_timestep_length as dt_last,
     b.surface_heat / 1000000 as "sufHF(MW)",
@@ -136,7 +136,7 @@ from (
     from toughInput
     where t2dir like '%$1%'
     order by updated_time desc
-    limit 300
+    limit 1000
 ) a 
 left join toughResult b on a.toughinput_id = b.toughinput_id
 left outer join gener c on c.toughinput_id = b.toughinput_id
