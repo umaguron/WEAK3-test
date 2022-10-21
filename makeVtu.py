@@ -547,4 +547,5 @@ if args.surfaceFlowMap:
         """
 
 
-t2o.plot_timestep_growth(ini, dat, saveDir=ini.t2FileDirFp)
+if ini.toughInput['simulator'] != SIMULATOR_NAME_T2:
+    t2o.plot_timestep_growth(ini, dat, saveDir=ini.t2FileDirFp)
