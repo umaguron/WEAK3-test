@@ -197,6 +197,9 @@ def cmesh2_check():
                 # 握りつぶす
                 pass
             
+            # read atmosphere_type from mulgrid and set to form
+            tmp['includesAtmos'] = mulgrid(mulgridFileFp).atmosphere_type==0
+
             # int(request.form['createsMesh'])==1でcreatedのときと同じ扱い
             return render_template('cmesh2.html', form=tmp, created = True, msg=f"mulgrid file {create_relpath(mulgridFileFp)} was found")
     else:
