@@ -18,7 +18,7 @@ pythonに色々なライブラリを導入することになるので、anaconda
     https://www.anaconda.com/
 
 
-+ ワークステーション
++ ワークステーションなど
 
     以下を参考に各自のhomeディレクトリにanacondaをインストール<br>
     https://www.python.jp/install/anaconda/unix/install.html
@@ -35,15 +35,15 @@ pythonに色々なライブラリを導入することになるので、anaconda
     anacondaのルートディレクトリに.condarcというファイルを作成。以下のようにプロキシを設定する。
     ```
     proxy_servers:
-        http: http://proxy.aaa.bbb.ac.jp:8080
-        https: http://proxy.aaa.bbb.ac.jp:8080
+        http: http://proxy.aaa.bbb.ac.jp:[port]
+        https: http://proxy.aaa.bbb.ac.jp:[port]
     ```
     ※ https:の設定値は"https"でなく"http"であることに注意
 
 + git
     ```
-    git config --global http.proxy http://proxy.aaa.bbb.ac.jp:8080
-    git config --global https.proxy https://proxy.aaa.bbb.ac.jp:8080
+    git config --global http.proxy http://proxy.aaa.bbb.ac.jp:[port]
+    git config --global https.proxy https://proxy.aaa.bbb.ac.jp:[port]
     ```
     プロキシ設定を削除する
     ```
@@ -103,7 +103,7 @@ which pip3
 # -> anacondaが含まれるパスが表示されればたぶん大丈夫
 ```
 <br><br>
-### ワークステーション(faraday)の場合
+### ワークステーションなどの場合
 condaはプロキシ設定が正しければ動くはず。
 
 pipについては
@@ -202,7 +202,7 @@ iapwsについては以下でもOK
 
 <br>
 * ECO2N V2.0用データ
-  CO2TAB(TOUGH3のパッケージに入っている？)は /tables 直下に配置する。
+  CO2TAB(TOUGH3のパッケージに入っている？)は フォルダtables/ を作成しその中に配置する。
 
 * define.py　設定値の説明
   
@@ -244,7 +244,8 @@ https://tough.lbl.gov/user-support/tough-bugs-fixes/
 # 大きすぎてgitにupできないデータ
 data/sowat_read.txt: sowat出力の塩水の熱力学データ
 
-matsunagaに聞いてください。
+以下からダウンロードする。
+https://drive.google.com/file/d/15HadRCdfGIZC_kKjQVaU1tYeTGnMXK5k/view?usp=sharing
 
 <br>
 <br>
@@ -263,9 +264,11 @@ https://tough.lbl.gov/software/tough3/
 # テスト実行
 ### 概要
 
-testdata/にいくつかテスト用データがおいてある。
-* testdata/shirane_vicinity :  白根山近傍 325*25セル
-* testdata/ksv :  草津白根山の熱水系モデル (Matsunaga and Kanda, 2022)
+testdata/に２つのテスト用データがおいてある。
+1.  testdata/ksv :  草津白根山の熱水系モデル (Matsunaga and Kanda, 2022)
+2.  testdata/shirane_vicinity :  白根山近傍 325*25セル
+
+ここでは1のほうを使ってみる。
 
 |ファイル|説明|
 |-|-|
@@ -327,7 +330,7 @@ python3 tough3exec_ws.py testdata/ksv/input_ksv.ini
 # 実行dirに移動
 cd testdata/result/ksv
 
-# 以下は実行環境による(faradayの場合)
+# mpiexecの実行に必要な準備。(実行環境による)
 module purge
 export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
 
