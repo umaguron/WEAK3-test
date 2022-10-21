@@ -40,7 +40,7 @@ DEFAULTS_TEXT_DEPEND_EOS = {
     }
 }
 DEFAULTS_RADIO = {
-    print_level: 0,
+    print_level: 2,
     mops09: 0,
     mops10: 0,
     mops11: 0,
