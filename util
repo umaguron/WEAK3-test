@@ -43,4 +43,7 @@ function login () {
   expect -c "set timeout 5; spawn ssh ${REMOTE_STATION} ; expect password: ; send ${PW}\r ; interact"
 }
 
+function gui () {
+  python ${LOCAL_PRJROOT}/gui/controller.py
+}
 
