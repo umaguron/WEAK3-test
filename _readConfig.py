@@ -8,6 +8,7 @@ from define import *
 import define_logging
 import traceback
 import math
+import re
 
 # get directory name where this script is located
 # import pathlib
@@ -480,7 +481,12 @@ class InputIni(object):
                 for secName in primary_sec_list:
                     self.primary_sec_list.append(self._PrimarySec(secName, self.config))
         
-
+        self.fixed_p_regions_seclist = []
+        if self.config.has_option('toughInput', 'fixed_p_regions_seclist'):
+            self.fixed_p_regions_seclist = []
+            for secName in eval(self.config['toughInput']['fixed_p_regions_seclist']):
+                self.fixed_p_regions_seclist.append(self._fixedP_RegionSec(secName, self.config))
+        
         # PARAM 
         params = {'max_iterations','print_level','max_timesteps','max_duration',
                 'print_interval', 'texp','be','tstart','tstop','const_timestep',
@@ -638,6 +644,51 @@ class InputIni(object):
                 return True
             return False
 
+
+    class _fixedP_RegionSec(object):
+
+        def __init__(self, secName, config: configparser.ConfigParser):
+            self.secName = secName
+            self.block = eval(config[secName]['block'])
+            self.type = config[secName]['type'].strip().upper()
+            self.area = eval(config[secName]['area'])
+            self.dist_injblock = eval(config[secName]['dist_injblock'])
+            self.temperature = eval(config[secName]['temperature'])
+            self.pressure_str = config[secName]['pressure'].strip().upper()
+            self.added_p_block_permeability = eval(config[secName]['added_p_block_permeability']) \
+                if config.has_option(secName, 'added_p_block_permeability') else None
+
+            # varidation
+            if self.type != FIXED_P_REGION_TYPE_SINGLE_P_CELL \
+                    and self.type != FIXED_P_REGION_TYPE_MULTI_P_CELL:
+                raise Exception(f'unknown _fixedP_RegionSec.type: {self.type} at sec: {self.secName}')
+            
+            if self.area is not None and len(self.area) != len(self.block):
+                raise Exception(f'invalid _fixedP_RegionSec.area len: {len(self.area)} is not consistent with block len: {len(self.block)}')
+            
+            try:
+                if FIXED_P_REGION_PRESS_TYPE_XSTATIC in self.pressure_str:
+                    self.pressure_type = FIXED_P_REGION_PRESS_TYPE_XSTATIC
+                    self.pressure_num = float(re.sub(FIXED_P_REGION_PRESS_TYPE_XSTATIC, '', self.pressure_str))
+                elif FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO in self.pressure_str:
+                    self.pressure_type = FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO
+                    self.pressure_num = float(re.sub(FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO, '', self.pressure_str))
+                else:
+                    self.pressure_num = float(self.pressure_str)
+                    self.pressure_type = FIXED_P_REGION_PRESS_TYPE_NUM
+            except:
+                raise Exception(f'invalid _fixedP_RegionSec.pressure: {self.pressure_str}')
+
+            if self.type == FIXED_P_REGION_TYPE_SINGLE_P_CELL \
+                    and self.pressure_type != FIXED_P_REGION_PRESS_TYPE_NUM:
+                raise Exception(f'invalid _fixedP_RegionSec.pressure @{secName}: {self.pressure_str}. If type is SINGLE_P_CELL, pressure must be specified as value.')
+            if self.type == FIXED_P_REGION_TYPE_SINGLE_P_CELL and self.temperature is None:
+                raise Exception(f'invalid _fixedP_RegionSec.temperature @{secName}. If type is SINGLE_P_CELL, temperature must not be "None".')
+            if self.type == FIXED_P_REGION_TYPE_SINGLE_P_CELL \
+                    and self.added_p_block_permeability is None:
+                # SINGLEのときNoneは不可。(参照すべきブロックが決められないため)
+                raise Exception(f'invalid _fixedP_RegionSec.added_p_block_permeability @{secName}. If type is SINGLE_P_CELL, added_p_block_permeability must not be None.')
+                
 
     class _RocktypeSec(object):
         def __init__(self, rocktypeSecName, config: configparser.ConfigParser):

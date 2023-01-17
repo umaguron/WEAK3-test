@@ -50,11 +50,18 @@ IMG_RESIS_LAYER = 'resistivity_layer-'
 IMG_TOPO = 'topo'
 IMG_INCON = lambda index: f'incon{index}_slice-line'
 
+"""PyTOUGH"""
+ATM_BLK_NAME = lambda convention: ['ATM 0', 'atm 0', 'at  0'][convention]
+REGEX_FIXED_P_ADDED_CELL_NAME = lambda convention: [
+        '[zZ][A-z][A-z][ 0-9][ 0-9]',
+        '[zZ][A-z][A-z][ 0-9][ 0-9]',
+        '[ A-z][ A-z]999',
+    ][convention]
 
 """log"""
 FILEPATH_LOG = "log.log"
 import logging
-LOG_LEVEL_STREAM = logging.DEBUG
+LOG_LEVEL_STREAM = logging.WARNING  
 LOG_LEVEL_FILE = logging.WARNING
 FORMAT_LOG_STREAM = '[%(levelname)s] %(name)s - %(message)s'
 FORMAT_LOG_FILE = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -64,6 +71,12 @@ FORMAT_LOG_FILE = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 SIMULATOR_NAME_T3 = "TOUGH3"
 SIMULATOR_NAME_T3_LOCAL = "TOUGH3_LOCAL"
 SIMULATOR_NAME_T2 = "TOUGH2"
+FIXED_P_REGION_TYPE_SINGLE_P_CELL = 'SINGLE_P_CELL'
+FIXED_P_REGION_TYPE_MULTI_P_CELL  = 'MULTI_P_CELL'
+FIXED_P_REGION_PRESS_TYPE_XSTATIC  = 'DENS'
+FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO  = 'OVER_P'
+FIXED_P_REGION_PRESS_TYPE_NUM  = 'NUM'
+
 """[amesh_voronoi]"""
 TOP_LAYER_MIN_THICKNESS_DEFAULT = 5
 """[mesh]"""
@@ -72,7 +85,7 @@ REGULAR = "REGULAR"
 AMESH_VORONOI = "A_VORO"
 """[plot]"""
 PROFILE_LINES_LIST_DEFAULT = ['x']
-FONT_SIZE = 6
+FONT_SIZE = 15
 
 """ Miscellaneous keywords or values"""
 KW_LITHOS = "lithos"

@@ -444,9 +444,9 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             depth = surface - z
             # properties of current rocktype
             phi = blk.rocktype.porosity
-            k_x = blk.rocktype.permeability[0]
-            k_y = blk.rocktype.permeability[1]
-            k_z = blk.rocktype.permeability[2]
+            k_x = secRock.rocktype.permeability[0]
+            k_y = secRock.rocktype.permeability[1]
+            k_z = secRock.rocktype.permeability[2]
             # For each block, calc resistivity value at the center of the block 
             # by interpolation, 
             rho = interpRes(blk.centre)[0]
@@ -469,7 +469,6 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             PM is adjusted to permeablity value (perm) caluculated above.
             """
             if ini.toughInput['seedFlg']:
-                print(ini.toughInput['seedFlg'])
                 """
                 In TOUGH3, permeability of the block is modified as following relation,
                     perm = perm_ref * PM
@@ -610,12 +609,29 @@ def visualize_vslice(ini:_readConfig.InputIni,
         # save image insted of opening viewer
         import matplotlib.pyplot as plt
         plt.rcParams["font.size"] = FONT_SIZE
-    geo_topo.layer_plot(None, column_names=True, plt=plt, 
-                        xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+    
+    # retrieve topo data
+    elevations, X, Y = [], [], []
+    for col in geo_topo.columnlist:
+        X.append(col.centre[0])
+        Y.append(col.centre[1])
+        elevations.append(col.surface)
+    # plot surface layer with colname
+    # geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, column_names=False, 
+    #                     plt=plt, xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+    geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=None, column_names=False,
+                        plt=plt, xlabel = 'Northing (m)', ylabel = 'Easting (m)', title="plan view")
+    
+    # overlay lines and topo
     if not open_viewer:
         # invert y axis
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
+        # topo
+        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+                            colors='blue', linewidths=1, alpha=0.3)
+        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+                            colors='blue', linewidths=2, alpha=0.3)
         # plot location of profiles
         for i, line in enumerate(ini.plot.profile_lines_list):
             if isinstance(line, (float, int)):
@@ -630,18 +646,18 @@ def visualize_vslice(ini:_readConfig.InputIni,
                                 plt.xlim()[1]*math.tan((90-line)/180*math.pi)]
             elif str(line).strip().lower() == 'x':
                 x, y = plt.xlim(), [0, 0]
-                text_pos = [plt.xlim()[1], 0]
+                text_pos = [0.9*plt.xlim()[1], 0]
             elif str(line).strip().lower() == 'y':
                 x, y = [0, 0], plt.ylim()
-                text_pos = [0, plt.ylim()[1]]
+                text_pos = [0, 0.9*plt.ylim()[1]]
             elif isinstance(line, (list, np.ndarray)):
                 x = [line[0][0], line[1][0]]
                 y = [line[0][1], line[1][1]]
                 text_pos = [line[1][0], line[1][1]]
             else:
                 continue
-            plt.plot(x, y, linewidth=1.0, label=f'line #{i}')
-            plt.text(text_pos[0], text_pos[1], f'line #{i}', fontsize=10)
+            plt.plot(x, y, linewidth=2.0, label=f'line #{i}')
+            plt.text(text_pos[0], text_pos[1], f'line #{i}', fontsize=20)
             
         plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_LAYER_SURFACE}.{fex}"))
     
@@ -747,11 +763,6 @@ def visualize_vslice(ini:_readConfig.InputIni,
             plt.close()
 
     # topo
-    elevations, X, Y = [], [], []
-    for col in geo_topo.columnlist:
-        X.append(col.centre[0])
-        Y.append(col.centre[1])
-        elevations.append(col.surface)
     geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, plt=plt, title="elevation", xlabel="Northing (m)", ylabel="Easting (m)")
     if not open_viewer:
         plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
