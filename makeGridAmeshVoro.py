@@ -444,9 +444,9 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             depth = surface - z
             # properties of current rocktype
             phi = blk.rocktype.porosity
-            k_x = blk.rocktype.permeability[0]
-            k_y = blk.rocktype.permeability[1]
-            k_z = blk.rocktype.permeability[2]
+            k_x = secRock.rocktype.permeability[0]
+            k_y = secRock.rocktype.permeability[1]
+            k_z = secRock.rocktype.permeability[2]
             # For each block, calc resistivity value at the center of the block 
             # by interpolation, 
             rho = interpRes(blk.centre)[0]
@@ -469,7 +469,6 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
             PM is adjusted to permeablity value (perm) caluculated above.
             """
             if ini.toughInput['seedFlg']:
-                print(ini.toughInput['seedFlg'])
                 """
                 In TOUGH3, permeability of the block is modified as following relation,
                     perm = perm_ref * PM
@@ -610,12 +609,27 @@ def visualize_vslice(ini:_readConfig.InputIni,
         # save image insted of opening viewer
         import matplotlib.pyplot as plt
         plt.rcParams["font.size"] = FONT_SIZE
-    geo_topo.layer_plot(None, column_names=True, plt=plt, 
-                        xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+    
+    # retrieve topo data
+    elevations, X, Y = [], [], []
+    for col in geo_topo.columnlist:
+        X.append(col.centre[0])
+        Y.append(col.centre[1])
+        elevations.append(col.surface)
+    # plot surface layer with colname
+    geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, column_names=False, 
+                        plt=plt, xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+    
+    # overlay lines and topo
     if not open_viewer:
         # invert y axis
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
+        # topo
+        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+                            colors='white', linewidths=0.5, alpha=0.5)
+        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+                            colors='white', linewidths=1, alpha=0.5)
         # plot location of profiles
         for i, line in enumerate(ini.plot.profile_lines_list):
             if isinstance(line, (float, int)):
@@ -747,11 +761,6 @@ def visualize_vslice(ini:_readConfig.InputIni,
             plt.close()
 
     # topo
-    elevations, X, Y = [], [], []
-    for col in geo_topo.columnlist:
-        X.append(col.centre[0])
-        Y.append(col.centre[1])
-        elevations.append(col.surface)
     geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, plt=plt, title="elevation", xlabel="Northing (m)", ylabel="Easting (m)")
     if not open_viewer:
         plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
