@@ -69,7 +69,8 @@
     <br>
     <!-- mulgridFileFp -->
     <div class="form-group">
-        <label for="mulgridFileFp">Path of mulgrid file to be created</label>
+        <h5>Path of mulgrid file to be created</h5>
+        <p>File path of the existing or to-be-created 3-D grid file (in MULgraph format). The file location can be anywhere under the project root.</p>
         <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %} required/>
     </div>
     <br>
@@ -85,9 +86,7 @@
     <br>
     <div id="create_new">
         <!-- convention -->
-        <label class="form-check-label" for="convention">
-            MULgraph geometry file Naming conventions
-        </label>
+        <h5> MULgraph geometry file Naming conventions</h5>
         <div class="form-check">
             <input type="radio" value="0" class="form-check-input" name="convention" {% if form.convention == "0" %} checked {% endif %}/>
             <label class="form-check-label" for="convention">
@@ -108,9 +107,7 @@
         </div>
         <br>
         <!-- atmosphere -->
-        <label class="form-check-label" for="includesAtmos">
-            Atmosphere type
-        </label>
+        <h5>Atmosphere type</h5>
         <div class="form-check">
             <input type="radio" value="True" class="form-check-input" name="includesAtmos" {% if form.includesAtmos == "True" %} checked {% endif %}/>
             <label class="form-check-label" for="convention">
@@ -127,41 +124,48 @@
         <br>
         <!-- topodata -->
         <div class="form-group">
-            <label for="topodata_fp">topodata_fp </label>
+            <h5>topodata_fp </h5>
+            <p>File path of topography data. The file location can be anywhere under the project root.</p>
             <input type="text" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp"/>
         </div>
         <br>
         <!-- seed list -->
         <div class="form-group">
-            <label for="voronoi_seeds_list_fp">voronoi_seeds_list_fp  <a href="makeVoroSeedsList2.html">create new</a> </label>
+            <h5>voronoi_seeds_list_fp</h5>
+            <p>File path of the "seed" data required for 2D Voronoi tessellation. Can be created from <a href="makeVoroSeedsList2.html" target="_blank"><b>here</b></a>. The file location can be anywhere under the project root.</p>
             <input type="text" value="{{ form.voronoi_seeds_list_fp }}" class="form-control" name="voronoi_seeds_list_fp"/>
         </div>
         <br>
         <!-- elevation_top_layer -->
         <div class="form-group">
-            <label for="elevation_top_layer">elevation_top_layer </label>
+            <h5>elevation_top_layer</h5>
+            <p>Enter an elevation value [m] higher than the highest point in the calculation area.</p>
             <input type="text" value="{{ form.elevation_top_layer }}" class="form-control" name="elevation_top_layer"/>
         </div>
         <br>
         <!-- layer_thicknesses -->
         <div class="form-group">
-            <label for="layer_thicknesses">layer_thicknesses </label>
+            <h5>layer_thicknesses </h5>
+            <p>An array [xx, yy, ...] (in any format that python can interpret as a list) defining the thickness [m] of each layer. Values must be ordered from the top layer.</p>
             <input type="text" value="{{ form.layer_thicknesses }}" class="form-control" name="layer_thicknesses"/>
-        </div>
-        <br>
-        <!-- tolar -->
-        <div class="form-group">
-            <label for="tolar">tolar [m]</label>
-            <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
-            <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
         <br>
         <!-- top_layer_min_thickness -->
         <div class="form-group">
-            <label for="top_layer_min_thickness">top_layer_min_thickness [m]</label>
+            <h5>top_layer_min_thickness</h5>
+            <p>Minimum thickness [m] of the uppermost block after topography is created.</p>
             <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
             <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
+        <br>
+        <!-- tolar -->
+        <div class="form-group">
+            <h5>tolar</h5>
+            <p>A parameter [m] for AMESH program. "the length of the minimum interface between elements" (Hakuwa, 1998).</p>
+            <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
+            <div class="invalid-msg">{{TITLE['float']}}</div>
+        </div>
+        <br>
     </div>
     <br>
     <div class="col">

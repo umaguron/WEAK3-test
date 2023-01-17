@@ -85,7 +85,7 @@ REGULAR = "REGULAR"
 AMESH_VORONOI = "A_VORO"
 """[plot]"""
 PROFILE_LINES_LIST_DEFAULT = ['x']
-FONT_SIZE = 6
+FONT_SIZE = 15
 
 """ Miscellaneous keywords or values"""
 KW_LITHOS = "lithos"
