@@ -154,7 +154,7 @@
                         <th>MULgraph geometry file Naming conventions</th>
                         <td>MULgraphでは要素名を'カラム名'+'レイヤー名'の5文字で表現する(e.g., 'abc12')。英数字の割り振りは以下の3つから選択。
                         <ul>
-                            <li>カラム: 英字3文字/レイヤー: 数字2桁</li>
+                            <li><b>カラム: 英字3文字/レイヤー: 数字2桁 (推奨)</b></li>
                             <li>レイヤー: 英字3文字/カラム: 数字2桁</li>
                             <li>レイヤー: 英字2文字/カラム: 数字3桁</li>
                         </ul>
@@ -172,6 +172,8 @@
                         <td>
                             <p><a href="https://ja.wikipedia.org/wiki/%E3%83%9C%E3%83%AD%E3%83%8E%E3%82%A4%E5%9B%B3">voronoiメッシュ</a>作成時に使用される、各セルの"seed"(母点)となる座標のリストのファイルパス。形式は以下の通り。単位は[m]</p>   
                             <img src="/img/voro_sample.png">
+                            <p>seedデータ作成ツール -->
+                            <a href="../makeVoroSeedsList2.html">makeVoroSeedsList2.html</a></p>   
                         </td>
                     </tr>
                     <tr>
@@ -180,7 +182,15 @@
                     </tr>
                     <tr>
                         <th>layer_thicknesses</th>
-                        <td>各レイヤーの厚さを定義する配列(python3形式)。 上面のレイヤーから順番に並べること。単位は[m]。</td>
+                        <td>
+                            <p>各レイヤーの厚さを定義するlist(python3形式)。 上面のレイヤーから順番に並べること。単位は[m]。</p>
+                            <b>例:</b>
+                            <ul>
+                                <li>[5, 10, 15, 15, 20, 20, 20, ....]</li>
+                                <li>[5, 10, 15, 15] + [20]*10</li>
+                                <li>[5 * 1.05**i for i in range(99)]</li>
+                            </ul>
+                        </td>
                     </tr>
                     <tr>
                         <th>top_layer_min_thickness</th>
@@ -279,7 +289,7 @@
                 rectangular region、かつrock_assign_conditionに指定された条件を満たす要素。
             </div>
         </div>
-        <div style="color: red;">注意) ある要素について、複数の岩石タイプの割り当て条件に合致してしまう場合、番号が大きい岩石タイプが優先的に割り当てられる。
+        <div style="color: red;">注意) ある要素について、複数の岩石タイプの割り当て条件に合致してしまう場合、番号(#)が大きい岩石タイプが優先的に割り当てられる。
         </div>
         <br>
         <br>
@@ -376,7 +386,7 @@
                 <ul class="">
                     <li>ここまでの情報はすでにinput.iniに記録されているので、ここで中断しても問題ない。</li>
                     <li><a href="http://localhost:8000/">home</a>の"read from existing input.ini (cmesh3_readFromIni)"にinput.iniのパスを指定すればcmesh3の設定から再開可能。</li>
-                    <li>cmesh4までに作成されたinput.iniは不完全なため、makeGridAmeshVoro.py, tough3exec_ws.py, run.pyに食わせてもエラーになる。</li>
+                    <li>cmesh4までに作成されたinput.iniは不完全なため、makeGrid.py, tough3exec_ws.py, run.pyに食わせてもエラーになる。</li>
                 </ul>
             </div>
         </div>
