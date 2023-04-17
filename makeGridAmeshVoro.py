@@ -285,6 +285,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     geo_topo = mulgrid(ini.mulgridFileFp)
     print(ini.amesh_voronoi.top_layer_min_thickness)
     geo_topo.snap_columns_to_layers(min_thickness=ini.amesh_voronoi.top_layer_min_thickness)
+    # you have to write mulgrid-file after doing snap_columns_to_layers()
     geo_topo.write(ini.mulgridFileFp)
 
 

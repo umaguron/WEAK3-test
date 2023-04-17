@@ -332,7 +332,8 @@ class InputIni(object):
         try:
             ret['mulgridFileName'] = self.config.get('toughInput', 'mulgridFileName')
         except configparser.NoOptionError:
-            ret['mulgridFileName'] = ret['problemName'] + ".dat"
+            pass
+            # ret['mulgridFileName'] = ret['problemName'] + ".dat"
         
         # ret['t2DataFileName'] = self.config.get('toughInput', 't2DataFileName')
         # ret['gridVtkFileName'] = self.config.get('toughInput', 'gridVtkFileName')
@@ -1161,7 +1162,7 @@ class InputIni(object):
                 else:
                     config.set('toughInput', key, '')
             
-            keys = ['simulator','module','problemName','mulgridFileName',
+            keys = ['simulator','module','problemName',
                     'num_components','num_equations','num_phases','num_secondary_parameters',
                     'max_iterations','print_level','max_timesteps','max_duration','print_interval',
                     'MOPs01','MOPs02','MOPs03','MOPs04','MOPs05','MOPs06','MOPs07','MOPs08','MOPs09',
@@ -1170,13 +1171,13 @@ class InputIni(object):
                     'gravity','timestep_reduction','scale','relative_error','absolute_error',
                     'upstream_weight','newton_weight','derivative_increment','for','amres',
                     'problemNamePreviousRun','water_table_elevation','1d_hydrostatic_sim_result_ini',
-                    'PRIMARY_default','PRIMARY_AIR','use_1d_result_as_incon',
+                    'PRIMARY_default',
                     'specifies_variable_INCON',
                     'seedFlg','crustalHeatFlowRate','rainfallAnnual_mm','T_rain','history_block',
                     'history_connection','prints_hc_surface','prints_hc_inj',
                     'selection_line1','selection_line2',
                     'num_times_specified','num_times','max_timestep_TIMES','time_increment','time',
-                    'assignFocusHf','focusHfRate','focusHfRange']
+                    'assignFocusHf','focusHfRate','focusHfRange', 'initial_t_grad']
 
             for key in keys:
                 set1(self, config, key)
@@ -1247,6 +1248,7 @@ class InputIni(object):
                 config.set(psec.secName, 'zmin', repr(psec.zmin))
                 config.set(psec.secName, 'zmax', repr(psec.zmax))
             config.set('toughInput', 'primary_sec_list', repr(primary_sec_list))
+            config.set('toughInput', 'specifies_variable_INCON', 'True')
                 
         if hasattr(self, 'mesh'):
             keys = ['type', 'convention', 'isRadial', 'resistivity_structure_fp', 'mulgridFileFp']
@@ -1365,7 +1367,22 @@ class InputIni(object):
                     config.set('solver', key, val if type(val) is str else repr(val))
                 else:
                     config.set('solver', key, '')
-    
+        
+        # fixed_p_regions_seclist
+        if hasattr(self, 'fixed_p_regions_seclist'):
+            fixed_p_regions_seclist = []
+            for sec in self.fixed_p_regions_seclist:
+                fixed_p_regions_seclist.append(sec.secName)
+                config.add_section(sec.secName)
+                config.set(sec.secName, 'block', repr(sec.block))
+                config.set(sec.secName, 'type', str(sec.type))
+                config.set(sec.secName, 'area', repr(sec.area))
+                config.set(sec.secName, 'dist_injblock', repr(sec.dist_injblock))
+                config.set(sec.secName, 'temperature', repr(sec.temperature))
+                config.set(sec.secName, 'pressure', str(sec.pressure_str))
+                config.set(sec.secName, 'added_p_block_permeability', repr(sec.added_p_block_permeability))
+            config.set('toughInput', 'fixed_p_regions_seclist', repr(fixed_p_regions_seclist))
+        
         with open(outfp, 'w') as f:
             config.write(f)
 

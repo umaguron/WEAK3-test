@@ -8,6 +8,7 @@ import time
 baseDir = pathlib.Path(__file__).parent.resolve()
 sys.path.append(baseDir)
 sys.path.append(os.path.join(baseDir,".."))
+sys.path.append(os.path.join(baseDir,"../femticUtil"))
 projRoot = os.path.abspath(os.path.join(baseDir,".."))
 from import_pytough_modules import *
 import _readConfig
@@ -18,6 +19,7 @@ from flask import Flask
 from flask import render_template
 from flask import Markup
 from flask import request
+from flask import flash
 # from flask import session
 # from flask import g
 from flask import redirect, url_for
@@ -31,8 +33,16 @@ import time
 import shutil
 import pickle
 from constants import Const
+from werkzeug.utils import secure_filename
+import readFemticResistivityModel as rFRM
 
 app = Flask(__name__, static_folder='static', static_url_path='')
+
+
+UPLOAD_FOLDER = os.path.join(projRoot,'gui/static/uploaded')
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Constの中身をそのままjinja2でつかえるようにする
 from constants import Const
@@ -83,6 +93,49 @@ def cmesh1():
 def usage():
     return app.send_static_file('usage.html')
 
+@app.route('/makeVoroSeedsList2')
+def makeVoroSeedsList2():
+    return app.send_static_file('makeVoroSeedsList2.html')
+
+@app.route('/femtic')
+def femtic():
+    return render_template('femtic.html', form=request.form)
+
+@app.route('/femtic_check', methods=['GET', 'POST'])
+def femtic_check():
+    print(baseDir)
+    if request.method == 'POST':
+        # save to app.config['UPLOAD_FOLDER']
+        resistivityBlockIterDat = request.files['ResistivityBlockIterDat']
+        if resistivityBlockIterDat.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        resFp = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(resistivityBlockIterDat.filename))
+        resistivityBlockIterDat.save(resFp)
+        # save to app.config['UPLOAD_FOLDER']
+        meshDat = request.files['MeshDat']
+        if meshDat.filename == '':
+            flash('No selected file')
+            return redirect(request.url)       
+        meshFp = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(meshDat.filename))
+        meshDat.save(meshFp)
+        # call methods in readFemticResistivityModel
+        db = rFRM.DB_CellElementNodeRelation(meshFp, resFp, rFRM.FP_DATABASE)
+        db.restore()
+        outputFp = os.path.join(projRoot, 'gui/static/output/cellCenterResistivity.txt')
+        db.outputAsXYZRho(outputFp, 
+                          resistivity_threshold=float(request.form['resistivity_threshold']))
+        # clean
+        os.remove(resFp)
+        os.remove(meshFp)
+        return """
+        <a href="static/output/cellCenterResistivity.txt" download>download</a>
+        """
+        
+    else:
+        return redirect(url_for('femtic'))
+    return render_template('femtic.html', form=request.form)
+    
 @app.route('/cmesh1_check', methods=['GET', 'POST'])
 def cmesh1_check():
     if request.method == 'POST':
@@ -224,13 +277,14 @@ def cmesh3_validate(request:request):
             f"Resistivity structure data: "\
             f"'{create_fullpath(request.form['resistivity_structure_fp'])}'"\
             " not found" 
-    if os.path.isdir(os.path.join(request.form['saveDir'], 
-                                  request.form['problemName']))\
+    newIni = os.path.join(request.form['saveDir'], 
+                          request.form['problemName'], 'input_cmesh4.ini')
+    if os.path.isfile(newIni)\
             and not 'overwrites_prob' in request.form:
         error_msg['problemName']= \
-            f"problem: "\
-            f"'{os.path.join(request.form['saveDir'],request.form['problemName'])}'"\
-            f" already exists." 
+            f"The .ini file to which we are trying to export the entered information: "\
+            f"'{newIni}'  already exists.\n"\
+            f"If you want to proceed anyway, check the 'Force overwrite' checkbox." 
 
     # validation用ダミー変数&クラス
     rho, x, y, z, k_x, k_y, k_z, phi, surface, depth, porosity, perm = 1,2,3,4,5,6,7,8,9,10,11,12
@@ -334,7 +388,12 @@ def cmesh3_check():
         config['atmosphere'] = {}
         # config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
         config['atmosphere']['includesAtmos'] = request.form[f'includesAtmos']
-        config['atmosphere']['PRIMARY_AIR'] = '[]' # 仮 (cmesh5で埋める)
+        # 空気層の設定の中で唯一cmesh3で設定されない項目。元iniファイルに設定がある場合は引き継ぐようにする。
+        try:
+            config['atmosphere']['PRIMARY_AIR'] = repr(inputIni.atmosphere.PRIMARY_AIR)
+        except:
+            # 仮 (cmesh5で設定する)
+            config['atmosphere']['PRIMARY_AIR'] = '[]' 
         # cmesh3の処理に追加しようと思ったがやめた。現段階ではP,Tの設定をcmesh3ではしない。
         # config['atmosphere']['primary_tmp_pres'] = request.form[f'primary_tmp_pres']
         # config['atmosphere']['primary_tmp_temp'] = request.form[f'primary_tmp_temp']
@@ -429,10 +488,11 @@ def cmesh3_check():
         # create save dir. 
         os.makedirs(inputIni.t2FileDirFp, exist_ok=True)
 
-        inputIni.inputIniFp = os.path.join(projRoot, inputIni.t2FileDirFp, "input.ini")
+        inputIni.inputIniFp = os.path.join(projRoot, inputIni.t2FileDirFp, "input_cmesh4.ini")
         inputIni.output2inifile(inputIni.inputIniFp)
         
         # pickle for cmesh4_visualize()
+        # 不完全なファイルの場合_readConfig.InputIni().read_from_inifile()では読み込めないため。
         with open(os.path.join(os.path.dirname(inputIni.inputIniFp), 
                                PICKLED_INPUTINI), 
                   'wb') as f:
@@ -839,7 +899,7 @@ def cmesh5_check():
         if len(msg) > 0 :
             return render_template('cmesh5.html', form=form, error_msg=msg)
 
-        outfp = os.path.join('output', request.form['problemName']+'.ini')
+        outfp = os.path.join('output', 'input_final.ini')
         return render_template('cmesh5.html', 
                                 form=form,
                                 downloadlink=outfp, 
@@ -1070,13 +1130,13 @@ def cmesh5_read_inputIni(request:request):
     try:
         pa = eval(config['atmosphere']['PRIMARY_AIR'])
         for i, p in enumerate(pa):
-            form[f'primary_atm_{i+1}'] = p
+            form[f'primary_atm_{i+1}'] = "" if p is None else p
     except:
         logger.warning("cannot read [atmosphere] PRIMARY_AIR")
     try:
         pd = eval(config['toughInput']['PRIMARY_default'])
         for i, p in enumerate(pd):
-            form[f'primary_def_{i+1}'] = p
+            form[f'primary_def_{i+1}'] = "" if p is None else p
     except:
         logger.warning("cannot read [toughInput] PRIMARY_default")
                 
@@ -1274,7 +1334,7 @@ def cmesh5_write_file(request:request):
     # 書き出し1
     outfp = os.path.join(pathlib.Path(__file__).parent.resolve(),
                          'static/output', 
-                         form['problemName']+'.ini')
+                         'input_final.ini')
     if os.path.isfile(outfp): os.remove(outfp)
     with open(outfp, 'w') as f:
         config.write(f)
@@ -1314,7 +1374,7 @@ def test_create():
         # return to cmesh5.html     
         form = dict(request.form)
         form = construct_simulator_paths(form)
-        outfp = os.path.join('output', request.form['problemName']+'.ini')
+        outfp = os.path.join('output', 'input_final.ini')
         return render_template('cmesh5.html', form=form, downloadlink=outfp, 
                                 error_msg=error_msg if len(error_msg)>0 else None,
                                 short_msg=short_msg

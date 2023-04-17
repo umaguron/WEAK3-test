@@ -13,9 +13,12 @@ import shutil
 import copy
 import dill as pickle
 import define_logging
+import re
 # get directory name where this script is located
 import pathlib
 baseDir = pathlib.Path(__file__).parent.resolve()
+import makeGridAmeshVoro as mgav
+
 
 def main():
     ## get argument
@@ -258,8 +261,7 @@ def makeToughInput(ini:_readConfig.InputIni):
 
     ## atmosphere INCON
     if ini.atmosphere.includesAtmos: 
-        # TODO magic constantの除去
-        inc['ATM 0'].variable = ini.atmosphere.PRIMARY_AIR
+        inc[ATM_BLK_NAME(ini.mesh.convention)].variable = ini.atmosphere.PRIMARY_AIR
 
     ## manually setting INCON 
     # if 'specifies_variable_INCON' is True, 
@@ -357,9 +359,9 @@ def makeToughInput(ini:_readConfig.InputIni):
             # print(f"    x: {p_sec.xmin}m - {p_sec.xmax}m")
             # print(f"    y: {p_sec.ymin}m - {p_sec.ymax}m")
             # print(f"    z: {p_sec.zmin}m - {p_sec.zmax}m")
-            print(f"      PRIMARY: {p_sec.variables}")
-            print(f"    CONDITION: {p_sec.assigning_condition}")
-            print(f"       nCELLS: {count}")
+            print(f"    PRIMARY   : {p_sec.variables}")
+            print(f"    CONDITION : {p_sec.assigning_condition}")
+            print(f"    nCELLS    : {count}")
             
         # save INCON profiles as *.pdf
         import matplotlib.pyplot as plt
@@ -526,6 +528,177 @@ def makeToughInput(ini:_readConfig.InputIni):
                 binc = t2blockincon(variable=primary, block=blknm)
                 inc.add_incon(binc)
 
+    ## PRESSURE CELL ##
+    # initialization of the number of cells added
+    n = 0
+    # initialization of the number of rocktype added
+    m = 0
+    
+    # each fixed_p_regions_sec
+    for  i, fps in enumerate(ini.fixed_p_regions_seclist):
+
+        print(f"""
+FIXED_P_REGION {i}: {fps.secName}
+    block         : {fps.block}
+    type          : {fps.type}
+    area          : {fps.area}
+    dist_injblock : {fps.dist_injblock}
+    temperature   : {fps.temperature}
+    pressure      : {fps.pressure_str} 
+""")
+        ## single pressure cell ##
+        if fps.type == FIXED_P_REGION_TYPE_SINGLE_P_CELL:
+            # define rocktype to be assigned to added pressure block
+            rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
+            rockTypeAdded.name = f"ZZ{m:>3}"
+            # give huge specific heat to keep constant temperature
+            rockTypeAdded.specific_heat = 1e20
+            # add the rocktype for pressure blocks
+            # _readCongig内部のvalidationによりadded_p_block_permeability is not None
+            rockTypeAdded.permeability = [fps.added_p_block_permeability for _ in range(3)]
+            dat.grid.add_rocktype(rockTypeAdded)
+            m = m + 1
+
+            # get cell name to be added
+            blknmAdded = get_fixed_p_region_added_cell_name(n, ini.mesh.convention)
+            n = n + 1
+            ## create and add block for injection
+            blkAdded = \
+                t2block(name=blknmAdded, volume=HUGE_VOLUME, blockrocktype=rockTypeAdded)
+            dat.grid.add_block(blkAdded)
+
+            ## add INCON
+            # get incon from domain
+            # TODO とりあえずATMにしといた
+            kari_blk = ATM_BLK_NAME(ini.mesh.convention)
+            primary = copy.deepcopy(inc[kari_blk])
+
+            # apply same thermodynamic properies to injblock other than temperature
+            if EOS2 == II['module'].strip().lower():
+                id_p = INCON_ID_EOS2_PRES
+                id_t = INCON_ID_EOS2_TEMP
+            if ECO2N in II['module'].strip().lower():
+                id_p = INCON_ID_ECO2N_PRES
+                id_t = INCON_ID_ECO2N_TEMP
+            # P            
+            if fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_NUM:
+                primary[id_p] = fps.pressure_num
+            else:
+                # error
+                pass
+            # T
+            if fps.temperature is not None: 
+                primary[id_t] = fps.temperature 
+            else:
+                # error
+                pass
+            # COM1
+                # TODO
+            # COM2
+                # TODO
+
+            inc.add_incon(t2blockincon(variable=primary, block=blknmAdded))
+
+            ## add connection bet. inj block and actual block
+            for j, blknmInDomain in enumerate(fps.block):
+                blkInDomain = dat.grid.block[blknmInDomain] 
+                # areaはカラムの面積から取得
+                conn = t2connection(blocks=[blkInDomain, blkAdded], 
+                                    distance=fps.dist_injblock, 
+                                    area=geo.column[geo.column_name(blknmInDomain)].area if fps.area is None else fps.area[j])
+                dat.grid.add_connection(conn)
+
+
+        ## multi pressure cell ##
+        if fps.type == FIXED_P_REGION_TYPE_MULTI_P_CELL:
+            # define rocktype to be assigned to added pressure block
+            if fps.added_p_block_permeability is not None:
+                rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
+                rockTypeAdded.name = f"ZZ{m:>3}"
+                # give huge specific heat to keep constant temperature
+                rockTypeAdded.specific_heat = 1e20
+                rockTypeAdded.permeability = [fps.added_p_block_permeability for _ in range(3)]
+                # add the rocktype for pressure blocks
+                dat.grid.add_rocktype(rockTypeAdded)
+                m = m + 1
+            else:
+                # あとで接続先のブロックのrocktypeを割り当てる。
+                pass
+            
+            for j, blknmInDomain in enumerate(fps.block):
+
+                # get t2block object
+                blkInDomain: t2block = dat.grid.block[blknmInDomain] 
+
+                # define rocktype to be assigned to added pressure block
+                if fps.added_p_block_permeability is None:
+                    # 接続先のブロックと同じpermeabilityをもつ追加ブロック用rocktype("ZZxxx")の有無を確認。
+                    # check existence of rocktype of same permeability
+                    isZZrock = [bool(re.search(r'ZZ[ 0-9]{3}',type.name)) for type in dat.grid.rocktypelist]
+                    zzRockPermList =  [list(_.permeability) for _ in np.array(dat.grid.rocktypelist)[isZZrock]]
+                    if list(blkInDomain.rocktype.permeability) in zzRockPermList:
+                        # すでに作成済みの場合は、そのrocktypeをそのまま割り当てる
+                        for i, _ in enumerate(zzRockPermList):
+                            if list(blkInDomain.rocktype.permeability) == _:
+                                rockTypeAdded: rocktype = np.array(dat.grid.rocktypelist)[isZZrock][i]
+                                break
+                    else:
+                        # for case adding new rocktype
+                        rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
+                        rockTypeAdded.name = f"ZZ{m:>3}"
+                        # give huge specific heat to keep constant temperature
+                        rockTypeAdded.specific_heat = 1e20
+                        rockTypeAdded.permeability = blkInDomain.rocktype.permeability
+                        # add the rocktype for pressure blocks
+                        dat.grid.add_rocktype(rockTypeAdded)
+                        m = m + 1
+
+                ## add block for fixing pressure
+                blknmAdded = get_fixed_p_region_added_cell_name(n, ini.mesh.convention)
+                n = n + 1                
+                blkAdded = \
+                    t2block(name=blknmAdded, volume=HUGE_VOLUME, blockrocktype=rockTypeAdded)
+                dat.grid.add_block(blkAdded)
+
+                ## add connection bet. inj block and actual block
+                # areaはカラムの面積から取得
+                conn = t2connection(blocks=[blkInDomain, blkAdded], 
+                                    distance=fps.dist_injblock, 
+                                    area=geo.column[geo.column_name(blknmInDomain)].area if fps.area is None else fps.area[j])
+                
+                dat.grid.add_connection(conn)
+
+                ## add INCON
+                # get incon of blknmInDomain
+                primary = copy.deepcopy(inc[blknmInDomain])
+
+                # apply same thermodynamic properies to injblock other than temperature
+                if EOS2 == II['module'].strip().lower():
+                    id_p = INCON_ID_EOS2_PRES
+                    id_t = INCON_ID_EOS2_TEMP
+                if ECO2N in II['module'].strip().lower():
+                    id_p = INCON_ID_ECO2N_PRES
+                    id_t = INCON_ID_ECO2N_TEMP
+                # P            
+                if fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_XSTATIC:
+                    h = suf_elev_t2block(blkInDomain, geo, ini.mesh.convention) - blkInDomain.centre[2] 
+                    primary[id_p] = fps.pressure_num * G * h
+                elif fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO:
+                    primary[id_p] = fps.pressure_num * primary[id_p]
+                elif fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_NUM:
+                    primary[id_p] = fps.pressure_num
+                # T
+                if fps.temperature is not None: 
+                    primary[id_t] = fps.temperature 
+                # COM1
+                    # TODO
+                # COM2
+                    # TODO
+                inc.add_incon(t2blockincon(variable=primary, block=blknmAdded))
+
+    print(f'*** Number of cells added: {n}')
+
+
     ## BOUNDARY ##
     ## top & bottom ##
     # assign crustal heat flow & railfall on top boundary
@@ -615,8 +788,8 @@ def makeToughInput(ini:_readConfig.InputIni):
             layer_top = geo.column_surface_layer(col)
             blockname_top = geo.block_name(layer_top.name, col.name)
             # check existence of connection and then append
-            conn = (blockname_top,'ATM 0')
-            connr = ('ATM 0', blockname_top)
+            conn = (blockname_top,ATM_BLK_NAME(ini.mesh.convention))
+            connr = (ATM_BLK_NAME(ini.mesh.convention), blockname_top)
             if conn in dat.grid.connection:
                 II['history_connection'].append(conn)
             elif connr in dat.grid.connection:
@@ -685,9 +858,13 @@ def makeToughInput(ini:_readConfig.InputIni):
     ## write vtk for paraview
     # dat.grid.write_vtk(geo, os.path.join(ini.t2FileDirFp, FILENAME_GRIDVTK))
     ## write tough input file
-    dat.write('tmp')
+    TMP = os.path.join(ini.t2FileDirFp, 'tmp')
+    dat.write(TMP)
+    import time
+    # wait until file TMP created
+    while not os.path.isfile(TMP): time.sleep(1)
     # add additional keyword
-    with open('tmp', 'r') as tmp, open(ini.t2FileFp, 'w') as f, \
+    with open(TMP, 'r') as tmp, open(ini.t2FileFp, 'w') as f, \
         open(os.path.join(baseDir, 't2data_ENDCY_replace.dat'), 'r') as a:
         for line in tmp:
             if 'ENDCY' in line:
@@ -695,7 +872,7 @@ def makeToughInput(ini:_readConfig.InputIni):
                     f.write(line_add)
             else:
                 f.write(line)
-    os.remove('tmp')
+    os.remove(TMP)
     ## write incon file
     inc.write(ini.inconFp)
     ## 
@@ -784,7 +961,22 @@ def suf_elev_t2block(blk:t2block, geo: mulgrid, convention:int):
     elif convention==2:
         col_name = blk.name[2:5]
     return geo.column[col_name].surface
-    
+
+def get_fixed_p_region_added_cell_name(i:int, convention:int):
+    ## MULgraph geometry file Naming conventions (optional)
+    # 0: 3 characters for column followed by 2 digits for layer (default)
+    # 1: 3 characters for layer followed by 2 digits for column 
+    # 2: 2 characters for layer followed by 3 digits for column
+    if convention==0:
+        # 'zaa 0' - 'zzz99'
+        elem_name = mgav.col_name(17603+i//99, 0) + mgav.layer_name(i%99, 0)
+    elif convention==1:
+        # 'zaa 0' - 'zzz99'
+        elem_name = mgav.layer_name(17603+i//99, 1) + mgav.col_name(i%99, 1)
+    elif convention==2:
+        # 'a 999' - 'zz999'
+        elem_name = mgav.layer_name(1+i, 2) + mgav.col_name(999, 2)
+    return elem_name
 
 if __name__ == "__main__":
     main()
