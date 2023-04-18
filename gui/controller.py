@@ -725,7 +725,7 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
     shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
                     create_fullpath(f"gui/static/output/{IMG_LAYER_SURFACE}_{timestamp}.png"))
     show_images['layer_surface'] = \
-        {'path':f'output/{IMG_LAYER_SURFACE}_{timestamp}.png',
+        {'path':f'static/output/{IMG_LAYER_SURFACE}_{timestamp}.png',
          'caption':'IMG_LAYER_SURFACE'}
     
     show_images['slice_vertical'] = {}
@@ -735,8 +735,8 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
                         create_fullpath(f"gui/static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png"))
         show_images['slice_vertical'][f'{l}'] = \
-            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
-             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
+            {'resis_path':f'static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
+             'perm_path':f'static/output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
              'caption':repr(line)}
  
     show_images['slice_horizontal'] = {}
@@ -754,8 +754,8 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
             shutil.copy2(orginal_res, copied_res)
         
         show_images['slice_horizontal'][f'{layer}'] = \
-            {'resis_path':f'output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
-             'perm_path':f'output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+            {'resis_path':f'static/output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'perm_path':f'static/output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
              'caption':repr(layer)}
 
     logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
