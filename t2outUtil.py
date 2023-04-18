@@ -886,7 +886,7 @@ def ts_plotter(budget_dict:dict, saveDir:str, info:str, isXscaleLog, isYscaleLog
                 mpl.ticker.FuncFormatter(lambda x, pos: f"{x/10**6:,.2f} MW"))
         if 'FLOW' in variable:
             ax.yaxis.set_major_formatter(
-                mpl.ticker.FuncFormatter(lambda x, pos: f"{x:,.３f} kg/s"))
+                mpl.ticker.FuncFormatter(lambda x, pos: f"{x:,.3f} kg/s"))
                 # mpl.ticker.FuncFormatter(lambda x, pos: f"{x*3600*24:,.2f} kg/day"))
         
         if isYscaleLog: ax.set_yscale('log')
