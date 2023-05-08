@@ -134,8 +134,8 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
         if df_conn is None: 
             # skip creating fig
             return None
-        _slice_plot_flow(geo,df_conn,ini,dat,plt,line,l,timeNow,saveDir,overWrites)
-        return 
+        fn = _slice_plot_flow(geo,df_conn,ini,dat,plt,line,l,timeNow,saveDir,overWrites)
+        return os.path.join(saveDir, fn)
         
     if FLAG_NAME_RES == var_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         variable = t2o.calc_bulk_resistivity(t2o.dfCleanElem2(df_elem, ini.mesh.convention))
@@ -212,6 +212,10 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         
         # plot
         kwds['flow'] = np.array(t2o.dfCleanConn(df_conn, ini.mesh.convention)[fcn])
+        if sum(kwds['flow'])==0: 
+            # case when all of flow vector magnitude is 0
+            continue
+
         geo.slice_plot(**kwds)
         
         # save
@@ -219,7 +223,7 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         plt.savefig(fp)
         print("saved:", fp)
         plt.close()
-    return 
+    return f'{floAllColName}_{timeNow}_line{l}.pdf'
 
 
 def original_surfacemap(variable_name:str, values:list, 
