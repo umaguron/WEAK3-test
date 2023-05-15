@@ -1292,13 +1292,14 @@ def plot_spatial_flow_distribution_at_surface_COFT_radial(
         return
 
     ii = ini.toughInput
-    layer_top = geo.layerlist[1]  # get property of top layer 
     conn_list_suf = []
     xPosList = []
     areaList = []
     r_inner = 0
     if ii['prints_hc_surface']:
         for dr,col in zip(ini.mesh.rblocks,geo.columnlist):
+            # get property of top layer 
+            layer_top = geo.column_surface_layer(col)
             blockname_top = geo.block_name(layer_top.name, col.name)
             
             # name of connection
