@@ -899,7 +899,7 @@ def cmesh5_check():
         if len(msg) > 0 :
             return render_template('cmesh5.html', form=form, error_msg=msg)
 
-        outfp = os.path.join('output', 'input_final.ini')
+        outfp = os.path.join('static', 'output', 'input_final.ini')
         return render_template('cmesh5.html', 
                                 form=form,
                                 downloadlink=outfp, 
@@ -1353,8 +1353,7 @@ def test_create():
         f"controller.{sys._getframe().f_code.co_name}")
     
     if request.method == 'POST':
-        createdFp = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                    'static', 
+        createdFp = os.path.join(pathlib.Path(__file__).parent.resolve(), 
                     request.form['createdIniFp'])
         ini = _readConfig.InputIni().read_from_inifile(createdFp)
         ini.rocktypeDuplicateCheck()
@@ -1374,7 +1373,7 @@ def test_create():
         # return to cmesh5.html     
         form = dict(request.form)
         form = construct_simulator_paths(form)
-        outfp = os.path.join('output', 'input_final.ini')
+        outfp = os.path.join('static', 'output', 'input_final.ini')
         return render_template('cmesh5.html', form=form, downloadlink=outfp, 
                                 error_msg=error_msg if len(error_msg)>0 else None,
                                 short_msg=short_msg
