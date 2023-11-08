@@ -89,15 +89,15 @@ conda install matplotlib pandas numpy scipy
 コマンド
 
 ```
-python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade Pillow
+python -m pip install --upgrade pip
+python -m pip install --upgrade Pillow
 pip install vtk
 pip install flask
 pip install iapws
 pip install dill
 ```
 
-注) ライブラリを入れる前にpython3のインタープリタがanacondaのものと同一か確認したほうがよい
+注) ライブラリを入れる前にpythonのインタープリタがanacondaのものと同一か確認したほうがよい
 ```
 which pip3
 # -> anacondaが含まれるパスが表示されればたぶん大丈夫
@@ -300,7 +300,7 @@ cd ..../WEAK3
 
 ```
 # メッシュ、浸透率構造の作成
-python3 makeGridAmeshVoro.py testdata/ksv/input_ksv.ini
+python makeGrid.py testdata/ksv/input_ksv.ini
 ```
 作成されるファイル
 |||
@@ -314,7 +314,7 @@ python3 makeGridAmeshVoro.py testdata/ksv/input_ksv.ini
 |testdata/ksv/grid.geo|メッシュ定義ファイル(input_ksv.iniの[mesh]mulgridFileFpに指定されたもの)|
 ```
 # TOUGH3 インプットファイルの作成
-python3 tough3exec_ws.py testdata/ksv/input_ksv.ini
+python tough3exec_ws.py testdata/ksv/input_ksv.ini
 ```
 
 作成されるファイル
@@ -341,7 +341,7 @@ mpiexec -n 8 (tough3-eco2n_v2のフルパス) t2data.dat (outputファイル名)
 以下でも同じように実行可能
 
 ```
-python3 run.py testdata/ksv/input_ksv.ini
+python run.py testdata/ksv/input_ksv.ini
 ```
 
 出力ファイルについてはTOUGH3マニュアル参照
