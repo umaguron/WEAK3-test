@@ -13,6 +13,7 @@ import functionUtil as fu
 # import pickle
 import dill as pickle
 import define_logging
+import seed_to_voronoi
 
 vtk = os.path.join(baseDir, "mesh_with_topography.vtk")
 
@@ -126,99 +127,25 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
         f"{__name__}.{sys._getframe().f_code.co_name}")
     import os
 
-    mulgraph_no_topo_fn = os.path.join(baseDir, "mesh_no_topography.geo")
+    mulgraph_no_topo_fn = os.path.join(baseDir, FILENAME_TMP_MULGRAPH_NO_TOPO)
     
-    # clean
-    try:
-        os.remove(mulgraph_no_topo_fn) 
-        os.remove(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME))
-        os.remove(os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME))
-    except FileNotFoundError:
-        pass
+    # functionalized 2023/11/27
+    """
+    create voronoi grid and convert it to mulgraph file (no topography included)
+    """
+    if ini.amesh_voronoi.usesAmesh:
+        # use AMESH (Haukwa, 1998)
+        executesAmesh(ini, output_fp=mulgraph_no_topo_fn)
+    else:
+        # use scipy.spatial.Voronoi
+        seed_to_voronoi.seed_to_mulgraph_no_topo(
+            ini, output_fp=mulgraph_no_topo_fn, showVoronoi=True)
     
-    # TODO check files existence 
-    # - ini.amesh_voronoi.voronoi_seeds_list_fp
-    # - ini.amesh_voronoi.topodata_fp
-
-    """
-    read 2D Voronoi seed points
-    """
-    seeds = np.array(
-        pd.read_csv(ini.amesh_voronoi.voronoi_seeds_list_fp, delim_whitespace=True))
-    if ini.mesh.convention==0 and len(seeds)>945:
-        # AMESHのせいか、PyTOUGHのせいかわからないが、
-        # convention==0かつseedsが945個以上だとmulgrid().from_ameshでエラーになる。
-        # raise Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo
-        
-        # 2022/06/17追記
-        # from_ameshでエラーになるのはseedの数が原因ではなさそう。
-        # 945個以上でエラーになってもtolarを小さくするとエラーはなくなった
-        pass
-
-
-    """
-    create AMESH input file
-    """
-    elevation = ini.amesh_voronoi.elevation_top_layer
-    layer_id = 1
-    with open(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), "w") as f:
-        f.write("locat\n")
-        for i, l in enumerate(ini.amesh_voronoi.layer_thicknesses):
-            col_id = 1
-            for seed in seeds:
-                # print(elem_name(layer_id, col_id, convention))
-                f.write(f"{elem_name(layer_id, col_id, ini.mesh.convention):<5}{layer_id:>5} ")
-                f.write(f"{seed[0]:15f} {seed[1]:15f} {elevation:>10} {l:>10}\n")
-                col_id += 1
-            layer_id += 1
-            if i+1<len(ini.amesh_voronoi.layer_thicknesses) :
-                # next layer elevation = 
-                # current layer elevation - (current layer thickness + next layer thickness) / 2
-                elevation = elevation - (l+ini.amesh_voronoi.layer_thicknesses[i+1])/2
-                logger.debug(f"layer{i+1} elevation {elevation}m")
-        f.write(f"\ntoler\n{ini.amesh_voronoi.tolar}\n")
-    bottom_of_bottom_layer_elev = elevation \
-                                  - ini.amesh_voronoi.layer_thicknesses[-1]/2 
-    logger.debug(f"{bottom_of_bottom_layer_elev}")
-
-    """
-    execute prog AMESH
-    """
-    os.chdir(AMESH_DIR)
-    print("*** executing program AMESH")
-    start = time.perf_counter()
-    os.system(os.path.join(".", AMESH_PROG))
-    end = time.perf_counter()
-    print(f"    finished {end - start:10.2f}[s]")
-    os.chdir(baseDir)
-
-    # TODO check files existence 
-    # os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME)
-    # os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME)
-    # なければameshが動いていない
-
-    """
-    read AMESH output and convert to mulgraph 
-    """
-    # nodeの数の桁がcolumnの桁数(convention=2なら3)を超えるとエラーになる。
-    # MULgraphファイルのnodeの桁は3つが最大。
-    print("*** converting AMESH segmt file to mulgrid object")
-    start = time.perf_counter()
-    geo,blockmap=mulgrid().from_amesh(
-                            os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), 
-                            os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME),
-                            convention=ini.mesh.convention)
-    end = time.perf_counter()
-    print(f"    finished {end - start:10.2f}[s]")
-    # geo.layer_plot(None, column_names=True)
-    """
-    geo.slice_plot(line="x", block_names=True)
-    geo.slice_plot(line="y", block_names=True)
-    """
-    geo.set_atmosphere_type(0 if ini.atmosphere.includesAtmos else 2)
-
-    geo.write(mulgraph_no_topo_fn)
-
+    # "ini.amesh_voronoi.elevation_top_layer" is layer center elevation of the top layer
+    bottom_of_bottom_layer_elev = ini.amesh_voronoi.elevation_top_layer \
+                                + ini.amesh_voronoi.layer_thicknesses[0] \
+                                - sum(ini.amesh_voronoi.layer_thicknesses)
+    geo = mulgrid(mulgraph_no_topo_fn)
 
     """
     assign topography
@@ -287,6 +214,105 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     geo_topo.snap_columns_to_layers(min_thickness=ini.amesh_voronoi.top_layer_min_thickness)
     # you have to write mulgrid-file after doing snap_columns_to_layers()
     geo_topo.write(ini.mulgridFileFp)
+
+
+def executesAmesh(ini:_readConfig.InputIni, output_fp:str):
+    
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+    import os
+    
+    # clean
+    try:
+        os.remove(output_fp) 
+        os.remove(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME))
+        os.remove(os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME))
+    except FileNotFoundError:
+        pass
+    
+    # TODO check files existence 
+    # - ini.amesh_voronoi.voronoi_seeds_list_fp
+    # - ini.amesh_voronoi.topodata_fp
+
+    """
+    read 2D Voronoi seed points
+    """
+    seeds = np.array(
+        pd.read_csv(ini.amesh_voronoi.voronoi_seeds_list_fp, delim_whitespace=True))
+    if ini.mesh.convention==0 and len(seeds)>945:
+        # AMESHのせいか、PyTOUGHのせいかわからないが、
+        # convention==0かつseedsが945個以上だとmulgrid().from_ameshでエラーになる。
+        # raise Convention_ga_0_de_seeds_ga_945_yori_ooi_kara_amesh_de_error_ni_naruyo
+        
+        # 2022/06/17追記
+        # from_ameshでエラーになるのはseedの数が原因ではなさそう。
+        # 945個以上でエラーになってもtolarを小さくするとエラーはなくなった
+        pass
+
+    """
+    create AMESH input file
+    """
+    elevation = ini.amesh_voronoi.elevation_top_layer
+    layer_id = 1
+    with open(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), "w") as f:
+        f.write("locat\n")
+        for i, l in enumerate(ini.amesh_voronoi.layer_thicknesses):
+            col_id = 1
+            for seed in seeds:
+                # print(elem_name(layer_id, col_id, convention))
+                f.write(f"{elem_name(layer_id, col_id, ini.mesh.convention):<5}{layer_id:>5} ")
+                f.write(f"{seed[0]:15f} {seed[1]:15f} {elevation:>10} {l:>10}\n")
+                col_id += 1
+            layer_id += 1
+            if i+1<len(ini.amesh_voronoi.layer_thicknesses) :
+                # next layer elevation = 
+                # current layer elevation - (current layer thickness + next layer thickness) / 2
+                elevation = elevation - (l+ini.amesh_voronoi.layer_thicknesses[i+1])/2
+                logger.debug(f"layer{i+1} elevation {elevation}m")
+        f.write(f"\ntoler\n{ini.amesh_voronoi.tolar}\n")
+    bottom_of_bottom_layer_elev = elevation \
+                                  - ini.amesh_voronoi.layer_thicknesses[-1]/2 
+    logger.debug(f"{bottom_of_bottom_layer_elev}")
+
+    """
+    execute prog AMESH
+    """
+    os.chdir(AMESH_DIR)
+    print("*** executing program AMESH")
+    start = time.perf_counter()
+    os.system(os.path.join(".", AMESH_PROG))
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    os.chdir(baseDir)
+
+    # TODO check files existence 
+    # os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME)
+    # os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME)
+    # なければameshが動いていない
+
+    """
+    read AMESH output and convert to mulgraph 
+    """
+    # nodeの数の桁がcolumnの桁数(convention=2なら3)を超えるとエラーになる。
+    # MULgraphファイルのnodeの桁は3つが最大。
+    print("*** converting AMESH segmt file to mulgrid object")
+    start = time.perf_counter()
+    geo,blockmap=mulgrid().from_amesh(
+                            os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME), 
+                            os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME),
+                            convention=ini.mesh.convention)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+    # geo.layer_plot(None, column_names=True)
+    """
+    geo.slice_plot(line="x", block_names=True)
+    geo.slice_plot(line="y", block_names=True)
+    """
+    geo.set_atmosphere_type(0 if ini.atmosphere.includesAtmos else 2)
+
+    geo.write(output_fp)
+
 
 
 def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,

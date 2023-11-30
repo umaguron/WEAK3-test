@@ -23,6 +23,8 @@ SAVE_FILE_NAME = 'SAVE'
 OUTPUT_ELEME_CSV_FILE_NAME = 'OUTPUT_ELEME.csv'
 OUTPUT_CONNE_CSV_FILE_NAME = 'OUTPUT_CONNE.csv'
 
+FILENAME_TMP_MULGRAPH_NO_TOPO = 'mesh_no_topography.geo'
+
 # for visualization of permeability and original resistivity structures
 PICKLED_MULGRID_RES = 'mulgrid_resistivity.npy'
 PICKLED_MULGRID_PERM = 'mulgrid_permeability.npy'

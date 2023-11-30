@@ -775,7 +775,7 @@ class InputIni(object):
             Returns:
                 True or False
             """
-            # region
+            # regions
             for reg in self.regionSecList:
                 if reg.xmin <= blk.centre[0] < reg.xmax \
                         and reg.ymin <= blk.centre[1] < reg.ymax \
@@ -1061,6 +1061,11 @@ class InputIni(object):
                 self.top_layer_min_thickness = float(config['amesh_voronoi']['top_layer_min_thickness'])
             except:
                 self.top_layer_min_thickness = TOP_LAYER_MIN_THICKNESS_DEFAULT
+            if config.has_option('amesh_voronoi', 'uses_amesh'):
+                self.usesAmesh = eval(config['amesh_voronoi']['uses_amesh'])
+            else:
+                self.usesAmesh = True
+            
             return self
 
     class _Boundary(object):
