@@ -119,7 +119,7 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
                         and np.linalg.norm(vor.vertices[ridge[0]] - vor.vertices[ridge[1]]) < min_edge_length]
         
         # min_edge_length以下のエッジがいくつあるか判定
-        if len(filtered_ridges) == 0:
+        if len(filtered_ridges) == 0 and c > -1*dc:
             decreases_c = True
         else:
             decreases_c = False
@@ -272,7 +272,7 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
 
 if __name__ == '__main__':
     # test
-    ini = _readConfig.InputIni().read_from_inifile("/Users/matsunagakousei/sourceCodes/WEAK3/testdata/ksv/input_ksv.ini")
+    ini = _readConfig.InputIni().read_from_inifile("testdata/ksv/input_ksv.ini")
     output_fp = ini.mulgridFileFp+".test"
     seed_to_mulgraph_no_topo(ini, output_fp)
     geo = mulgrids.mulgrid(output_fp)
