@@ -11,6 +11,7 @@
             $('[name="layer_thicknesses"]').attr('required', false)
             $('[name="tolar"]').attr('required', false)
             $('[name="top_layer_min_thickness"]').attr('required', false)
+            $('[name="usesAmesh"]').attr('required', false)
         } else if ($('[name="createsMesh"]:checked').val()==1) {
             // create new
             $('#create_new').show(speed);
@@ -22,15 +23,29 @@
             $('[name="layer_thicknesses"]').attr('required', true)
             $('[name="tolar"]').attr('required', true)
             $('[name="top_layer_min_thickness"]').attr('required', true)
+            $('[name="usesAmesh"]').attr('required', true)
+        }
+    }
+    function voronoi_method_change_discription(speed) {
+        if ($('[name="usesAmesh"]:checked').val()=="False") {
+            $('#tolar_amesh').hide(speed);
+            $('#tolar_scipy').show(speed);
+        } else if ($('[name="usesAmesh"]:checked').val()=="True"){
+            $('#tolar_amesh').show(speed);
+            $('#tolar_scipy').hide(speed);
         }
     }
     $(document).ready(function(){
-        createmesh_form('fast')
+        createmesh_form('fast');
+        voronoi_method_change_discription('fast');
     });
     $(function () {
         $('[name="createsMesh"]').change(function(){
-            createmesh_form('fast')
-        })
+            createmesh_form('fast');
+        });
+        $('[name="usesAmesh"]').change(function(){
+            voronoi_method_change_discription('fast');
+        });
     });
 </script>
 <style>
@@ -158,10 +173,26 @@
             <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
         <br>
+        <!-- usesAmesh -->
+        <h5>Voronoi partitioning method</h5>
+        <div class="form-check">
+            <input type="radio" value="False" class="form-check-input" name="usesAmesh" {% if form.usesAmesh == "False" or not form.createsMesh %} checked {% endif %}/>
+            <label class="form-check-label" for="usesAmesh">
+                Qhull (using python library scipy.spatial.Voronoi)
+            </label>
+        </div>
+        <div class="form-check">
+            <input type="radio" value="True" class="form-check-input" name="usesAmesh" {% if form.usesAmesh == "True" %} checked {% endif %}/>
+            <label class="form-check-label" for="usesAmesh">
+                AMESH (Haukwa, 1998)
+            </label>
+        </div>
+        <br>
         <!-- tolar -->
         <div class="form-group">
             <h5>tolar</h5>
-            <p>A parameter [m] for AMESH program. "the length of the minimum interface between elements" (Hakuwa, 1998).</p>
+            <p id="tolar_amesh">A parameter [m] for AMESH program. "the length of the minimum interface between elements" (Hakuwa, 1998).</p>
+            <p id="tolar_scipy">A parameter [m] for voronoi partitioning by scipy.spatial.Voronoi. Edges smaller than this value are ignored (not generated). Note that a larger value means a less accurate mesh.</p>
             <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
             <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
