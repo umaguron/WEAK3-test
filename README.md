@@ -82,11 +82,11 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
 
      ```bash
      # 実行コマンドの例
-     python3 makeGrid.py input.ini -f   # create mesh
-     python3 tough3exec_ws.py input.ini -f   # create TOUGH3 inputs
-     python3 run.py input.ini   # run TOUGH3
-     python3 update_log.py -ini input.ini   # register the results to database 
-     python3 makeVtu.py input.ini -pl -coft -foft -suf  # creating figures from the results
+     python makeGrid.py input.ini -f   # create mesh
+     python tough3exec_ws.py input.ini -f   # create TOUGH3 inputs
+     python run.py input.ini   # run TOUGH3
+     python update_log.py -ini input.ini   # register the results to database 
+     python makeVtu.py input.ini -pl -coft -foft -suf  # creating figures from the results
      ```
 
     * 以下のスクリプトで上記コマンドを一括で実行できる
@@ -172,7 +172,7 @@ TOUGH3/TOUGH2を実行
 
 1. 仮想サーバの起動
    ```
-   python3 gui/controller.py
+   python gui/controller.py
    # 開発用サーバがデバッグモードで起動される
    ```
 
