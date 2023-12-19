@@ -133,7 +133,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     create voronoi grid and convert it to mulgraph file (no topography included)
     """
-    if ini.amesh_voronoi.usesAmesh:
+    if ini.amesh_voronoi.uses_amesh:
         # use AMESH (Haukwa, 1998)
         executesAmesh(ini, output_fp=mulgraph_no_topo_fn)
     else:
@@ -187,6 +187,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                 # if end of file, add SURFA section
                 f2.write("SURFA\n")
                 for col in geo.columnlist:
+                    col:column
                     elev = interp(col.centre)[0]
                     logger.debug(f"col:{col} elevation: {elev:.1f}")
                     if elev <= bottom_of_bottom_layer_elev + ini.amesh_voronoi.top_layer_min_thickness:
@@ -194,6 +195,23 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                                      f" than the elevation at the bottom of domain"
                                      f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
                         logger.error(f"Please add more elements in 'layer_thicknesses'.")
+                        
+                        """ visualize position of bad column with topography """
+                        import matplotlib.pyplot as plt
+                        geo.layer_plot(plt=plt, column_names=[col.name])
+                        plt.plot(col.centre[0], col.centre[1], 'ro', ms=10)
+                        x = np.linspace(-10000, 10000, 1000)
+                        y = np.linspace(-10000, 10000, 1000)
+                        X, Y = np.meshgrid(x,y)
+                        Z = interp(X,Y)
+                        plt.contour(X,Y,Z,np.arange(-5000,2500,100),colors='blue', linewidths=1)
+                        plt.contour(X,Y,Z,np.arange(-5000,2500,10),colors='blue', linewidths=0.2)
+                        # invert y axis
+                        lim = plt.ylim()    
+                        plt.ylim((lim[1],lim[0]))
+                        plt.savefig(ini.mulgridFileFp+f"_error_at_col{col}.pdf")
+                        """"""
+
                         raise SurfaceElevationLowerThanBottomLayerException(
                                     f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
                                     f" than the elevation at the bottom of domain"
@@ -558,6 +576,8 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     #         binc = t2blockincon(variable=inc[blk.name].variable, block=blknm)
     #         inc.add_incon(binc)
 
+    # TODO 海水対応。上面に海水を割り当てるからむがある場合、この段階で空気層との接続をカットしておく必要がある。
+    
 
     # write tough input file
     dat.write(ini.t2GridFp)
@@ -655,9 +675,9 @@ def visualize_vslice(ini:_readConfig.InputIni,
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
         # topo
-        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
                             colors='blue', linewidths=1, alpha=0.3)
-        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
                             colors='blue', linewidths=2, alpha=0.3)
         # plot location of profiles
         for i, line in enumerate(ini.plot.profile_lines_list):
@@ -792,9 +812,9 @@ def visualize_vslice(ini:_readConfig.InputIni,
     # topo
     geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, plt=plt, title="elevation", xlabel="Northing (m)", ylabel="Easting (m)")
     if not open_viewer:
-        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
                         colors='white', linewidths=0.5)
-        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
                         colors='white', linewidths=1)
         # symbol
         for key, tup in TOPO_MAP_SYMBOL.items():

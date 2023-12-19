@@ -52,11 +52,18 @@ echo ---- REGISTER
     echo "update_log.py  $run_time [s]" >> $t2dirfp/run_time.txt
 echo ---- PLOT 
     start=`date +%s`
-    python makeVtu.py $f -foft -coft
-    python makeVtu.py $f -plc -gifc
-    python makeVtu.py $f -incon
-    python makeVtu.py $f -suf
-    python makeVtu.py $f -sufall 10
+    echo ---- MAKE GRID
+    if [ $meshtype == REGULAR ]; then 
+        # python makeVtu.py $f -foft -coft
+        python makeVtu.py $f -pl
+        # python makeVtu.py $f -incon
+    elif [ $meshtype == A_VORO ]; then 
+        python makeVtu.py $f -foft -coft
+        python makeVtu.py $f -plc 
+        python makeVtu.py $f -incon
+        python makeVtu.py $f -suf
+        # python makeVtu.py $f -sufall 10
+    fi
     end=`date +%s`
     run_time=$((end - start))
     echo "makeVtu.py $run_time [s]" >> $t2dirfp/run_time.txt

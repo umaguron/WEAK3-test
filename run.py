@@ -7,92 +7,99 @@ from define import *
 from define_path import *
 import argparse
 import shutil
-
-parser = argparse.ArgumentParser()
-parser.add_argument("inputIni", 
-            help="fullpath of toughInput setting input.ini", type=str)
-parser.add_argument("-p","--parallel", 
-            help="overwrite existing t2data file", type=int)
-args = parser.parse_args()
-# get directory name where this script is located
 import pathlib
 baseDir = pathlib.Path(__file__).parent.resolve()
-## read inputIni ##
-_rii = _readConfig.InputIni().read_from_inifile(args.inputIni)
-II = _rii.toughInput
-if not os.path.isfile(_rii.t2FileFp):
-    print(f"TOUGH inputfile {_rii.t2FileFp} not found")
-if not os.path.isfile(_rii.configuration.COMM_EXEC):
-    print(f"TOUGH executable {_rii.configuration.COMM_EXEC} not found")
 
-if args.parallel is not None:
-    # if the number of processor at parallel execution is specified by argument
-    execParallel = True
-    nProc = args.parallel
-    print(f"PARALLEL (n_proc = {nProc})")
-if args.parallel is None:
-    # if the number of processor at parallel execution is not specified by argument
-    if _rii.solver.matslv==8:
-        # if solver type (matslv) specified in input file = 8 (PETSc solver)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputIni", 
+                help="fullpath of toughInput setting input.ini", type=str)
+    parser.add_argument("-p","--parallel", 
+                help="overwrite existing t2data file", type=int)
+    args = parser.parse_args()
+    _rii = _readConfig.InputIni().read_from_inifile(args.inputIni)
+    execute(_rii, n_process_parallel=args.parallel)
+
+def execute(ini:_readConfig.InputIni, n_process_parallel=None):
+    # get directory name where this script is located
+    ## read inputIni ##
+    II = ini.toughInput
+    if not os.path.isfile(ini.t2FileFp):
+        print(f"TOUGH inputfile {ini.t2FileFp} not found")
+    if not os.path.isfile(ini.configuration.COMM_EXEC):
+        print(f"TOUGH executable {ini.configuration.COMM_EXEC} not found")
+
+    if n_process_parallel is not None:
+        # if the number of processor at parallel execution is specified by argument
         execParallel = True
-        nProc = _rii.solver.nProc
+        nProc = n_process_parallel
         print(f"PARALLEL (n_proc = {nProc})")
-    else:
-        # solver type other than 
-        # serial
-        execParallel = False        
-        print(f"SERIAL (solver type = {_rii.solver.matslv})")
+    if n_process_parallel is None:
+        # if the number of processor at parallel execution is not specified by argument
+        if ini.solver.matslv==8:
+            # if solver type (matslv) specified in input file = 8 (PETSc solver)
+            execParallel = True
+            nProc = ini.solver.nProc
+            print(f"PARALLEL (n_proc = {nProc})")
+        else:
+            # solver type other than 
+            # serial
+            execParallel = False        
+            print(f"SERIAL (solver type = {ini.solver.matslv})")
 
-# output .petscrc for parallel execution
-if execParallel:
-    from pathlib import Path
-    try: 
-        # clean at first
-        os.remove(os.path.join(Path.home(),".petscrc"))
-    except: 
-        pass    
-    # only if PETSc solver setting found in inputIni, create new .petscrc file
-    if _rii.solver.matslv == 8 \
-        and (_rii.solver.ksp_type is not None \
-            or _rii.solver.pc_type is not None \
-            or _rii.solver.ksp_rtol is not None):
-        rc = os.path.join(_rii.t2FileDirFp,'.petscrc')
-        print(f'PETSc solver')
-        with open(rc, 'w') as f:
-            if _rii.solver.ksp_type is not None:
-                f.write(f'-ksp_type {_rii.solver.ksp_type}\n')
-                print(f'   -ksp_type {_rii.solver.ksp_type}')
-            if _rii.solver.pc_type is not None:
-                f.write(f'-pc_type {_rii.solver.pc_type}\n')
-                print(f'   -pc_type {_rii.solver.pc_type}')
-            if _rii.solver.ksp_rtol is not None:
-                f.write(f'-ksp_rtol {_rii.solver.ksp_rtol}\n')
-                print(f'   -ksp_rtol {_rii.solver.ksp_rtol}')
-        shutil.copy2(rc, Path.home())
-
-""" execute """
-os.chdir(_rii.t2FileDirFp)
-# load module
-# execute
-print(f"simulator: {_rii.toughInput['simulator']}")
-if _rii.toughInput['simulator']==SIMULATOR_NAME_T3:
+    # output .petscrc for parallel execution
     if execParallel:
-        # mode parallel
-        os.system(f"""
-        module purge
-        export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-        {MPIEXEC} -n {nProc} {_rii.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
-        """)
-    else:
-        # mode serial 
-        os.system(f"""
-        module purge
-        export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-        {_rii.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
-        """)
-if _rii.toughInput['simulator']==SIMULATOR_NAME_T2:
-    print("SERIAL")
-    os.system(f"""
-    {_rii.configuration.COMM_EXEC} < {FILENAME_T2DATA} | tee {FILENAME_TOUGH_OUTPUT}
-    """)
+        from pathlib import Path
+        try: 
+            # clean at first
+            os.remove(os.path.join(Path.home(),".petscrc"))
+        except: 
+            pass    
+        # only if PETSc solver setting found in inputIni, create new .petscrc file
+        if ini.solver.matslv == 8 \
+            and (ini.solver.ksp_type is not None \
+                or ini.solver.pc_type is not None \
+                or ini.solver.ksp_rtol is not None):
+            rc = os.path.join(ini.t2FileDirFp,'.petscrc')
+            print(f'PETSc solver')
+            with open(rc, 'w') as f:
+                if ini.solver.ksp_type is not None:
+                    f.write(f'-ksp_type {ini.solver.ksp_type}\n')
+                    print(f'   -ksp_type {ini.solver.ksp_type}')
+                if ini.solver.pc_type is not None:
+                    f.write(f'-pc_type {ini.solver.pc_type}\n')
+                    print(f'   -pc_type {ini.solver.pc_type}')
+                if ini.solver.ksp_rtol is not None:
+                    f.write(f'-ksp_rtol {ini.solver.ksp_rtol}\n')
+                    print(f'   -ksp_rtol {ini.solver.ksp_rtol}')
+            shutil.copy2(rc, Path.home())
 
+    """ execute """
+    os.chdir(ini.t2FileDirFp)
+    # load module
+    # execute
+    print(f"simulator: {ini.toughInput['simulator']}")
+    if ini.toughInput['simulator']==SIMULATOR_NAME_T3:
+        if execParallel:
+            # mode parallel
+            os.system(f"""
+            module purge
+            export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
+            {MPIEXEC} -n {nProc} {ini.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
+            """)
+        else:
+            # mode serial 
+            os.system(f"""
+            module purge
+            export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
+            {ini.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
+            """)
+    if ini.toughInput['simulator']==SIMULATOR_NAME_T2:
+        print("SERIAL")
+        os.system(f"""
+        {ini.configuration.COMM_EXEC} < {FILENAME_T2DATA} | tee {FILENAME_TOUGH_OUTPUT}
+        """)
+
+
+if __name__ == "__main__":
+    main()

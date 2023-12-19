@@ -78,66 +78,12 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
         pass
     
     """
-    read seed points list 
+    create voronoi diagram from seed points list
     """
-    with open(ini.amesh_voronoi.voronoi_seeds_list_fp, "r") as f:
-        f.readline()
-        pts = []
-        for line in f:
-            pts.append([float(i) for i in line.split()])
-
-    """
-    読み込んだ母点リストからボロノイ図を作成(scipy.spatial.Voronoi使用)
-    """
-    # 引数のqhull_optionsにはqhullのオプションが指定される。
-    # 参考) qvoronoiのオプション(補: voronoi用にオプションを制限されたqhullのエイリアス。qhull v Qccと同じ) 
-    # http://www.qhull.org/html/qvoronoi.htm#options
-    # ここではデフォルトの"Qbb Qc Qz"に加えて"Cn"を追加
-    #     Cn   - radius of centrum (roundoff added).  Merge facets if non-convex
-    #            ボロノイ領域の中心を示す点（centrum）の半径を指定します。デフォルト値は0で、
-    #            非ゼロの値を設定すると、その値がcentrumの半径となります。
-    #            要は精度を犠牲する代わりに短いエッジの生成を防ぐことができるオプション
-    # --> 試してみたら極端に短いエッジの生成を防ぐことができた
-    
-    # ridgeの最小長さを指定
-    min_edge_length = ini.amesh_voronoi.tolar
-    c = 2 # initial Cn value
-    dc = 0.1 # decriment of Cn value
-    decreases_c = True
-
-    # min_edge_length以下のエッジが生成されない限界のCn値を探す
-    while decreases_c:
-        c -= dc
-        print(f"c={c:.2f}")
-
-        ### convert seed points list to voronoi diagram with current Cn value ###
-        vor = Voronoi(pts, furthest_site=False, qhull_options=f"Qbb Qc Qz C{c:.2f}")
-        
-        # min_edge_length以下のエッジのリストを作成
-        filtered_ridges = [ridge for ridge in vor.ridge_vertices 
-                        if ridge[0] != -1 and ridge[1] != -1 
-                        and np.linalg.norm(vor.vertices[ridge[0]] - vor.vertices[ridge[1]]) < min_edge_length]
-        
-        # min_edge_length以下のエッジがいくつあるか判定
-        if len(filtered_ridges) == 0 and c > -1*dc:
-            decreases_c = True
-        else:
-            decreases_c = False
-            print(f"\nEdges smaller than minimum_edge_length:{min_edge_length}m were generated at Cn={c:.2f}:")
-            c += dc # 一つまえのcの値にもどす
-            for v in filtered_ridges:
-                print(f"vertex1: {vor.vertices[v[0]]}, vertex2: {vor.vertices[v[1]]}")
-                print("    edge length:", np.linalg.norm(vor.vertices[v[0]]-vor.vertices[v[1]]), "m")
-            print(f"\nBest qhull option Cn value found: C{c:.2f}")
-            break
-    
-    ### 改めてvoronoi図を作成 ###
-    vor = Voronoi(pts, furthest_site=False, qhull_options=f"Qbb Qc Qz C{c}")
-
-    # 確認用
-    if showVoronoi:
-        fig = voronoi_plot_2d(vor)
-        plt.show()
+    vor = creates_2d_voronoi_grid(ini.amesh_voronoi.voronoi_seeds_list_fp, 
+            min_edge_length=ini.amesh_voronoi.tolar,
+            preview_save_fp=os.path.join(os.path.dirname(ini.mulgridFileFp),"voronoi_check.png"), 
+            show_preview=False)
 
     # 補足
     # ボロノイ点（上図のオレンジ点）の座標はvertices属性で取得する。
@@ -268,6 +214,95 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
         f.write(connections)
         f.write(layerstr)
         f.write("\n\n") # end of file (空行２つ)
+
+def creates_2d_voronoi_grid(seeds_list_fp:str, min_edge_length:float, preview_save_fp:str=None, show_preview=False)->Voronoi:
+    """_summary_
+
+    Args:
+        seeds_list_fp (str): File path of seed points list
+        min_edge_length (float): Minimum edge length [m] in 2D voronoi diagram 
+        preview_save_fp (str, optional): _description_. Defaults to None.
+        show_preview (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        scipy.spatial.Voronoi: _description_
+    """
+
+    """
+    read seed points list 
+    """
+    with open(seeds_list_fp, "r") as f:
+        f.readline()
+        pts = []
+        for line in f:
+            pts.append([float(i) for i in line.split()])
+
+    """
+    読み込んだ母点リストからボロノイ図を作成(scipy.spatial.Voronoi使用)
+    """
+    # 引数のqhull_optionsにはqhullのオプションが指定される。
+    # 参考) qvoronoiのオプション(補: voronoi用にオプションを制限されたqhullのエイリアス。qhull v Qccと同じ) 
+    # http://www.qhull.org/html/qvoronoi.htm#options
+    # ここではデフォルトの"Qbb Qc Qz"に加えて"Cn"を追加
+    #     Cn   - radius of centrum (roundoff added).  Merge facets if non-convex
+    #            ボロノイ領域の中心を示す点（centrum）の半径を指定します。デフォルト値は0で、
+    #            非ゼロの値を設定すると、その値がcentrumの半径となります。
+    #            要は精度を犠牲する代わりに短いエッジの生成を防ぐことができるオプション
+    # --> 試してみたら極端に短いエッジの生成を防ぐことができた
+    
+
+    c = 2 # initial Cn value
+    dc = 0.1 # decriment of Cn value
+    decreases_c = True
+
+    # min_edge_length以下のエッジが生成されない限界のCn値を探す
+    while decreases_c:
+        c -= dc
+        print(f"c={c:.2f}")
+
+        ### convert seed points list to voronoi diagram with current Cn value ###
+        vor = Voronoi(pts, furthest_site=False, qhull_options=f"Qbb Qc Qz C{c:.2f}")
+        
+        # min_edge_length以下のエッジのリストを作成
+        filtered_ridges = [ridge for ridge in vor.ridge_vertices 
+                        if ridge[0] != -1 and ridge[1] != -1 
+                        and 0 < np.linalg.norm(vor.vertices[ridge[0]] - vor.vertices[ridge[1]]) < min_edge_length]
+        
+        # min_edge_length以下のエッジがいくつあるか判定
+        if len(filtered_ridges) == 0 and c > -1*dc:
+            decreases_c = True
+        elif c <= -1*dc:
+            decreases_c = False
+            c += dc # 一つまえのcの値にもどす
+            print(f"\nBest qhull option Cn value found: C{c:.2f}")
+            break
+        else:
+            decreases_c = False
+            print(f"\nEdges smaller than minimum_edge_length:{min_edge_length}m were generated at Cn={c:.2f}:")
+            c += dc # 一つまえのcの値にもどす
+            for v in filtered_ridges:
+                print(f"vertex1: {vor.vertices[v[0]]}, vertex2: {vor.vertices[v[1]]}")
+                print("    edge length:", np.linalg.norm(vor.vertices[v[0]]-vor.vertices[v[1]]), "m")
+            print(f"\nBest qhull option Cn value found: C{c:.2f}")
+            break
+    
+    ### 改めてvoronoi図を作成 ###
+    vor = Voronoi(pts, furthest_site=False, qhull_options=f"Qbb Qc Qz C{c}")
+
+    # 確認用
+    fig, ax = plt.subplots(figsize=(10,10))
+    fig = voronoi_plot_2d(vor, ax, show_vertices=False, point_size=1)
+    ax.set_aspect('equal')
+    ax.set_xlabel("Northing [m]")
+    ax.set_ylabel("Easting [m]")
+    ax.invert_yaxis()
+    if preview_save_fp is not None:
+        fig.savefig(preview_save_fp, dpi=150)
+    if show_preview:
+        plt.show()
+    
+    return vor
+
 
 
 if __name__ == '__main__':

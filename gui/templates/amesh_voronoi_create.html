@@ -11,7 +11,7 @@
             $('[name="layer_thicknesses"]').attr('required', false)
             $('[name="tolar"]').attr('required', false)
             $('[name="top_layer_min_thickness"]').attr('required', false)
-            $('[name="usesAmesh"]').attr('required', false)
+            $('[name="uses_amesh"]').attr('required', false)
         } else if ($('[name="createsMesh"]:checked').val()==1) {
             // create new
             $('#create_new').show(speed);
@@ -23,16 +23,22 @@
             $('[name="layer_thicknesses"]').attr('required', true)
             $('[name="tolar"]').attr('required', true)
             $('[name="top_layer_min_thickness"]').attr('required', true)
-            $('[name="usesAmesh"]').attr('required', true)
+            $('[name="uses_amesh"]').attr('required', true)
         }
     }
     function voronoi_method_change_discription(speed) {
-        if ($('[name="usesAmesh"]:checked').val()=="False") {
+        if ($('[name="uses_amesh"]:checked').val()=="False") {
             $('#tolar_amesh').hide(speed);
             $('#tolar_scipy').show(speed);
-        } else if ($('[name="usesAmesh"]:checked').val()=="True"){
+            $('#vorodisplay_btn').show(speed);
+            $('#vorodisplay_error_msg').show(speed);
+            $('#vorodisplay').show(speed);
+        } else if ($('[name="uses_amesh"]:checked').val()=="True"){
             $('#tolar_amesh').show(speed);
             $('#tolar_scipy').hide(speed);
+            $('#vorodisplay_btn').hide(speed);
+            $('#vorodisplay_error_msg').hide(speed);
+            $('#vorodisplay').hide(speed);
         }
     }
     $(document).ready(function(){
@@ -40,13 +46,104 @@
         voronoi_method_change_discription('fast');
     });
     $(function () {
-        $('[name="createsMesh"]').change(function(){
+        $('[name="createsMesh"]').on('change', function(){
             createmesh_form('fast');
         });
-        $('[name="usesAmesh"]').change(function(){
+        $('[name="uses_amesh"]').on('change', function(){
             voronoi_method_change_discription('fast');
         });
     });
+</script>
+<script>
+    /** check plot layers by using Plotly **/
+    function plot_layer(){
+        let ltstr = $('[name="layer_thicknesses"]').val();
+        let layer_thicknesses_arr;
+        // ajaxでcontroller.pyのapiを呼び出し、ltstrをeval()で評価させる
+        let rePromise = ajax('python_str_to_eval_api', data_send={key1:ltstr});
+        rePromise.then(function (data_json) {
+            $('#plot_layer_error_msg').empty();
+            $('#plot_layer_error_msg').append(data_json.error_msg);
+            layer_thicknesses_arr = data_json.eval_result;
+            
+            let data = [];
+            let lay_top = Number($('[name="elevation_top_layer"]').val())+layer_thicknesses_arr[0]/2;
+            for (let i=0;i<layer_thicknesses_arr.length;i++) {
+                // plot upperbound of the layer
+                if (i==0){line = {color: 'black', width: 5};}
+                else{line = {color: "#b55400"};}
+                data.push({y:[0,100], x:[lay_top,lay_top], mode:'lines', type:'scatter' ,line: line});
+                lay_top -= layer_thicknesses_arr[i]
+            }
+            // plot bottom of bottommost layer
+            data.push({y:[0,100], x:[lay_top,lay_top], mode:'lines', type:'scatter',
+                      line: {color: 'black', width: 5}});
+            
+            var layout = {
+                title: 'num layer: '+layer_thicknesses_arr.length.toString(),
+                showlegend: false, 
+                height: 250,
+                xaxis: {
+                    autorange: 'reversed', // x軸を反転
+                    title: 'Elevation [m]', // x軸を反転
+                },
+                yaxis: {
+                    range: [50,51], // x軸を反転
+                    tickvals: [], // x軸の目盛りの位置を空にする
+                    ticktext: []  // x軸の目盛りのテキストを空にする
+                }
+            };
+            let config = {
+                scrollZoom: true,
+            }
+            
+            var graphDiv = document.getElementById('graphDiv');
+            Plotly.react(graphDiv, data, layout, config);
+        });
+    }
+    /** voronoi test create if Voronoi partitioning method == Qhull**/
+    function voronoi_test_plot_qhull(){
+        
+        let griddef = {
+            seedfp: $('[name="voronoi_seeds_list_fp"]').val(),
+            min_edge_len: $('[name="tolar"]').val()
+        };
+        
+        // let rePromise = ajax('api_voronoi_plot_qhull', data_send=data_send);
+        let rePromise = ajax('api_voronoi_plot_qhull', data_send=griddef);
+        rePromise.then(function (data_json) {
+            $('#vorodisplay_error_msg').empty();
+            $('#vorodisplay_error_msg').append(data_json.error_msg);
+            if (data_json.img_fp) {
+                $('#vorodisplay').empty();
+                $('#vorodisplay').append('<img id="voro_img" class="img-fluid img-thumbnail" src="'+data_json.img_fp+'">');
+                // document.getElementById("voro_img").src = data_json.img_fp;
+            } 
+        });
+
+            
+    }
+
+
+    function ajax(to, data_send='') {
+        //deferredを使う
+        var d = new $.Deferred;
+        $.ajax({
+            type: 'GET',
+            url: 'http://localhost:8000/'+to,
+            data: data_send,
+            datatype: 'json',
+            crossDomain:true,
+            success: function (returned_data) {
+                //json文字列をJSONオブジェクトに変換して配列に格納する
+                var data_stringify = JSON.stringify(returned_data);
+                var data_json = JSON.parse(data_stringify);
+                //完了
+                d.resolve(data_json);
+            }
+        });
+        return d.promise();
+    }
 </script>
 <style>
     /* inputのすぐ隣に配置するメッセージ要素 */
@@ -144,48 +241,27 @@
             <input type="text" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp"/>
         </div>
         <br>
+        <br>
+        <!-- uses_amesh -->
+        <h5>Voronoi partitioning method</h5>
+        <div class="form-check">
+            <input type="radio" value="False" class="form-check-input" name="uses_amesh" {% if form.uses_amesh == "False" or not form.createsMesh %} checked {% endif %}/>
+            <label class="form-check-label" for="uses_amesh">
+                Qhull (using python library scipy.spatial.Voronoi)
+            </label>
+        </div>
+        <div class="form-check">
+            <input type="radio" value="True" class="form-check-input" name="uses_amesh" {% if form.uses_amesh == "True" %} checked {% endif %}/>
+            <label class="form-check-label" for="uses_amesh">
+                AMESH (Haukwa, 1998)
+            </label>
+        </div>
+        <br>
         <!-- seed list -->
         <div class="form-group">
             <h5>voronoi_seeds_list_fp</h5>
             <p>File path of the "seed" data required for 2D Voronoi tessellation. Can be created from <a href="/static/makeVoroSeedsList2.html" target="_blank"><b>here</b></a>. The file location can be anywhere under the project root.</p>
             <input type="text" value="{{ form.voronoi_seeds_list_fp }}" class="form-control" name="voronoi_seeds_list_fp"/>
-        </div>
-        <br>
-        <!-- elevation_top_layer -->
-        <div class="form-group">
-            <h5>elevation_top_layer</h5>
-            <p>Enter an elevation value [m] higher than the highest point in the calculation area.</p>
-            <input type="text" value="{{ form.elevation_top_layer }}" class="form-control" name="elevation_top_layer"/>
-        </div>
-        <br>
-        <!-- layer_thicknesses -->
-        <div class="form-group">
-            <h5>layer_thicknesses </h5>
-            <p>An array [xx, yy, ...] (in any format that python can interpret as a list) defining the thickness [m] of each layer. Values must be ordered from the top layer.</p>
-            <input type="text" value="{{ form.layer_thicknesses }}" class="form-control" name="layer_thicknesses"/>
-        </div>
-        <br>
-        <!-- top_layer_min_thickness -->
-        <div class="form-group">
-            <h5>top_layer_min_thickness</h5>
-            <p>Minimum thickness [m] of the uppermost block after topography is created.</p>
-            <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
-            <div class="invalid-msg">{{TITLE['float']}}</div>
-        </div>
-        <br>
-        <!-- usesAmesh -->
-        <h5>Voronoi partitioning method</h5>
-        <div class="form-check">
-            <input type="radio" value="False" class="form-check-input" name="usesAmesh" {% if form.usesAmesh == "False" or not form.createsMesh %} checked {% endif %}/>
-            <label class="form-check-label" for="usesAmesh">
-                Qhull (using python library scipy.spatial.Voronoi)
-            </label>
-        </div>
-        <div class="form-check">
-            <input type="radio" value="True" class="form-check-input" name="usesAmesh" {% if form.usesAmesh == "True" %} checked {% endif %}/>
-            <label class="form-check-label" for="usesAmesh">
-                AMESH (Haukwa, 1998)
-            </label>
         </div>
         <br>
         <!-- tolar -->
@@ -197,9 +273,48 @@
             <div class="invalid-msg">{{TITLE['float']}}</div>
         </div>
         <br>
+        <div class="form-group">
+            <input type="button" id="vorodisplay_btn" value="check plot" class="btn btn-outline-primary" onclick="voronoi_test_plot_qhull();">
+            <div id="vorodisplay_error_msg" style="color:red"></div>
+            <div id="vorodisplay"></div>
+        </div>
+        <br>
+        <br>
+        <!-- elevation_top_layer -->
+        <div class="form-group">
+            <h5>elevation_top_layer</h5>
+            <p>Enter an elevation value [m] higher than the highest point in the calculation area.</p>
+            <input type="text" value="{{ form.elevation_top_layer }}" class="form-control" name="elevation_top_layer"pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
+            <div class="invalid-msg">{{TITLE['float']}}</div>
+        </div>
+        <br>
+        <!-- layer_thicknesses -->
+        <div class="form-group">
+            <h5>layer_thicknesses </h5>
+            <p>An array [xx, yy, ...] (in any format that python can interpret as a list) defining the thickness [m] of each layer. Values must be ordered from the top layer.</p>
+            <div class="input-group">
+                <input type="text" value="{{ form.layer_thicknesses }}" class="form-control" name="layer_thicknesses"/>
+                <div class="input-group-append">
+                    <input type="button" value="check" class="btn btn-outline-primary" onclick="plot_layer();">
+                </div>
+              </div>
+        </div>
+        <div id="plot_layer_error_msg" style="color:red"></div>
+        <div id="graphDiv"></div>
+        <br>
+        <!-- top_layer_min_thickness -->
+        <div class="form-group">
+            <h5>top_layer_min_thickness</h5>
+            <p>Minimum thickness [m] of the uppermost block after topography is created.</p>
+            <input type="text" {% if form.top_layer_min_thickness %} value="{{ form.top_layer_min_thickness }}" {% else %} value="5" {% endif %}  class="form-control" name="top_layer_min_thickness" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
+            <div class="invalid-msg">{{TITLE['float']}}</div>
+        </div>
+        <br>
     </div>
     <br>
     <div class="col">
-        <input type="submit" class="btn btn-primary" value="Create or check">
+        {% if not created %}
+        <input type="submit" id="create_or_check" class="btn btn-primary" value="Create or check">
+        {% endif %}
     </div>
 </form>

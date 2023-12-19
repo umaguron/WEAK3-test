@@ -32,15 +32,22 @@ baseDir = pathlib.Path(__file__).parent.resolve()
 ini = _readConfig.InputIni().read_from_inifile(args.inputIni)
 
 if ini.mesh.type == REGULAR:
-    
+
     if os.path.isfile(ini.t2GridFp) and not args.force_overwrite_all:
         print(f"t2Grid file : {ini.t2GridFp} exists")
         sys.exit(f"    add option -fa to force overwrite")
 
-    makeGridFunc.makeGridRegular(ini, 
-                                overWrites=args.force_overwrite_all, 
-                                showsProfiles=args.open_viewer)
-
+    if ini.mesh.incorporatesCone:
+        # 2-D radial grid with edifice
+        makeGridFunc.makeGrid2dRadialEdifice(ini, 
+                                        overWrites=args.force_overwrite_all, 
+                                        showsProfiles=args.open_viewer)
+    else:
+        # 3-D rectilinear OR 2-D radial grid (with no edifice)
+        makeGridFunc.makeGridRegular(ini, 
+                                        overWrites=args.force_overwrite_all, 
+                                        showsProfiles=args.open_viewer)
+    
 elif ini.mesh.type == AMESH_VORONOI:
     ini.rocktypeDuplicateCheck()
     # create save dir. 
@@ -58,3 +65,8 @@ elif ini.mesh.type == AMESH_VORONOI:
                                 open_viewer=args.open_viewer,
                                 plot_all_layers=args.plot_all_layers,
                                 layer_no_to_plot=args.layer)
+
+try: 
+    shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+except shutil.SameFileError:
+    pass

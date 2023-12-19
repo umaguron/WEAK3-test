@@ -40,7 +40,9 @@ def main():
         sys.exit()
     
     # main
+    print("---- INTO makeToughInput() ----")
     makeToughInput(ini)
+    print("---- END makeToughInput() ----")
     
 
 def makeToughInput(ini:_readConfig.InputIni):
@@ -77,11 +79,12 @@ def makeToughInput(ini:_readConfig.InputIni):
         dat.grid = t2grid().fromgeo(geo)
 
     ## ROCKS ##
+    print("*** ROCKS")
     # define the rocktype for injection blocks
     inj = copy.deepcopy(dat.grid.rocktype['dfalt'])
     # give huge specific heat to keep constant temperature
     inj.name = "INJCT"
-    inj.specific_heat = 1e20
+    inj.specific_heat = HUGE_SPECIFIC_HEAT
     # add the rocktype for injection blocks
     dat.grid.add_rocktype(inj)
 
@@ -127,6 +130,7 @@ def makeToughInput(ini:_readConfig.InputIni):
     """        
 
     ## MULTI ## 
+    print("*** MULTI")
     dat.multi = {
         'num_components': II['num_components'],
         'num_equations': II['num_equations'],
@@ -142,6 +146,7 @@ def makeToughInput(ini:_readConfig.InputIni):
 
 
     ## PARAM ##
+    print("*** PARAM")
     params = {'max_iterations','print_level','max_timesteps','max_duration',
             'print_interval', 'texp','be','tstart','tstop','const_timestep',
             'max_timestep','print_block','gravity','timestep_reduction',
@@ -181,7 +186,8 @@ def makeToughInput(ini:_readConfig.InputIni):
     # dat.parameter['print_block'] = ''
 
     ## INCON ##
-    inc = None
+    print("*** INCON")
+    inc:t2incon = None
 
     # prepare
     if EOS2 == II['module'].strip().lower():
@@ -195,7 +201,13 @@ def makeToughInput(ini:_readConfig.InputIni):
     if ECO2N in II['module'].strip().lower():
         ID_P = INCON_ID_ECO2N_PRES
         ID_T = INCON_ID_ECO2N_TEMP
+        ID_XSAL = INCON_ID_ECO2N_XSAL
         ID_Xs = [INCON_ID_ECO2N_XSAL, INCON_ID_ECO2N_XCO2]
+    if EWASG in II['module'].strip().lower():
+        ID_P = INCON_ID_EWASG_PRES
+        ID_T = INCON_ID_EWASG_TEMP
+        ID_XSAL = INCON_ID_EWASG_XSAL
+        ID_Xs = [INCON_ID_EWASG_XSAL, INCON_ID_EWASG_XNCG]
     G = II['gravity'] if 'gravity' in II else GRAV_ACCEL
     
     if II['use_1d_result_as_incon'] and len(II['problemNamePreviousRun']) == 0:
@@ -213,11 +225,11 @@ def makeToughInput(ini:_readConfig.InputIni):
             else:
                 
                 if ini.toughInput['water_table_elevation'] is None:
-                    if ini.mesh.type == AMESH_VORONOI:
-                        h = suf_elev_t2block(blk, geo, ini.mesh.convention) - blk.centre[2] \
-                                if blk.centre is not None else 0.
-                    elif ini.mesh.type == REGULAR:
-                        h = -blk.centre[2] if blk.centre is not None else 0.
+                    # if ini.mesh.type == AMESH_VORONOI:
+                    h = suf_elev_t2block(blk, geo, ini.mesh.convention) - blk.centre[2] \
+                            if blk.centre is not None else 0.
+                    # elif ini.mesh.type == REGULAR:
+                    #     h = -blk.centre[2] if blk.centre is not None else 0.
 
                     P = ini.atmosphere.PRIMARY_AIR[ID_P] + WATER_DENSITY * G * h
                     T = ini.atmosphere.PRIMARY_AIR[ID_T] + II['initial_t_grad'] / 1000 * h
@@ -382,6 +394,7 @@ def makeToughInput(ini:_readConfig.InputIni):
         print("[tough3exec] VARIABLE_INCON - finished\n")
 
     ## GENER ##
+    print("***")
     gener_conn = [] # for COFT setting
     for i, secGener in enumerate(ini.generSecList):
         """
@@ -472,12 +485,7 @@ def makeToughInput(ini:_readConfig.InputIni):
             # get incon of blockAdjacentInj
             primary = copy.deepcopy(inc[secGener.block[0]])
             # apply same thermodynamic properies to injblock other than temperature
-            if EOS2 == II['module'].strip().lower(): 
-                primary[INCON_ID_EOS2_TEMP] = secGener.temperature
-            elif EOS3 == II['module'].strip().lower(): 
-                primary[INCON_ID_EOS3_TEMP] = secGener.temperature
-            elif ECO2N in II['module'].strip().lower(): 
-                primary[INCON_ID_ECO2N_TEMP] = secGener.temperature
+            primary[ID_T] = secGener.temperature
             binc = t2blockincon(variable=primary, block=blknm)
             inc.add_incon(binc)
 
@@ -521,10 +529,8 @@ def makeToughInput(ini:_readConfig.InputIni):
                 # get incon of blockAdjacentInj
                 primary = copy.deepcopy(inc[secGener.block[j]])
                 # apply same thermodynamic properies to injblock other than temperature
-                if EOS2 == II['module'].strip().lower(): 
-                    primary[INCON_ID_EOS2_TEMP] = secGener.temperature
-                elif ECO2N in II['module'].strip().lower(): 
-                    primary[INCON_ID_ECO2N_TEMP] = secGener.temperature
+                primary[ID_T] = secGener.temperature
+
                 binc = t2blockincon(variable=primary, block=blknm)
                 inc.add_incon(binc)
 
@@ -536,8 +542,9 @@ def makeToughInput(ini:_readConfig.InputIni):
     
     # each fixed_p_regions_sec
     for  i, fps in enumerate(ini.fixed_p_regions_seclist):
+        fps:_readConfig.InputIni._fixedP_RegionSec
 
-        print(f"""
+        print(f"""***
 FIXED_P_REGION {i}: {fps.secName}
     block         : {fps.block}
     type          : {fps.type}
@@ -574,21 +581,15 @@ FIXED_P_REGION {i}: {fps.secName}
             primary = copy.deepcopy(inc[kari_blk])
 
             # apply same thermodynamic properies to injblock other than temperature
-            if EOS2 == II['module'].strip().lower():
-                id_p = INCON_ID_EOS2_PRES
-                id_t = INCON_ID_EOS2_TEMP
-            if ECO2N in II['module'].strip().lower():
-                id_p = INCON_ID_ECO2N_PRES
-                id_t = INCON_ID_ECO2N_TEMP
             # P            
             if fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_NUM:
-                primary[id_p] = fps.pressure_num
+                primary[ID_P] = fps.pressure_num
             else:
                 # error
                 pass
             # T
             if fps.temperature is not None: 
-                primary[id_t] = fps.temperature 
+                primary[ID_T] = fps.temperature 
             else:
                 # error
                 pass
@@ -611,6 +612,24 @@ FIXED_P_REGION {i}: {fps.secName}
 
         ## multi pressure cell ##
         if fps.type == FIXED_P_REGION_TYPE_MULTI_P_CELL:
+            
+            ## define new rocktypes to be assigned to added pressure block
+            ## add new blocks for fixing pressure  
+            ## add new connection bet. the block and actual block in the domain
+            m, n, list_blknmAdded, list_blknmInDomain = \
+                    add_multiple_source_blks(dat=dat, geo=geo,
+                                             n_added_rocktype_counter=m,
+                                             n_added_blocks_counter=n,
+                                             blocks=fps.block, 
+                                             convention=ini.mesh.convention,
+                                             dist_injblocks=fps.dist_injblock,
+                                             # assume infiltration occurs along z direction
+                                             direction=3,
+                                             # put block-in-domain above block-added
+                                             dircos=1,
+                                             added_block_permeability = fps.added_p_block_permeability,
+                                             area = fps.area)
+            """ 関数化 2023/12
             # define rocktype to be assigned to added pressure block
             if fps.added_p_block_permeability is not None:
                 rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
@@ -667,39 +686,122 @@ FIXED_P_REGION {i}: {fps.secName}
                                     area=geo.column[geo.column_name(blknmInDomain)].area if fps.area is None else fps.area[j])
                 
                 dat.grid.add_connection(conn)
-
-                ## add INCON
-                # get incon of blknmInDomain
+                """
+            
+            ## add INCON
+            # get incon of blknmInDomain
+            for j, (blknmAdded, blknmInDomain) in enumerate(zip(list_blknmAdded, list_blknmInDomain)):
+                
+                # get t2block object
+                blkInDomain: t2block = dat.grid.block[blknmInDomain] 
+                
                 primary = copy.deepcopy(inc[blknmInDomain])
 
                 # apply same thermodynamic properies to injblock other than temperature
-                if EOS2 == II['module'].strip().lower():
-                    id_p = INCON_ID_EOS2_PRES
-                    id_t = INCON_ID_EOS2_TEMP
-                if ECO2N in II['module'].strip().lower():
-                    id_p = INCON_ID_ECO2N_PRES
-                    id_t = INCON_ID_ECO2N_TEMP
                 # P            
                 if fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_XSTATIC:
                     h = suf_elev_t2block(blkInDomain, geo, ini.mesh.convention) - blkInDomain.centre[2] 
-                    primary[id_p] = fps.pressure_num * G * h
+                    primary[ID_P] = fps.pressure_num * G * h
                 elif fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_OVER_P_RATIO:
-                    primary[id_p] = fps.pressure_num * primary[id_p]
+                    primary[ID_P] = fps.pressure_num * primary[ID_P]
                 elif fps.pressure_type == FIXED_P_REGION_PRESS_TYPE_NUM:
-                    primary[id_p] = fps.pressure_num
+                    primary[ID_P] = fps.pressure_num
                 # T
                 if fps.temperature is not None: 
-                    primary[id_t] = fps.temperature 
+                    primary[ID_T] = fps.temperature 
                 # COM1
                     # TODO
                 # COM2
                     # TODO
                 inc.add_incon(t2blockincon(variable=primary, block=blknmAdded))
 
-    print(f'*** Number of cells added: {n}')
+        print(f'    Number of cells added: {n}')
 
+    ## SEAFLOOR ##
+    # this section valid only module=eco2n_v2
+    if hasattr(ini, 'sea') and (
+            ECO2N in II['module'].strip().lower() or \
+            EWASG in II['module'].strip().lower()):
+
+        print(f"*** SEAFLOOR")
+        
+        ## in use
+        n # the number of cells added
+        m # the number of rocktype added
+        inc # t2incon object
+
+        
+        ## import sea water property
+        import seawater_property 
+
+        ## Extract the blocks that comprise the seafloor
+        seafloorBlks = []
+        for col in geo.columnlist:
+            col:column
+            if col.surface < ini.sea.sea_level: # surface elevation
+                layer_top = geo.column_surface_layer(col)
+                blockname_top = geo.block_name(layer_top.name, col.name)
+                seafloorBlks.append(blockname_top)
+                
+                # この処理はmakeGridFuncにも実装したのでなくてもいい
+                # If the block has a connection to ATM-blk, kill that connection.
+                atmconn = (blockname_top, geo.block_name(geo.layerlist[0].name,geo.atmosphere_column_name))
+                if atmconn in dat.grid.connection:
+                    dat.grid.delete_connection(atmconn)
+                    logger.info(f"connection killed: {atmconn}")
+                elif (atmconn[1], atmconn[0]) in dat.grid.connection:
+                    dat.grid.delete_connection((atmconn[1], atmconn[0]))
+                    logger.info(f"connection killed: {(atmconn[1], atmconn[0])}")
+        
+        ## define new rocktypes to be assigned to added pressure block
+        ## add new blocks for fixing pressure  
+        ## add new connection bet. the block and actual block in the domain
+        m, n, list_blknmAdded, list_blknmInDomain = \
+                add_multiple_source_blks(dat=dat, geo=geo,
+                                         n_added_rocktype_counter=m,
+                                         n_added_blocks_counter=n,
+                                         blocks=seafloorBlks, 
+                                         convention=ini.mesh.convention,
+                                         dist_injblocks=[None, ini.sea.closeness_to_seawater_blk],
+                                         # assume seawater infiltration occurs along z direction
+                                         direction=3,
+                                         # put seawater-block above block-in-domain
+                                         dircos=-1,
+                                         added_block_permeability = None,
+                                         area = None)
+
+        ## add INCON
+        # get incon of blknmInDomain
+        for j, (blknmAdded, blknmInDomain) in enumerate(zip(list_blknmAdded, list_blknmInDomain)):
+            
+            # get t2block object
+            blkInDomain: t2block = dat.grid.block[blknmInDomain] 
+            
+            primary = copy.deepcopy(inc[blknmInDomain])
+
+            # apply same thermodynamic properies to seawater blk
+            # seafloor depth
+            h = ini.sea.sea_level - suf_elev_t2block(blkInDomain, geo, ini.mesh.convention) 
+            # set P            
+            primary[ID_P] = seawater_property.FUNC_SEA_PRESSURE(h)
+            # set T
+            primary[ID_T] = seawater_property.FUNC_SEA_TEMP(h)
+            # set COM1
+            primary[ID_XSAL] = seawater_property.FUNC_SEA_SALINITY(h)/1000
+            # set other COMx
+            if ECO2N in II['module'].strip().lower():
+                primary[INCON_ID_ECO2N_XCO2] = ini.sea.primary_xcom
+            if EWASG in II['module'].strip().lower():
+                primary[INCON_ID_EWASG_XNCG] = ini.sea.primary_xcom
+            
+            inc.add_incon(t2blockincon(variable=primary, block=blknmAdded))
+
+        print(f"    SEA LEVEL                   : {ini.sea.sea_level} m")
+        print(f"    THE NUMBER OF SEAFLOOR BLOCK: {len(seafloorBlks)}")
+    
 
     ## BOUNDARY ##
+    print("*** BOUNDARY")
     ## top & bottom ##
     # assign crustal heat flow & railfall on top boundary
     # & focus heat flow
@@ -725,7 +827,9 @@ FIXED_P_REGION {i}: {fps.secName}
                 crust_hf = t2generator(name = blockname_bot, block = blockname_bot, 
                             type = 'HEAT', gx = gx_bot) 
                 dat.add_generator(crust_hf)
-            if II['rainfallAnnual_mm'] > 0:
+            if II['rainfallAnnual_mm'] > 0 and \
+                    not (hasattr(ini, 'sea') and ini.sea.sea_level > col.surface):
+                # seafloorには割り当てない
                 gx_top = II['rainfallAnnual_mm']/365.25/24/3600*area # gx : kg/s
                 rain_entalpy = II['T_rain'] * 4.217 * 1000 # J/kg
                 crust_rain = \
@@ -776,6 +880,7 @@ FIXED_P_REGION {i}: {fps.secName}
     A list property containing blocks 
     for which time history output is required
     """
+    print("*** FOFT")
     if len(II['history_block'])==0:
         # add the first block to it manualy 
         # since at least one FOFT*.csv file is required in the visualization stage.
@@ -783,6 +888,7 @@ FIXED_P_REGION {i}: {fps.secName}
     else:
         dat.history_block = II['history_block']
     ## COFT ##
+    print("*** COFT")
     if II['prints_hc_surface']:
         for col in geo.columnlist:
             layer_top = geo.column_surface_layer(col)
@@ -800,6 +906,7 @@ FIXED_P_REGION {i}: {fps.secName}
     dat.history_connection = II['history_connection']
 
     ## TIME ##
+    print("*** TIME")
     if II['setTimes']:
         dat.output_times['max_timestep'] = II['max_timestep_TIMES']
         dat.output_times['num_times_specified'] = II['num_times_specified']
@@ -808,14 +915,15 @@ FIXED_P_REGION {i}: {fps.secName}
         dat.output_times['time_increment'] = II['time_increment']
 
     ## SELEC ##
-    if ECO2N in II['module'].strip().lower():
+    print("*** SELEC")
+    if ECO2N in II['module'].strip().lower() or EWASG == II['module'].strip().lower():
         dat.selection['integer'] = II['selection_line1']
         dat.selection['float'] = II['selection_line2']
         # copy co2tab
         shutil.copy(os.path.join(baseDir,'tables/CO2TAB'), ini.t2FileDirFp)
 
     ## SOLVR ##
-    print("SOLVR")
+    print("*** SOLVR")
     dat.solver['type'] = ini.solver.matslv
     if ini.solver.matslv == 8:
         print(f'PETSc solver')
@@ -946,12 +1054,148 @@ def create_incon_from_1d_result(ini1d:_readConfig.InputIni,
                             interpFuncs[INCON_ID_ECO2N_PRES](-1*depth)
                         incNow[blkname].variable[INCON_ID_ECO2N_TEMP] = \
                             interpFuncs[INCON_ID_ECO2N_TEMP](-1*depth)
+                    elif  EWASG in iniNow.toughInput['module'].strip().lower():
+                        incNow[blkname].variable[INCON_ID_EWASG_PRES] = \
+                            interpFuncs[INCON_ID_EWASG_PRES](-1*depth)
+                        incNow[blkname].variable[INCON_ID_EWASG_TEMP] = \
+                            interpFuncs[INCON_ID_EWASG_TEMP](-1*depth)
                 except ValueError as x:
                     print(f"!!!!![ERROR] The depth value was probably beyond the interpolatable range.")
                     print(f"!!!!![ERROR] col:{col.name} layer:{lay.name} depth:{depth}m ")
                     raise x
 
     incNow.write(iniNow.inconFp)
+
+def add_multiple_source_blks(dat:t2data, 
+                             geo:mulgrid,
+                             n_added_rocktype_counter:int, 
+                             n_added_blocks_counter:int, 
+                             blocks:list, 
+                             convention:int, 
+                             dist_injblocks:list,
+                             direction:int=3, 
+                             # put 1st-elem above 2nd-elem (i.e. put block-in-domain above block-added)
+                             dircos:float=1,
+                             added_block_permeability:float=None, 
+                             area:list=None):
+    """_summary_
+
+    Args:
+        dat (t2data): _description_
+        geo (mulgrid): _description_
+        n_added_rocktype_counter (int): _description_
+        n_added_blocks_counter (int): _description_
+        blocks (list): _description_
+        convention (int): _description_
+        dist_injblocks (list): [dist(block-in-domain), dist(block-added)]
+            If direction==3, 'None' can be specified for dist_injblocks[0]. 
+            In that case, half the width of the corresponding block is used instead.
+            You must not specify 'None' for dist_injblocks[1].
+        direction (int):  x->1, y->2, z->3. Defaults to 3.
+        dircos (float): Defaults to 1.
+            Cosine of the angle between the vector from the 1st-elem to the 2nd-elem and the gravitational acceleration vector
+            If direction==3, dircos=1 means put block-in-domain above block-added.
+        added_block_permeability (float, optional): _description_. Defaults to None.
+        area (list, optional): _description_. Defaults to None.
+
+    Returns:
+        int, int, list, list: 
+            updated n_added_rocktype_counter, 
+            updated n_added_blocks_counter, 
+            added blk list and corresponding in-domain block list
+    """
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+    
+    ## define rocktype to be assigned to added pressure block (1)
+    if added_block_permeability is not None:
+        # (case 1 permeability is specified)
+        rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
+        rockTypeAdded.name = f"ZZ{n_added_rocktype_counter:>3}"
+        # give huge specific heat to keep constant temperature
+        rockTypeAdded.specific_heat = 1e20
+        rockTypeAdded.permeability = [added_block_permeability for _ in range(3)]
+        # add the rocktype for pressure blocks
+        dat.grid.add_rocktype(rockTypeAdded)
+        n_added_rocktype_counter += 1
+    else:
+        # (case 2 permeability is "not" specified) --> (**)
+        pass # 以下の forブロックの中でやる
+    
+    list_blknmAdded = []
+    list_blknmInDomain = []
+
+    for j, blknmInDomain in enumerate(blocks):
+
+        # get t2block object
+        blkInDomain: t2block = dat.grid.block[blknmInDomain] 
+
+        ## define rocktype to be assigned to added pressure block (2) 
+        if added_block_permeability is None:
+            # (**) --> (case 2 permeability is "not" specified)
+            # 現在のブロックと同じpermeabilityをもつ、追加済みrocktype("ZZxxx")の有無を確認。
+            # (追加する岩石タイプを最小限にするため)
+            # check existence of rocktype of same permeability
+            isZZrock = [bool(re.search(r'ZZ[ 0-9]{3}',type.name)) for type in dat.grid.rocktypelist]
+            zzRockPermList =  [list(_.permeability) for _ in np.array(dat.grid.rocktypelist)[isZZrock]]
+            if list(blkInDomain.rocktype.permeability) in zzRockPermList:
+                # すでに同じpermの岩石タイプ"ZZxxx"が追加されている場合は、そのrocktypeをそのまま現在のブロックに割り当てる
+                for i, _ in enumerate(zzRockPermList):
+                    if list(blkInDomain.rocktype.permeability) == _:
+                        rockTypeAdded: rocktype = np.array(dat.grid.rocktypelist)[isZZrock][i]
+                        break
+            else:
+                # 現在のブロックと同じpermの岩石タイプがまだ追加されていない場合は、岩石タイプを新規追加する。
+                # for case adding new rocktype
+                rockTypeAdded: rocktype = copy.deepcopy(dat.grid.rocktype['dfalt'])
+                rockTypeAdded.name = f"ZZ{n_added_rocktype_counter:>3}"
+                # give huge specific heat to keep constant temperature
+                rockTypeAdded.specific_heat = HUGE_SPECIFIC_HEAT
+                rockTypeAdded.permeability = blkInDomain.rocktype.permeability
+                # add the rocktype for pressure blocks
+                dat.grid.add_rocktype(rockTypeAdded)
+                n_added_rocktype_counter += 1
+
+        ## add block for fixing pressure and temperature
+        blknmAdded = get_fixed_p_region_added_cell_name(n_added_blocks_counter, convention)
+        n_added_blocks_counter += 1                
+        blkAdded = \
+            t2block(name=blknmAdded, volume=HUGE_VOLUME, blockrocktype=rockTypeAdded)
+        dat.grid.add_block(blkAdded)
+
+        # for returning values
+        list_blknmAdded.append(blknmAdded)
+        list_blknmInDomain.append(blknmInDomain)
+
+        ## add connection bet. inj block and actual block
+        # calc distance in connection if required
+        if direction==3 and dist_injblocks[0] is None:
+            lay = geo.layer[geo.layer_name(blknmInDomain)]
+            col = geo.column[geo.column_name(blknmInDomain)]
+            if col.surface > lay.top:
+                # other blocks
+                dist_injblocks[0] = lay.thickness/2
+            else:
+                # surface block
+                dist_injblocks[0] = (col.surface - lay.bottom)/2
+        
+        if None in dist_injblocks:
+            logger.error(f"if direction=={direction}, 'None' cannot be included in dist_injblocks")
+            raise Exception("argument error in tough3_exec_ws.added_block_permeability()")
+
+        logger.info(f"CONNE distance: {blkInDomain, blkAdded}:{dist_injblocks}")
+
+        # areaはカラムの面積から取得
+        conn = t2connection(blocks=[blkInDomain, blkAdded], 
+                            distance=dist_injblocks, 
+                            direction=direction,
+                            dircos=dircos,
+                            area=geo.column[geo.column_name(blknmInDomain)].area if area is None else area[j])
+        dat.grid.add_connection(conn)
+
+    return n_added_rocktype_counter, n_added_blocks_counter, list_blknmAdded, list_blknmInDomain
+
 
 def suf_elev_t2block(blk:t2block, geo: mulgrid, convention:int):
     if convention==0:

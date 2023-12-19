@@ -215,7 +215,7 @@ def cmesh2_check():
             inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config)
             inputIni.mesh.convention = int(request.form['convention'])
             inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
-            inputIni.amesh_voronoi.usesAmesh = eval(request.form['usesAmesh'])
+            inputIni.amesh_voronoi.uses_amesh = eval(request.form['uses_amesh'])
 
             # create mesh file
             makeGridAmeshVoro.create_mulgrid_with_topo(inputIni)
