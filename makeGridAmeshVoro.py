@@ -364,6 +364,10 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     if ini.mesh.type != AMESH_VORONOI:
         sys.exit()
 
+    """create dir"""
+    if not os.path.isdir(ini.t2FileDirFp):
+        os.makedirs(ini.t2FileDirFp, exist_ok=True)
+
     """
     if mulgraph_with_topo_fn does not exist, 
     create it from seed points list using AMESH prog
@@ -371,9 +375,9 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     if not os.path.isfile(ini.mulgridFileFp)\
             or force_overwrite_all:
         create_mulgrid_with_topo(ini)
-    elif not os.path.isfile(ini.mulgridFileFp):
-        print(f"mulgridFileFp not found: {ini.mulgridFileFp}")
-        raise Exception(f"mulgridFileFp not found: {ini.mulgridFileFp}")
+    if not os.path.isfile(ini.mulgridFileFp):
+        print(f"mulgridFileFp not created: {ini.mulgridFileFp}")
+        raise Exception(f"mulgridFileFp not created: {ini.mulgridFileFp}")
 
     """
     read mulgraph file that includes topo
