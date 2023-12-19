@@ -25,8 +25,8 @@ class TestInputIniVariableINCON(unittest.TestCase):
         self.assertEqual(self.ini.primary_sec_list[0].blockList, ['  a 9', ' aa25'])
         self.assertEqual(self.ini.primary_sec_list[1].blockList, [])
 
-        # tough3exec_ws.makeToughInput(self.ini)
-        # tough3exec_ws.makeToughInput(self.ini_no_vprm)
+        tough3exec_ws.makeToughInput(self.ini)
+        tough3exec_ws.makeToughInput(self.ini_no_vprm)
 
         inc = t2incon(self.ini.inconFp)
         inc_no_vprm = t2incon(self.ini_no_vprm.inconFp)
