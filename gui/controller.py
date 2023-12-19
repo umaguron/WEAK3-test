@@ -1,5 +1,7 @@
 # from distutils.log import error
-import os 
+import glob
+import os
+import re 
 import sys
 import pathlib
 import time
@@ -15,11 +17,14 @@ import _readConfig
 import makeGridAmeshVoro
 import makeGridFunc
 import tough3exec_ws
+import run
 from flask import Flask
 from flask import render_template
 from flask import Markup
 from flask import request
 from flask import flash
+from flask import make_response
+from flask import jsonify
 # from flask import session
 # from flask import g
 from flask import redirect, url_for
@@ -35,6 +40,14 @@ import pickle
 from constants import Const
 from werkzeug.utils import secure_filename
 import readFemticResistivityModel as rFRM
+from threading import Thread
+import pandas as pd
+import seed_to_voronoi
+import matplotlib
+'Matplotlib is not thread-safe:...'
+# https://matplotlib.org/stable/users/faq.html#work-with-threads
+matplotlib.use('Agg') # これがないとAssertion failed:で落ちることがある
+               
 
 app = Flask(__name__, static_folder='static', static_url_path='')
 
@@ -1382,5 +1395,67 @@ def test_create():
 
     else:
         return redirect(url_for('index'))
+
+@app.route('/python_str_to_eval_api', methods=['GET', 'OPTIONS'])
+def python_str_to_eval_api():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = None
+        error_msg = None
+        try:
+            ret = eval(request.args.get('key1', ''))
+        except:
+            error_msg = "Error in python eval()"
+
+        return _corsify_actual_response(jsonify({"eval_result":ret, "error_msg":error_msg}))
+
+@app.route('/api_voronoi_plot_qhull', methods=['GET', 'OPTIONS'])
+def api_voronoi_plot_qhull():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        error_msg = None
+
+        seedfp = request.args.get('seedfp', '')
+        try:
+            min_edge_len = float(request.args.get('min_edge_len', ''))
+        except:
+            error_msg = "invalid tolar: {request.args.get('min_edge_len', '')}"
+            return _corsify_actual_response(jsonify({"error_msg":error_msg}))
+        
+        if not os.path.isfile(create_fullpath(seedfp)):
+            error_msg = f"voronoi_seeds_list_fp not found: '{seedfp}'"
+            return _corsify_actual_response(jsonify({"error_msg":error_msg}))
+
+        """
+        'Matplotlib is not thread-safe:...'
+        https://matplotlib.org/stable/users/faq.html#work-with-threads
+        """
+        now = time.time()
+        savefp = f'gui/static/output/vorocheck_{now}.png'
+        try:
+            seed_to_voronoi.creates_2d_voronoi_grid(
+                create_fullpath(seedfp), min_edge_len, 
+                preview_save_fp=create_fullpath(savefp), show_preview=False
+            )
+        except:
+            error_msg = f"Error in seed_to_voronoi.creates_2d_voronoi_grid"
+
+        return _corsify_actual_response(jsonify({"img_fp":re.sub("gui/", "", savefp), "error_msg":error_msg}))
+def _build_cors_preflight_response():
+    # ajax開発用 CORS対策
+    # https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+    # https://qiita.com/Shoma0210/items/4405898205a1822f5826
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Headers', "*")
+    response.headers.add('Access-Control-Allow-Methods', "*")
+    return response
+
+def _corsify_actual_response(response):
+    # ajax開発用 CORS対策
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 app.run(port=8000, debug=True)  
