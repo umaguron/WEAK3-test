@@ -25,7 +25,9 @@ class TestInputIniVariableINCON(unittest.TestCase):
         self.assertEqual(self.ini.primary_sec_list[0].blockList, ['  a 9', ' aa25'])
         self.assertEqual(self.ini.primary_sec_list[1].blockList, [])
 
+        makeGridFunc.makeGrid(self.ini, overWrites=True)
         tough3exec_ws.makeToughInput(self.ini)
+        makeGridFunc.makeGrid(self.ini_no_vprm, overWrites=True)
         tough3exec_ws.makeToughInput(self.ini_no_vprm)
 
         inc = t2incon(self.ini.inconFp)
@@ -56,7 +58,7 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.ini_SeaDefault = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_SeaDefault.ini')
         self.ini_SeaDefault1 = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_SeaDefault1.ini')
         
-    def test_variable_INCON(self):
+    def test_mesh2d_cone(self):
         self.assertRaises(InvalidToughInputException, _readConfig.InputIni().read_from_inifile, 'for_testcase/TestInputIniMesh2dCone_ConeInvalid.ini')
         self.assertRaises(InvalidToughInputException, _readConfig.InputIni().read_from_inifile, 'for_testcase/TestInputIniMesh2dCone_ConeInvalid1.ini')
         self.assertRaises(InvalidToughInputException, _readConfig.InputIni().read_from_inifile, 'for_testcase/TestInputIniMesh2dCone_ConeInvalid2.ini')
@@ -128,7 +130,7 @@ class TestInputUsesAmesh(unittest.TestCase):
         self.ini_T = _readConfig.InputIni().read_from_inifile('for_testcase/shirane_vic_N325_uses_amesh_T.ini')
         self.ini_F = _readConfig.InputIni().read_from_inifile('for_testcase/shirane_vic_N325_uses_amesh_F.ini')
 
-    def test_variable_INCON(self):
+    def test_uses_amesh(self):
         self.ini_T.output2inifile('for_testcase/tmp/shirane_vic_N325_uses_amesh_T.ini')
         ini2_T = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/shirane_vic_N325_uses_amesh_T.ini')
         self.assertTrue(ini2_T.amesh_voronoi.uses_amesh)

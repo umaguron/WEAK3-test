@@ -51,12 +51,8 @@ if ini.mesh.type == REGULAR:
 elif ini.mesh.type == AMESH_VORONOI:
     ini.rocktypeDuplicateCheck()
     # create save dir. 
-    try:
-        os.makedirs(ini.t2FileDirFp, exist_ok=True) \
-            if args.force_overwrite_all or args.force_overwrite_t2data \
-            else os.makedirs(ini.t2FileDirFp)
-    except FileExistsError:
-        print(f"directory: {ini.t2FileDirFp} exists")
+    if os.path.isdir(ini.t2FileDirFp) and not args.force_overwrite_all and not args.force_overwrite_t2data:
+        print(f"Problem directory: {ini.t2FileDirFp} already exists")
         print(f"    add option -f to force overwrite")
         sys.exit()
     
