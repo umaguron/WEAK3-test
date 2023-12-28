@@ -54,7 +54,7 @@ pythonに色々なライブラリを導入することになるので、anaconda
 
 
 
-# 必要なライブラリの導入
+## 必要なライブラリの導入
 ## 1. pyTOUGH
 1. https://github.com/acroucher/PyTOUGH
 からダウンロードもしくはgit cloneしてくる。
@@ -144,7 +144,7 @@ iapwsについては以下でもOK
 
 <br>
 
-##  4.  AMESHの導入
+##  4.  AMESHの導入 (optional)
 1. ダウンロードする。https://tough.lbl.gov/licensing-download/free-software-download/
 2. windowsの場合 -> executableをダウンロードする
 3. mac, linuxの場合 -> Source codeをダウンロードする
@@ -156,7 +156,7 @@ iapwsについては以下でもOK
 <br>
 <br>
 
-## 5. 各種パスの設定
+## 各種パスの設定
 
 * define_path.pyの以下の項目を自分の環境に合わせて修正
 
@@ -173,7 +173,7 @@ iapwsについては以下でもOK
 <br>
 <br>
 
-# その他
+## データベースの新規作成　など
 
 * 結果管理用データベースの新規作成
     
@@ -289,7 +289,7 @@ testdata/に２つのテスト用データがおいてある。
 
 ここでは以下になる。
 
-```.../WEAK3/testdata/result/ksv``` 
+```.../WEAK3/testdata/ksv/result/ksv``` 
 
 実行方法
 
@@ -305,12 +305,12 @@ python makeGrid.py testdata/ksv/input_ksv.ini
 作成されるファイル
 |||
 |-|-|
-|testdata/result/ksv/input_ksv.ini|testdata/ksv/input_ksv.iniのコピー|
-|testdata/result/ksv/t2data.dat.grid|浸透率構造のファイル|
-|testdata/result/ksv/layer_surface.pdf|作成したメッシュのplan view|
-|testdata/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
-|testdata/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
-|testdata/result/ksv/topo.pdf|作成されたメッシュから書いた地形図|
+|testdata/ksv/result/ksv/input_ksv.ini|testdata/ksv/input_ksv.iniのコピー|
+|testdata/ksv/result/ksv/t2data.dat.grid|浸透率構造のファイル|
+|testdata/ksv/result/ksv/layer_surface.pdf|作成したメッシュのplan view|
+|testdata/ksv/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
+|testdata/ksv/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
+|testdata/ksv/result/ksv/topo.pdf|作成されたメッシュから書いた地形図|
 |testdata/ksv/grid.geo|メッシュ定義ファイル(input_ksv.iniの[mesh]mulgridFileFpに指定されたもの)|
 ```
 # TOUGH3 インプットファイルの作成
@@ -320,15 +320,15 @@ python tough3exec_ws.py testdata/ksv/input_ksv.ini
 作成されるファイル
 |||
 |-|-|
-|testdata/result/ksv/t2data.dat|TOUGH3のインプットファイル|
-|testdata/result/ksv/INCON|TOUGH3の初期条件の設定ファイル|
-|testdata/result/ksv/CO2TAB|EOSモジュールがECO2N_v2のとき必要なファイル。プロジェクトルートからコピーされる|
+|testdata/ksv/result/ksv/t2data.dat|TOUGH3のインプットファイル|
+|testdata/ksv/result/ksv/INCON|TOUGH3の初期条件の設定ファイル|
+|testdata/ksv/result/ksv/CO2TAB|EOSモジュールがECO2N_v2のとき必要なファイル。プロジェクトルートからコピーされる|
 
 ### 本体の実行
 
 ```
 # 実行dirに移動
-cd testdata/result/ksv
+cd testdata/ksv/result/ksv
 
 # mpiexecの実行に必要な準備。(実行環境による)
 module purge
