@@ -50,6 +50,10 @@ def makeToughInput(ini:_readConfig.InputIni):
     """ get logger """
     logger = define_logging.getLogger(
         f"{__name__}.{sys._getframe().f_code.co_name}")
+    
+    ## import sea water property
+    if hasattr(ini, 'sea'):
+        import seawater_property 
 
     II = ini.toughInput
     ## create t2data, t2grid object
@@ -225,33 +229,86 @@ def makeToughInput(ini:_readConfig.InputIni):
             else:
                 
                 if ini.toughInput['water_table_elevation'] is None:
-                    # if ini.mesh.type == AMESH_VORONOI:
+                    # considering sea
+                    if hasattr(ini, 'sea'):
+                        h_sea = ini.sea.sea_level - suf_elev_t2block(blk, geo, ini.mesh.convention)
+                        if h_sea > 0:
+                            # sea area
+                            P0 = seawater_property.FUNC_SEA_PRESSURE(h_sea) # including atmospheric pressure
+                            T0 = seawater_property.FUNC_SEA_TEMP(h_sea)
+                        else:
+                            # land
+                            P0 = ini.atmosphere.PRIMARY_AIR[ID_P] 
+                            T0 = ini.atmosphere.PRIMARY_AIR[ID_T]
+                    # no sea
+                    else:
+                        P0 = ini.atmosphere.PRIMARY_AIR[ID_P] 
+                        T0 = ini.atmosphere.PRIMARY_AIR[ID_T]
+                    
                     h = suf_elev_t2block(blk, geo, ini.mesh.convention) - blk.centre[2] \
                             if blk.centre is not None else 0.
-                    # elif ini.mesh.type == REGULAR:
-                    #     h = -blk.centre[2] if blk.centre is not None else 0.
-
-                    P = ini.atmosphere.PRIMARY_AIR[ID_P] + WATER_DENSITY * G * h
-                    T = ini.atmosphere.PRIMARY_AIR[ID_T] + II['initial_t_grad'] / 1000 * h
+                        
+                    P = P0 + WATER_DENSITY * G * h
+                    T = T0 + II['initial_t_grad'] / 1000 * h
                     var = [None for _ in range(len(ID_Xs+[ID_P,ID_T]))]
                     var[ID_P] = P
                     var[ID_T] = T
                     for id in ID_Xs:
                         var[id] = II['PRIMARY_default'][id]
                     inc[blk.name].variable = var
+
                 else:
-                    if blk.centre[2] > ini.toughInput['water_table_elevation']:
+                    # TODO quantize may be required for ini.toughInput['water_table_elevation']
+
+                    h_suf = suf_elev_t2block(blk, geo, ini.mesh.convention)
+                    
+                    # (1-1) no sea, above WT 
+                    if not hasattr(ini, 'sea') \
+                            and blk.centre[2] >= ini.toughInput['water_table_elevation']:
+                        
                         inc[blk.name].variable = ini.atmosphere.PRIMARY_AIR
+                    
+                    # (2-1-1) considering sea, land area, above WT 
+                    elif hasattr(ini, 'sea') \
+                            and h_suf >= ini.sea.sea_level \
+                            and blk.centre[2] >= ini.toughInput['water_table_elevation']:
+                    
+                        inc[blk.name].variable = ini.atmosphere.PRIMARY_AIR
+                    
                     else:
-                        h = ini.toughInput['water_table_elevation']-blk.centre[2]
-                        P = ini.atmosphere.PRIMARY_AIR[ID_P] + WATER_DENSITY * G * h
-                        T = ini.atmosphere.PRIMARY_AIR[ID_T] + II['initial_t_grad'] / 1000 * h
+                        # (1-2) no sea, below WT 
+                        if not hasattr(ini, 'sea') \
+                                and blk.centre[2] < ini.toughInput['water_table_elevation']:
+                            
+                            P0 = ini.atmosphere.PRIMARY_AIR[ID_P] 
+                            T0 = ini.atmosphere.PRIMARY_AIR[ID_T]
+                            h = min(ini.toughInput['water_table_elevation'], h_suf) - blk.centre[2]
+                        
+                        # (2-1-2) considering sea, land area, below WT 
+                        elif hasattr(ini, 'sea') \
+                                and h_suf >= ini.sea.sea_level \
+                                and blk.centre[2] < ini.toughInput['water_table_elevation']:
+                        
+                            P0 = ini.atmosphere.PRIMARY_AIR[ID_P] 
+                            T0 = ini.atmosphere.PRIMARY_AIR[ID_T]
+                            h = min(ini.toughInput['water_table_elevation'], h_suf) - blk.centre[2]
+
+                        # (2-2) considering sea, sea area (water_table_elevation not applied)
+                        elif hasattr(ini, 'sea') and h_suf < ini.sea.sea_level:
+                            # sea area
+                            P0 = seawater_property.FUNC_SEA_PRESSURE(ini.sea.sea_level - h_suf) # including atmospheric pressure
+                            T0 = seawater_property.FUNC_SEA_TEMP(ini.sea.sea_level - h_suf)
+                            h = h_suf - blk.centre[2]
+                
+                        P = P0 + WATER_DENSITY * G * h
+                        T = T0 + II['initial_t_grad'] / 1000 * h
                         var = [None for _ in range(len(ID_Xs+[ID_P,ID_T]))]
                         var[ID_P] = P
                         var[ID_T] = T
                         for id in ID_Xs:
                             var[id] = II['PRIMARY_default'][id]
                         inc[blk.name].variable = var
+    
         print("[tough3exec] INCON created (hydrostatic)")
     else:
         # case use result of previous run as initial contion
@@ -729,10 +786,6 @@ FIXED_P_REGION {i}: {fps.secName}
         n # the number of cells added
         m # the number of rocktype added
         inc # t2incon object
-
-        
-        ## import sea water property
-        import seawater_property 
 
         ## Extract the blocks that comprise the seafloor
         seafloorBlks = []

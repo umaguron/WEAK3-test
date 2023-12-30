@@ -1,11 +1,13 @@
 import unittest
 import _readConfig
 import os 
-from define_path import *
+# from define_path import *
 import tough3exec_ws
 from t2incons import *
-from define import *
+# from define import *
 import makeGridFunc
+from import_pytough_modules import *
+from t2data import *
 
 class TestInputIniVariableINCON(unittest.TestCase):
 
@@ -57,6 +59,9 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.ini_noCone = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_noCone.ini')
         self.ini_SeaDefault = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_SeaDefault.ini')
         self.ini_SeaDefault1 = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_SeaDefault1.ini')
+        self.ini_seaDefaultCone = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_seaDefaultCone.ini')
+        self.ini_seaDefaultConeWT = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_seaDefaultConeWT.ini')
+        self.ini_seaDefaultConeWT2 = _readConfig.InputIni().read_from_inifile('for_testcase/TestInputIniMesh2dCone_seaDefaultConeWT2.ini')
         
     def test_mesh2d_cone(self):
         self.assertRaises(InvalidToughInputException, _readConfig.InputIni().read_from_inifile, 'for_testcase/TestInputIniMesh2dCone_ConeInvalid.ini')
@@ -67,13 +72,13 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertTrue(self.ini_ConeSimple.mesh.isSimpleCone)
         self.assertFalse(self.ini_ConeFlexible.mesh.isSimpleCone)
         self.assertFalse(hasattr(self.ini_noCone, 'isSimpleCone'))
-        self.assertEqual(self.ini_ConeSimple.mesh.cone_top_elevation, 1000)
+        self.assertEqual(self.ini_ConeSimple.mesh.cone_top_elevation, 500)
         self.assertFalse(hasattr(self.ini_noCone.mesh, 'cone_top_elevation'))
         self.assertFalse(hasattr(self.ini_noCone.mesh, 'cone_base_radius'))
         self.assertFalse(hasattr(self.ini_noCone.mesh, 'cone_height_above_base'))
         self.assertFalse(hasattr(self.ini_noCone.mesh, 'cone_shape_elev'))
         self.assertFalse(hasattr(self.ini_noCone.mesh, 'cone_shape_r'))
-        self.assertEqual(self.ini_ConeSimple.mesh.cone_top_elevation, 1000)
+        self.assertEqual(self.ini_ConeSimple.mesh.cone_top_elevation, 500)
         self.assertEqual(self.ini_ConeSimple.mesh.cone_base_radius, 5000)
         self.assertEqual(self.ini_ConeSimple.mesh.cone_height_above_base, 1000)
         self.assertFalse(hasattr(self.ini_ConeSimple.mesh, 'cone_shape_elev'))
@@ -95,7 +100,7 @@ class TestInputIniMesh2dCone(unittest.TestCase):
 
         self.ini_ConeSimple.output2inifile('for_testcase/tmp/ConeSimple.ini')
         ini2_ConeSimple = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/ConeSimple.ini')
-        self.assertEqual(ini2_ConeSimple.mesh.cone_top_elevation, 1000)
+        self.assertEqual(ini2_ConeSimple.mesh.cone_top_elevation, 500)
         self.assertEqual(ini2_ConeSimple.mesh.cone_base_radius, 5000)
         self.assertEqual(ini2_ConeSimple.mesh.cone_height_above_base, 1000)
         makeGridFunc.makeGrid(ini2_ConeSimple, overWrites=True)
@@ -121,6 +126,70 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertEqual(ini2_SeaDefault1.sea.primary_xcom, 0.1)
         makeGridFunc.makeGrid(ini2_SeaDefault1, overWrites=True)
         tough3exec_ws.makeToughInput(ini2_SeaDefault1)
+
+        self.ini_seaDefaultCone.output2inifile('for_testcase/tmp/seaDefaultCone.ini')
+        ini2_seaDefaultCone = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/seaDefaultCone.ini')
+        makeGridFunc.makeGrid(ini2_seaDefaultCone, overWrites=True)
+        tough3exec_ws.makeToughInput(ini2_seaDefaultCone)
+
+        self.ini_seaDefaultConeWT.output2inifile('for_testcase/tmp/seaDefaultConeWT.ini')
+        ini2_seaDefaultConeWT = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/seaDefaultConeWT.ini')
+        self.assertEqual(150, ini2_seaDefaultConeWT.toughInput['water_table_elevation'])
+        makeGridFunc.makeGrid(ini2_seaDefaultConeWT, overWrites=True)
+        tough3exec_ws.makeToughInput(ini2_seaDefaultConeWT)
+
+        makeGridFunc.makeGrid(self.ini_seaDefaultConeWT2, overWrites=True)
+        tough3exec_ws.makeToughInput(self.ini_seaDefaultConeWT2)
+
+        # sea INCON pressure
+        # simple cone
+        incNoSea = t2incon(self.ini_ConeSimple.inconFp)
+        p = self.ini_ConeSimple.atmosphere.PRIMARY_AIR[0]\
+                +WATER_DENSITY\
+                *self.ini_ConeSimple.toughInput['gravity']\
+                *(self.ini_ConeSimple.mesh.rblocks[0]/2)
+        self.assertAlmostEqual(incNoSea['  a 1'][0], p)
+        self.assertAlmostEqual(incNoSea['  v10'][0], p)
+
+        # simple cone with sea
+        incSeaDef = t2incon(self.ini_seaDefaultCone.inconFp)
+        p = self.ini_seaDefaultCone.atmosphere.PRIMARY_AIR[0]\
+                +WATER_DENSITY\
+                *self.ini_seaDefaultCone.toughInput['gravity']\
+                *(self.ini_seaDefaultCone.mesh.rblocks[0]/2)
+        self.assertAlmostEqual(incSeaDef['  a 1'][0],  p)
+        self.assertNotEqual(incSeaDef['  v10'][0],  p)
+        self.assertTrue(incSeaDef['  v10'][0] > 450*WATER_DENSITY*9.81+1e5)
+
+        # simple cone with sea and water table
+        incSeaDefWT = t2incon(self.ini_seaDefaultConeWT.inconFp)
+        p1 = self.ini_seaDefaultConeWT.atmosphere.PRIMARY_AIR[0]\
+                +WATER_DENSITY\
+                *self.ini_seaDefaultConeWT.toughInput['gravity']\
+                *50
+        # considering sea, land, above WT 
+        self.assertAlmostEqual(incSeaDefWT['  a 1'][0],  self.ini_seaDefaultConeWT.atmosphere.PRIMARY_AIR[0]) # top
+        self.assertAlmostEqual(incSeaDefWT['  o 4'][0],  self.ini_seaDefaultConeWT.atmosphere.PRIMARY_AIR[0]) # 50m above water table
+        # considering sea, land area, below WT 
+        self.assertAlmostEqual(incSeaDefWT['  q 5'][0],  p1) # 50m below water table
+        # considering sea, sea area
+        self.assertNotEqual(incSeaDefWT['  v10'][0],  p1) # 450m below sea level
+        self.assertTrue(incSeaDefWT['  v10'][0] > 450*WATER_DENSITY*9.81+1e5)
+
+        # simple cone with sea and water table (water_table_elevation=-150)
+        incSeaDefWT2 = t2incon(self.ini_seaDefaultConeWT2.inconFp)
+        p1 = self.ini_seaDefaultConeWT2.atmosphere.PRIMARY_AIR[0]\
+                +WATER_DENSITY\
+                *self.ini_seaDefaultConeWT2.toughInput['gravity']\
+                *300
+        # considering sea, land, above WT 
+        self.assertAlmostEqual(incSeaDefWT2['  a 1'][0],  self.ini_seaDefaultConeWT2.atmosphere.PRIMARY_AIR[0]) # top
+        self.assertAlmostEqual(incSeaDefWT2['  q 5'][0],  self.ini_seaDefaultConeWT2.atmosphere.PRIMARY_AIR[0]) 
+        # considering sea, land area, below WT 
+        self.assertAlmostEqual(incSeaDefWT2['  a10'][0],  p1) # 450m below sea level
+        # considering sea, sea area
+        self.assertNotEqual(incSeaDefWT2['  v10'][0],  p1) # 450m below sea level
+        self.assertTrue(incSeaDefWT2['  v10'][0] > 450*WATER_DENSITY*9.81+1e5)
 
     def tearDown(self):
         pass
