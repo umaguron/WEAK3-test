@@ -173,8 +173,15 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         # considering sea, land area, below WT 
         self.assertAlmostEqual(incSeaDefWT['  q 5'][0],  p1) # 50m below water table
         # considering sea, sea area
-        self.assertNotEqual(incSeaDefWT['  v10'][0],  p1) # 450m below sea level
-        self.assertTrue(incSeaDefWT['  v10'][0] > 450*WATER_DENSITY*9.81+1e5)
+        self.assertNotEqual(incSeaDefWT['  v10'][0],  p1) # surface: 450m below sea level, center: 500m bsl
+        self.assertGreater(incSeaDefWT['  v10'][0], 500*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(500*1100*9.81+1e5, incSeaDefWT['  v10'][0])
+        self.assertGreater(incSeaDefWT['  v10'][0], 500*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(500*1100*9.81+1e5, incSeaDefWT['  v10'][0])
+        self.assertGreater(incSeaDefWT['  v11'][0], 600*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(600*1100*9.81+1e5, incSeaDefWT['  v11'][0])
+        self.assertGreater(incSeaDefWT['  v12'][0], 700*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(700*1100*9.81+1e5, incSeaDefWT['  v12'][0])
 
         # simple cone with sea and water table (water_table_elevation=-150)
         incSeaDefWT2 = t2incon(self.ini_seaDefaultConeWT2.inconFp)
@@ -186,10 +193,15 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertAlmostEqual(incSeaDefWT2['  a 1'][0],  self.ini_seaDefaultConeWT2.atmosphere.PRIMARY_AIR[0]) # top
         self.assertAlmostEqual(incSeaDefWT2['  q 5'][0],  self.ini_seaDefaultConeWT2.atmosphere.PRIMARY_AIR[0]) 
         # considering sea, land area, below WT 
-        self.assertAlmostEqual(incSeaDefWT2['  a10'][0],  p1) # 450m below sea level
+        self.assertAlmostEqual(incSeaDefWT2['  a10'][0],  p1) # surface: 450m below sea level, center: 500m bsl
         # considering sea, sea area
-        self.assertNotEqual(incSeaDefWT2['  v10'][0],  p1) # 450m below sea level
-        self.assertTrue(incSeaDefWT2['  v10'][0] > 450*WATER_DENSITY*9.81+1e5)
+        self.assertNotEqual(incSeaDefWT2['  v10'][0],  p1) # surface: 450m below sea level, center: 500m bsl
+        self.assertGreater(incSeaDefWT2['  v10'][0], 500*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(500*1100*9.81+1e5, incSeaDefWT2['  v10'][0])
+        self.assertGreater(incSeaDefWT2['  v11'][0], 600*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(600*1100*9.81+1e5, incSeaDefWT2['  v11'][0])
+        self.assertGreater(incSeaDefWT2['  v12'][0], 700*WATER_DENSITY*9.81+1e5)
+        self.assertGreater(700*1100*9.81+1e5, incSeaDefWT2['  v12'][0])
 
     def tearDown(self):
         pass
