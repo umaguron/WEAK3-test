@@ -147,11 +147,7 @@ class InputIni(object):
         self.mesh = self._MeshSec().read_from_config(self.config)
         if self.mesh.type == AMESH_VORONOI:
             """ amesh voronoi """
-            try:
-                self.amesh_voronoi = self._AmeshVoronoi().read_from_config(self.config)
-            except:
-                # すでにグリッド作成済みで設定不要の場合
-                pass
+            self.amesh_voronoi = self._AmeshVoronoi().read_from_config(self.config)
         self.solver = self._SolverSec().read_from_config(self.config)
         self.plot = self._PlotSec().read_from_config(self.config)
         self.boundary = self._Boundary().read_from_config(self.config)
@@ -1175,15 +1171,20 @@ class InputIni(object):
             pass
 
         def read_from_config(self, config: configparser.ConfigParser):
-            self.topodata_fp = os.path.join(baseDir, config['amesh_voronoi']['topodata_fp'])
-            self.voronoi_seeds_list_fp = \
-                os.path.join(baseDir, config['amesh_voronoi']['voronoi_seeds_list_fp'])
-            self.elevation_top_layer = float(config['amesh_voronoi']['elevation_top_layer'])
-            self.layer_thicknesses = eval(config['amesh_voronoi']['layer_thicknesses'])
-            self.tolar = float(config['amesh_voronoi']['tolar'])
-            try:
+            if config.has_option('amesh_voronoi', 'topodata_fp'):
+                self.topodata_fp = os.path.join(baseDir, config['amesh_voronoi']['topodata_fp'])
+            if config.has_option('amesh_voronoi', 'voronoi_seeds_list_fp'):
+                self.voronoi_seeds_list_fp = \
+                    os.path.join(baseDir, config['amesh_voronoi']['voronoi_seeds_list_fp'])
+            if config.has_option('amesh_voronoi', 'elevation_top_layer'):
+                self.elevation_top_layer = float(config['amesh_voronoi']['elevation_top_layer'])
+            if config.has_option('amesh_voronoi', 'layer_thicknesses'):
+                self.layer_thicknesses = eval(config['amesh_voronoi']['layer_thicknesses'])
+            if config.has_option('amesh_voronoi', 'tolar'):
+                self.tolar = float(config['amesh_voronoi']['tolar'])
+            if config.has_option('amesh_voronoi', 'top_layer_min_thickness'):
                 self.top_layer_min_thickness = float(config['amesh_voronoi']['top_layer_min_thickness'])
-            except:
+            else:
                 self.top_layer_min_thickness = TOP_LAYER_MIN_THICKNESS_DEFAULT
             try:
                 if len(config['amesh_voronoi']['uses_amesh'])>0:

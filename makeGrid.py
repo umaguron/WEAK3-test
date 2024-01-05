@@ -31,36 +31,14 @@ baseDir = pathlib.Path(__file__).parent.resolve()
 ## read inputIni ##
 ini = _readConfig.InputIni().read_from_inifile(args.inputIni)
 
-if ini.mesh.type == REGULAR:
-
-    if os.path.isfile(ini.t2GridFp) and not args.force_overwrite_all:
-        print(f"t2Grid file : {ini.t2GridFp} exists")
-        sys.exit(f"    add option -fa to force overwrite")
-
-    if ini.mesh.incorporatesCone:
-        # 2-D radial grid with edifice
-        makeGridFunc.makeGrid2dRadialEdifice(ini, 
-                                        overWrites=args.force_overwrite_all, 
-                                        showsProfiles=args.open_viewer)
-    else:
-        # 3-D rectilinear OR 2-D radial grid (with no edifice)
-        makeGridFunc.makeGridRegular(ini, 
-                                        overWrites=args.force_overwrite_all, 
-                                        showsProfiles=args.open_viewer)
-    
-elif ini.mesh.type == AMESH_VORONOI:
-    ini.rocktypeDuplicateCheck()
-    # create save dir. 
-    if os.path.isdir(ini.t2FileDirFp) and not args.force_overwrite_all and not args.force_overwrite_t2data:
-        print(f"Problem directory: {ini.t2FileDirFp} already exists")
-        print(f"    add option -f to force overwrite")
-        sys.exit()
-    
-    makeGridAmeshVoro.makePermVariableVoronoiGrid(ini, 
-                                force_overwrite_all=args.force_overwrite_all,
-                                open_viewer=args.open_viewer,
-                                plot_all_layers=args.plot_all_layers,
-                                layer_no_to_plot=args.layer)
+makeGridFunc.makeGrid(
+        ini=ini,
+        force_overwrite_all=args.force_overwrite_all,
+        open_viewer=args.open_viewer,
+        force_overwrite_t2data=args.force_overwrite_t2data,
+        plot_all_layers=args.plot_all_layers, 
+        layer=args.layer
+)
 
 try: 
     shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)

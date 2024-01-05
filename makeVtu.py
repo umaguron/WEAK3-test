@@ -78,7 +78,8 @@ II = ini.toughInput
 
 t2o.create_savefig_dir(ini)
 # make grid
-makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper().strip() == REGULAR else False)
+if ini.mesh.type.upper().strip() == REGULAR:
+    makeGridFunc.makeGrid(ini, force_overwrite_all=True)
 
 # check file existence
 

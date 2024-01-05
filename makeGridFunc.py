@@ -12,24 +12,55 @@ import scipy
 import copy
 import define_logging
 
-def makeGrid(ini:_readConfig.InputIni, overWrites=False, showsProfiles=False):
+def makeGrid(ini:_readConfig.InputIni, force_overwrite_all=False, 
+             open_viewer=False, force_overwrite_t2data=True, plot_all_layers=False, layer:str=None ):
+    
     if ini.mesh.type == REGULAR:
-        # 軽いので常に作り直す(overWrites=True)
-        makeGridRegular(ini, overWrites=True, showsProfiles=showsProfiles)
+        # if ini.t2GridFp does not exist --> create grid
+        # if ini.t2GridFp exists,
+        #     force_overwrite_all is True --> create grid
+        #     force_overwrite_all is False --> skip creation and exit
+
+        if os.path.isfile(ini.t2GridFp) and not force_overwrite_all:
+            print(f"t2Grid file : {ini.t2GridFp} exists")
+            print(f"    add option -fa (specify force_overwrite_all True) to force overwrite")
+            return
+        
+        
         if ini.mesh.incorporatesCone:
             # 2-D radial grid with edifice
-            makeGrid2dRadialEdifice(ini, overWrites=overWrites, showsProfiles=showsProfiles)
+            makeGrid2dRadialEdifice(ini, showsProfiles=open_viewer)
         else:
             # 3-D rectilinear OR 2-D radial grid (with no edifice)
-            makeGridRegular(ini, overWrites=overWrites, showsProfiles=showsProfiles)
-
+            makeGridRegular(ini, showsProfiles=open_viewer)
+        
     elif ini.mesh.type == AMESH_VORONOI:
-        if os.path.exists(ini.mulgridFileFp) and not overWrites:
-            return
-        makeGridAmeshVoro.makePermVariableVoronoiGrid(ini, 
-            force_overwrite_all=overWrites, open_viewer=showsProfiles)
+        # ini.t2FileDirFp exists | force_overwrite_all | force_overwrite_t2data||
+        # -----------------------------------------------------------------------
+        #                  True  |                True |                  True || create mulgrid and t2grid
+        #                  True  |                True |                  False|| create mulgrid and t2grid
+        #                  True  |                False|                  True || create only t2grid
+        #                  True  |                False|                  False|| skip creation and raise
+        #                  False |                True |                  True || create mulgrid and t2grid
+        #                  False |                True |                  False|| create mulgrid and t2grid
+        #                  False |                False|                  True || create only t2grid
+        #                  False |                False|                  False|| create only t2grid
 
-def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=False):
+        ini.rocktypeDuplicateCheck()
+        # create save dir. 
+        if os.path.isdir(ini.t2FileDirFp) and not force_overwrite_all and not force_overwrite_t2data:
+            print(f"Problem directory: {ini.t2FileDirFp} already exists")
+            print(f"    add option -f (specify force_overwrite_t2data True) to force overwrite")
+            return
+        
+        makeGridAmeshVoro.makePermVariableVoronoiGrid(ini, 
+                                    force_overwrite_all=force_overwrite_all,
+                                    open_viewer=open_viewer,
+                                    plot_all_layers=plot_all_layers,
+                                    layer_no_to_plot=layer)
+
+
+def makeGridRegular(ini:_readConfig.InputIni, showsProfiles=False):
 
     if ini.mesh.type == AMESH_VORONOI:
         sys.exit()
@@ -47,9 +78,6 @@ def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=Fa
     os.makedirs(t2FileDirFp, exist_ok=True) 
 
     ######
-
-    if os.path.isfile(t2GridFp) and not overWrites:
-        sys.exit(f"t2Grid file : {t2GridFp} exists")
 
     ## create grid ##
     # new t2data object
@@ -168,7 +196,7 @@ def makeGridRegular(ini:_readConfig.InputIni, overWrites=False, showsProfiles=Fa
     dat.write(t2GridFp)
 
 
-def makeGrid2dRadialEdifice(ini:_readConfig.InputIni, overWrites=False, showsProfiles=False):
+def makeGrid2dRadialEdifice(ini:_readConfig.InputIni, showsProfiles=False):
     """
     create 2-D radial grid with incorporating an edifice
     """
@@ -176,10 +204,6 @@ def makeGrid2dRadialEdifice(ini:_readConfig.InputIni, overWrites=False, showsPro
     """ get logger """
     logger = define_logging.getLogger(
         f"{__name__}.{sys._getframe().f_code.co_name}")
-
-    
-    if os.path.isfile(ini.t2GridFp) and not overWrites:
-        sys.exit(f"t2Grid file : {ini.t2GridFp} exists")
     
     # create save dir. 
     os.makedirs(ini.t2FileDirFp, exist_ok=True) 

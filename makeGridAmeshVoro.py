@@ -139,7 +139,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     else:
         # use scipy.spatial.Voronoi
         seed_to_voronoi.seed_to_mulgraph_no_topo(
-            ini, output_fp=mulgraph_no_topo_fn, showVoronoi=True)
+            ini, output_fp=mulgraph_no_topo_fn, showVoronoi=False)
     
     # "ini.amesh_voronoi.elevation_top_layer" is layer center elevation of the top layer
     bottom_of_bottom_layer_elev = ini.amesh_voronoi.elevation_top_layer \
