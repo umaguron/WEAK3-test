@@ -95,7 +95,7 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         ini2_ConeFlexible = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/ConeFlexible.ini')
         self.assertEqual(ini2_ConeFlexible.mesh.cone_shape_elev, [1000, 0])
         self.assertEqual(ini2_ConeFlexible.mesh.cone_shape_r, [0, 5000])
-        makeGridFunc.makeGrid(ini2_ConeFlexible, overWrites=True)
+        makeGridFunc.makeGrid(ini2_ConeFlexible, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_ConeFlexible)
 
         self.ini_ConeSimple.output2inifile('for_testcase/tmp/ConeSimple.ini')
@@ -103,12 +103,12 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertEqual(ini2_ConeSimple.mesh.cone_top_elevation, 500)
         self.assertEqual(ini2_ConeSimple.mesh.cone_base_radius, 5000)
         self.assertEqual(ini2_ConeSimple.mesh.cone_height_above_base, 1000)
-        makeGridFunc.makeGrid(ini2_ConeSimple, overWrites=True)
+        makeGridFunc.makeGrid(ini2_ConeSimple, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_ConeSimple)
 
         self.ini_noCone.output2inifile('for_testcase/tmp/noCone.ini')
         ini2_noCone = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/noCone.ini')
-        makeGridFunc.makeGrid(ini2_noCone, overWrites=True)
+        makeGridFunc.makeGrid(ini2_noCone, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_noCone)
 
         self.ini_SeaDefault.output2inifile('for_testcase/tmp/SeaDefault.ini')
@@ -116,7 +116,7 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertEqual(ini2_SeaDefault.sea.closeness_to_seawater_blk, 0.01)
         self.assertEqual(ini2_SeaDefault.sea.sea_level, 0)
         self.assertEqual(ini2_SeaDefault.sea.primary_xcom, SEA_PRIMARY_XCOM_DEFAULT)
-        makeGridFunc.makeGrid(ini2_SeaDefault, overWrites=True)
+        makeGridFunc.makeGrid(ini2_SeaDefault, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_SeaDefault)
 
         self.ini_SeaDefault1.output2inifile('for_testcase/tmp/SeaDefault1.ini')
@@ -124,21 +124,21 @@ class TestInputIniMesh2dCone(unittest.TestCase):
         self.assertEqual(ini2_SeaDefault1.sea.closeness_to_seawater_blk, 0.01)
         self.assertEqual(ini2_SeaDefault1.sea.sea_level, 0)
         self.assertEqual(ini2_SeaDefault1.sea.primary_xcom, 0.1)
-        makeGridFunc.makeGrid(ini2_SeaDefault1, overWrites=True)
+        makeGridFunc.makeGrid(ini2_SeaDefault1, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_SeaDefault1)
 
         self.ini_seaDefaultCone.output2inifile('for_testcase/tmp/seaDefaultCone.ini')
         ini2_seaDefaultCone = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/seaDefaultCone.ini')
-        makeGridFunc.makeGrid(ini2_seaDefaultCone, overWrites=True)
+        makeGridFunc.makeGrid(ini2_seaDefaultCone, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_seaDefaultCone)
 
         self.ini_seaDefaultConeWT.output2inifile('for_testcase/tmp/seaDefaultConeWT.ini')
         ini2_seaDefaultConeWT = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/seaDefaultConeWT.ini')
         self.assertEqual(150, ini2_seaDefaultConeWT.toughInput['water_table_elevation'])
-        makeGridFunc.makeGrid(ini2_seaDefaultConeWT, overWrites=True)
+        makeGridFunc.makeGrid(ini2_seaDefaultConeWT, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_seaDefaultConeWT)
 
-        makeGridFunc.makeGrid(self.ini_seaDefaultConeWT2, overWrites=True)
+        makeGridFunc.makeGrid(self.ini_seaDefaultConeWT2, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(self.ini_seaDefaultConeWT2)
 
         # sea INCON pressure
