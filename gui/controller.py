@@ -1375,11 +1375,16 @@ def test_create():
         error_msg = {}
         short_msg = ""
         os.makedirs(ini.t2FileDirFp, exist_ok=True)
+        logger.debug(f"dir: {ini.t2FileDirFp} is prepared")
         if not os.path.isfile(ini.t2FileFp):
+            logger.debug(f"create new:{ini.t2FileFp}")
             if not os.path.isfile(ini.t2GridFp):
-                # makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
-                makeGridFunc.makeGrid(ini=ini, overWrites=False, showsProfiles=False)
+                logger.debug(f"into method: makeGridFunc.makeGrid")
+                makeGridFunc.makeGrid(ini=ini, force_overwrite_all=False, force_overwrite_t2data=True, open_viewer=False)
+                logger.debug(f"finined: makeGridFunc.makeGrid")
+            logger.debug(f"into method: tough3exec_ws.makeToughInput")
             tough3exec_ws.makeToughInput(ini)
+            logger.debug(f"finished: tough3exec_ws.makeToughInput")
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
         else:
             error_msg['prob_exists'] = f"Problem: {create_relpath(ini.t2FileDirFp)}. Please specify different problem name and press (check)."
