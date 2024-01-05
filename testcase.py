@@ -27,9 +27,9 @@ class TestInputIniVariableINCON(unittest.TestCase):
         self.assertEqual(self.ini.primary_sec_list[0].blockList, ['  a 9', ' aa25'])
         self.assertEqual(self.ini.primary_sec_list[1].blockList, [])
 
-        makeGridFunc.makeGrid(self.ini, overWrites=True)
+        makeGridFunc.makeGrid(self.ini, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(self.ini)
-        makeGridFunc.makeGrid(self.ini_no_vprm, overWrites=True)
+        makeGridFunc.makeGrid(self.ini_no_vprm, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(self.ini_no_vprm)
 
         inc = t2incon(self.ini.inconFp)
@@ -216,14 +216,14 @@ class TestInputUsesAmesh(unittest.TestCase):
         ini2_T = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/shirane_vic_N325_uses_amesh_T.ini')
         self.assertTrue(ini2_T.amesh_voronoi.uses_amesh)
         os.makedirs(ini2_T.t2FileDirFp, exist_ok=True)
-        makeGridFunc.makeGrid(ini2_T, overWrites=True)
+        makeGridFunc.makeGrid(ini2_T, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_T)
 
         self.ini_F.output2inifile('for_testcase/tmp/shirane_vic_N325_uses_amesh_F.ini')
         ini2_F = _readConfig.InputIni().read_from_inifile('for_testcase/tmp/shirane_vic_N325_uses_amesh_F.ini')
         self.assertFalse(ini2_F.amesh_voronoi.uses_amesh)
         os.makedirs(ini2_F.t2FileDirFp, exist_ok=True)
-        makeGridFunc.makeGrid(ini2_F, overWrites=True)
+        makeGridFunc.makeGrid(ini2_F, force_overwrite_all=True)
         tough3exec_ws.makeToughInput(ini2_F)
 
 
