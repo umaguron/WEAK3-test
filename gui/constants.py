@@ -59,5 +59,15 @@ class Const(object):
 
     # define.pyの中身をそのまま使いたい
     DEFINE = define
+
+    # if True, a link of 'topodata_fp' (cmesh2, Create new mulgrid file) is created in base directory (TOUGH_INPUT_DIR)
+    DUPLICATES_ORG_TOPO = False
+    # if True, a copy of 'voronoi_seeds_list_fp' (cmesh2, Create new mulgrid file) is created in base directory (TOUGH_INPUT_DIR)
+    DUPLICATES_ORG_SEEDS = True
+    # if True, a link of 'Resistivity structure data' (cmesh3) is created in base directory (TOUGH_INPUT_DIR)
+    DUPLICATES_ORG_RESMODEL = False
+    # if True, a copy of 'existing mulgrid file' (cmesh2, Use existing mulgrid file) is created in base directory (TOUGH_INPUT_DIR)
+    DUPLICATES_ORG_MULGRID = True
+
     
 

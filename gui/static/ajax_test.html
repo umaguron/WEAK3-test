@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!-- AJAXで指定urlからデータを取得する -->
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>ajax test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script
+        src="https://code.jquery.com/jquery-3.3.1.js"
+        integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+        crossorigin="anonymous"></script>
+    <!-- <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script> -->
+    <script type="text/javascript">
+
+            function checkrun() {
+                /** tracker for running processes **/
+                let id = setInterval(() => {
+                    resPromise = ajax('checkrun', data_send='', raise_alert=false);
+                    
+                    resPromise.then(function (data_json) {
+                        $('#elem4').empty();
+                        $('#elem4').append(data_json.status);
+                        if (! data_json.is_running){
+                            clearInterval(id);
+                        }
+                    });
+                    
+                }, 200);
+            }
+            function run_tough3() {
+                
+                let inifp = $('#box').val();
+                resPromise = ajax('run_tough3', data_send=inifp, raise_alert=false);
+                
+                resPromise.then(function (data_json) {
+                    $('#elem1').empty();
+                    $('#elem1').append(data_json.status_msg);
+                    $('#elem2').empty();
+                    $('#elem2').append(data_json.error_msg);
+                    $('#elem3').empty();
+                    $('#elem3').append(data_json.running_processes);
+
+                    if (data_json.flg_started) {
+                        // activate tracker for running processes
+                        checkrun();
+                    }
+                });
+            }
+            function ajax(to, data_send='', raise_alert=true) {
+                //deferredを使う
+                var d = new $.Deferred;
+                $.ajax({
+                    type: 'GET',
+                    url: 'http://localhost:8000/'+to,
+                    data: {key1: data_send},
+                    datatype: 'json',
+                    crossDomain:true,
+                    success: function (returned_data) {
+                        //json文字列をJSONオブジェクトに変換して配列に格納する
+                        var data_stringify = JSON.stringify(returned_data);
+                        if (raise_alert){
+                            alert("received from http://localhost:8000/"+to+": "+data_stringify);
+                        }
+                        var data_json = JSON.parse(data_stringify);
+                        //完了
+                        d.resolve(data_json);
+                    }
+                });
+                return d.promise();
+            }
+    </script>
+</head>
+<body>
+    <input type="text" placeholder="ini file fp" id="box">
+    <input type="button" onclick="checkrun()" value="check run">
+    <input type="button" onclick="run_tough3()" value="run TOUGH3">
+    <div><b>status_msg:</b><div id="elem1"></div></div>
+    <div><b>error_msg:</b><div id="elem2"></div></div>
+    <div><b>running_processes:</b><div id="elem3"></div></div>
+    <div><b>check run results:</b><div id="elem4"></div></div>
+    <div id="log"></div>
+</body>
+</html>

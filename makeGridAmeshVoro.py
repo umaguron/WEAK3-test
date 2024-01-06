@@ -56,6 +56,12 @@ def main():
         open_viewer=args.open_viewer,
         plot_all_layers=args.plot_all_layers,
         layer_no_to_plot=args.layer)
+    
+    try: 
+        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+    except shutil.SameFileError:
+        pass
+
         
 """
 type: A_VORO
@@ -585,11 +591,6 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
 
     # write tough input file
     dat.write(ini.t2GridFp)
-    try: 
-        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
-    except shutil.SameFileError:
-        pass
-
 
     # test plot (interpolated resistivity structure)
     temp_res = [] 

@@ -3,6 +3,10 @@
         if ($('[name="createsMesh"]:checked').val()==0) {
             // use existing
             $('#create_new').hide(speed);
+            $('#mulgrid_fp').show(speed);
+            $('#mulgrid_nm').hide(speed);
+            $('[name="mulgridFileFp"]').attr('required', true)
+            $('[name="mulgridFileName"]').attr('required', false)
             $('[name="convention"]').attr('required', false)
             $('[name="includesAtmos"]').attr('required', false)
             $('[name="topodata_fp"]').attr('required', false)
@@ -15,6 +19,10 @@
         } else if ($('[name="createsMesh"]:checked').val()==1) {
             // create new
             $('#create_new').show(speed);
+            $('#mulgrid_fp').hide(speed);
+            $('#mulgrid_nm').show(speed);
+            $('[name="mulgridFileFp"]').attr('required', false)
+            $('[name="mulgridFileName"]').attr('required', true)
             $('[name="convention"]').attr('required', true)
             $('[name="includesAtmos"]').attr('required', true)
             $('[name="topodata_fp"]').attr('required', true)
@@ -160,8 +168,8 @@
 
 <form method="post" action="/cmesh2_check">
     <!-- 前のパートから引き継いだ値 -->
-    <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
-    <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" />
+    <!-- <input type="hidden" value="{{ form.configIniFp }}" class="form-control" name="configIniFp" />
+    <input type="hidden" value="{{ form.saveDir }}" class="form-control" name="saveDir" /> -->    
     <!-- 新規作成 or 既存のを利用 -->
     <h3 class="col">
         Create mesh
@@ -179,21 +187,49 @@
         </label>
     </div>
     <br>
+    <!-- saveDir (only for display) -->
+    <h5>Path of base directory</h5>
+    <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon3">{{projRoot}}/</span>
+        <input type="text" class="form-control" value="{{ form.saveDir }}" name="saveDir" aria-describedby="basic-addon3" {% if created %} disabled {% endif %} required/>
+    </div>
+    <br>
     <!-- mulgridFileFp -->
     <div class="form-group">
-        <h5>Path of mulgrid file to be created</h5>
-        <p>File path of the existing or to-be-created 3-D grid file (in MULgraph format). The file location can be anywhere under the project root.</p>
-        <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %} required/>
+        <div id="mulgrid_fp">
+            <h5>Path of existing mulgrid file</h5>
+            <p>
+                File path of the existing 3-D grid file (in MULgraph format). 
+                {% if DUPLICATES_ORG_MULGRID %}
+                A copy of this file will be created under <b>base directory</b>.
+                {% else %}
+                The file location can be anywhere under the project root ({{projRoot}}/).
+                {% endif %}
+            </p>
+            <div class="input-group mb-3">
+                {% if not DUPLICATES_ORG_MULGRID %}
+                <span class="input-group-text" id="basic-addon3">{{projRoot}}/</span>
+                {% endif %}
+                <input type="text" value="{{ form.mulgridFileFp }}"  class="form-control" name="mulgridFileFp" {% if created %} disabled {% endif %} required/>
+            </div>
+        </div>
+        <div id="mulgrid_nm">
+            <h5>Name of mulgrid file to be created</h5>
+            <p>File name of the to-be-created 3-D grid file (in MULgraph format). This file will be placed under <b>base directory</b>.</p>
+            <input type="text" value="{{ form.mulgridFileName}}"  class="form-control" name="mulgridFileName" {% if created %} disabled {% endif %} required/>
+        </div>
     </div>
     <br>
     <!-- 新規作成の場合のみ表示 -->
     <!-- 成功時メッセージ -->
-    {% if created %}
-    <div class="row">
+    {% if created and msg %}
+        {% for key, m in msg.items() -%}
+        <div class="row">
         <div class="alert alert-primary col" role="alert">
-            {{ msg }}
+            {{ m }}
         </div>
-    </div>
+        </div>
+        {%- endfor %}
     {% endif %}
     <br>
     <div id="create_new">
@@ -237,8 +273,16 @@
         <!-- topodata -->
         <div class="form-group">
             <h5>topodata_fp </h5>
-            <p>File path of topography data. The file location can be anywhere under the project root.</p>
-            <input type="text" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp"/>
+            <p>
+                File path of topography data. The file location can be anywhere under the project root ({{projRoot}}/).
+                {% if DUPLICATES_ORG_TOPO %}
+                A symbolic link to this file will be created under <b>base directory</b>.
+                {% endif %}
+            </p> 
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon3">{{projRoot}}/</span>
+                <input type="text" value="{{ form.topodata_fp }}" class="form-control" name="topodata_fp"/>
+            </div>
         </div>
         <br>
         <br>
@@ -260,8 +304,20 @@
         <!-- seed list -->
         <div class="form-group">
             <h5>voronoi_seeds_list_fp</h5>
-            <p>File path of the "seed" data required for 2D Voronoi tessellation. Can be created from <a href="/static/makeVoroSeedsList2.html" target="_blank"><b>here</b></a>. The file location can be anywhere under the project root.</p>
-            <input type="text" value="{{ form.voronoi_seeds_list_fp }}" class="form-control" name="voronoi_seeds_list_fp"/>
+            <p>
+                File path of the "seed" data required for 2D Voronoi tessellation. Can be created from <a href="/static/makeVoroSeedsList2.html" target="_blank"><b>here</b></a>. 
+                {% if DUPLICATES_ORG_SEEDS %}
+                This file will be copied to the <b>base directory</b>.
+                {% else %}
+                The file location can be anywhere under the project root ({{projRoot}}/).
+                {% endif %}
+            </p>
+            <div class="input-group mb-3">
+                {% if not DUPLICATES_ORG_SEEDS %}
+                <span class="input-group-text" id="basic-addon3">{{projRoot}}/</span>
+                {% endif %}
+                <input type="text" value="{{ form.voronoi_seeds_list_fp }}" class="form-control" name="voronoi_seeds_list_fp"/>
+            </div>
         </div>
         <br>
         <!-- tolar -->

@@ -60,6 +60,23 @@ def makeGrid(ini:_readConfig.InputIni, force_overwrite_all=False,
                                     layer_no_to_plot=layer)
 
 
+# def makeGrid(ini:_readConfig.InputIni, overWrites=False, showsProfiles=False):
+#     if ini.mesh.type == REGULAR:
+#         # 軽いので常に作り直す(overWrites=True)
+#         # makeGridRegular(ini, overWrites=True, showsProfiles=showsProfiles)
+#         if ini.mesh.incorporatesCone:
+#             # 2-D radial grid with edifice
+#             makeGrid2dRadialEdifice(ini, overWrites=overWrites, showsProfiles=showsProfiles)
+#         else:
+#             # 3-D rectilinear OR 2-D radial grid (with no edifice)
+#             makeGridRegular(ini, overWrites=overWrites, showsProfiles=showsProfiles)
+
+#     elif ini.mesh.type == AMESH_VORONOI:
+#         if os.path.exists(ini.mulgridFileFp) and not overWrites:
+#             return
+#         makeGridAmeshVoro.makePermVariableVoronoiGrid(ini, 
+#             force_overwrite_all=overWrites, open_viewer=showsProfiles)
+
 def makeGridRegular(ini:_readConfig.InputIni, showsProfiles=False):
 
     if ini.mesh.type == AMESH_VORONOI:

@@ -43,6 +43,12 @@ def main():
     print("---- INTO makeToughInput() ----")
     makeToughInput(ini)
     print("---- END makeToughInput() ----")
+
+    try:
+        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+    except shutil.SameFileError as e:
+        print(e)
+        print("skip")
     
 
 def makeToughInput(ini:_readConfig.InputIni):
@@ -1036,12 +1042,7 @@ FIXED_P_REGION {i}: {fps.secName}
     os.remove(TMP)
     ## write incon file
     inc.write(ini.inconFp)
-    ## 
-    try:
-        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
-    except shutil.SameFileError as e:
-        print(e)
-        print("skip")
+    ##
 
     print(f"""
     OUTPUT:
@@ -1205,6 +1206,7 @@ def add_multiple_source_blks(dat:t2data,
                 rockTypeAdded.name = f"ZZ{n_added_rocktype_counter:>3}"
                 # give huge specific heat to keep constant temperature
                 rockTypeAdded.specific_heat = HUGE_SPECIFIC_HEAT
+                rockTypeAdded.porosity = 0.99
                 rockTypeAdded.permeability = blkInDomain.rocktype.permeability
                 # add the rocktype for pressure blocks
                 dat.grid.add_rocktype(rockTypeAdded)

@@ -5,6 +5,7 @@ import re
 import sys
 import pathlib
 import time
+import datetime
 
 # from unittest import result
 baseDir = pathlib.Path(__file__).parent.resolve()
@@ -37,7 +38,6 @@ import dict_gui
 import time
 import shutil
 import pickle
-from constants import Const
 from werkzeug.utils import secure_filename
 import readFemticResistivityModel as rFRM
 from threading import Thread
@@ -56,6 +56,11 @@ UPLOAD_FOLDER = os.path.join(projRoot,'gui/static/uploaded')
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# TOUGH3 run by api
+IS_RUNNING_TOUGH3 = False
+# list of {'thread': (threading.Thread), 'inifp': (str)}
+THREADS_TOUGH_RUNNING = []
 
 # Constの中身をそのままjinja2でつかえるようにする
 from constants import Const
@@ -181,7 +186,7 @@ def cmesh1_check():
 
 @app.route('/cmesh2', methods=['GET', 'POST'])
 def cmesh2():
-    return render_template('cmesh2.html', form=request.form, created=False)
+    return render_template('cmesh2.html', form=request.form, created=False, projRoot=projRoot)
     # if request.method == 'POST':
     #     return render_template('cmesh2.html', form=request.form, created=False)
     # else:
@@ -190,23 +195,42 @@ def cmesh2():
 @app.route('/cmesh2_check', methods=['GET', 'POST'])
 def cmesh2_check():
     if request.method == 'POST':
+        error_msg = {}
+        """check problem directory firstly"""
+        if os.path.isdir(create_fullpath(request.form['saveDir'])) and int(request.form['createsMesh'])==1:
+            # case "create new mesh" && base directory exists
+            error_msg['s_dir'] = f"Directory \"{create_fullpath(request.form['saveDir'])}\" already exists"
+        
+        tmp = dict(request.form)
+        tmp['saveDir'] = create_relpath(request.form['saveDir'])
+
+        if len(error_msg) > 0:
+            return render_template('cmesh2.html', error_msg=error_msg, form=tmp,  projRoot=projRoot)
+
+        save_dir_fp = create_fullpath(request.form['saveDir'])
+        # check saveDir 
+        if os.path.isfile(save_dir_fp):
+            error_msg["prob_dir_isfile"] = f"Problem directory: {save_dir_fp} is exists and is file. Provide the different file path."
+
+        # if No error, then check mesh
         if int(request.form['createsMesh'])==1:
             """ create new mesh """
-            topodata_fp_full = create_fullpath(request.form['topodata_fp'])
-            voronoi_seeds_list_fp = create_fullpath(request.form['voronoi_seeds_list_fp'])
+            voronoi_seeds_list_fp_org = create_fullpath(request.form['voronoi_seeds_list_fp'])
+            topodata_fp_org = create_fullpath(request.form['topodata_fp'])
+            mulgridFile_fp_new = os.path.join(save_dir_fp, request.form['mulgridFileName'])
+            voronoi_seeds_list_fp_new = os.path.join(save_dir_fp, "seed.txt")
+            topodata_fp_link = os.path.join(save_dir_fp, os.path.basename(request.form['topodata_fp']))
 
             """validation"""
-            error_msg = {}
-            if not os.path.isfile(topodata_fp_full):
-                error_msg["topodata_fp"] = f"{topodata_fp_full}   does not exist. Please create."
-            if not os.path.isfile(voronoi_seeds_list_fp):
-                error_msg["voronoi_seeds_list_fp"] = f"File: {voronoi_seeds_list_fp}   does not exist. Please create."
-            if os.path.isdir(create_fullpath(request.form['mulgridFileFp'])):
-                error_msg["mulgridFile_fp_dir"] = f"{request.form['mulgridFileFp']} is directory. Please specify different file path."
-            elif os.path.isfile(create_fullpath(request.form['mulgridFileFp'])):
-                error_msg["mulgridFile_fp"] = f"{create_fullpath(request.form['mulgridFileFp'])}  already exist. Please specify different file path."
-            if not os.path.isdir(create_fullpath(os.path.dirname(request.form['mulgridFileFp']))):
-                error_msg["mulgridDir"] = f"Directory: {create_fullpath(os.path.dirname(request.form['mulgridFileFp']))} does not exist. Please create it beforehand."
+            if not os.path.isfile(topodata_fp_org):
+                error_msg["topodata_fp"] = f"topodata_fp: {topodata_fp_org}   does not exist. Provide the correct file path."
+            if not os.path.isfile(voronoi_seeds_list_fp_org):
+                error_msg["voronoi_seeds_list_fp"] = f"voronoi_seeds_list_fp: {voronoi_seeds_list_fp_org}   does not exist. Provide the correct file path."
+            if os.path.isdir(mulgridFile_fp_new):
+                error_msg["mulgridFile_fp_dir"] = f"{mulgridFile_fp_new} is directory. Please specify different file path."
+            elif os.path.isfile(mulgridFile_fp_new):
+                error_msg["mulgridFile_fp"] = f"mulgridFile_fp: {mulgridFile_fp_new}  already exist. Please specify different file path."
+            
             try:
                 _ = eval(request.form['layer_thicknesses'])
                 if not isinstance(_, (tuple, list, np.ndarray)):
@@ -214,9 +238,8 @@ def cmesh2_check():
             except:
                 error_msg["layer_thicknesses"] = f"error in 'layer_thicknesses': Can not interpret '{request.form['layer_thicknesses']}'."
 
-
             if len(error_msg) > 0:
-                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
+                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False, projRoot=projRoot)
 
             """ _readConfig.InputIniインスタンス作成"""
             inputIni = _readConfig.InputIni()
@@ -224,30 +247,69 @@ def cmesh2_check():
             inputIni.mesh.type = AMESH_VORONOI
             config = {}
             config['amesh_voronoi'] = request.form
-            inputIni.mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
+            inputIni.mulgridFileFp = mulgridFile_fp_new
             inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config)
             inputIni.mesh.convention = int(request.form['convention'])
             inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
             inputIni.amesh_voronoi.uses_amesh = eval(request.form['uses_amesh'])
+            inputIni.amesh_voronoi.topodata_fp = create_relpath(topodata_fp_org)
+            inputIni.amesh_voronoi.voronoi_seeds_list_fp = create_relpath(voronoi_seeds_list_fp_org)
+
+            # create problemDir before generation
+            msg = {}
+            if not os.path.isdir(save_dir_fp):
+                msg['dir'] = f"Directory: {save_dir_fp}  newly created"
+            os.makedirs(save_dir_fp, exist_ok=True)
 
             # create mesh file
             makeGridAmeshVoro.create_mulgrid_with_topo(inputIni)
 
-            # ラジオボタンcreatesMeshを"Use existing mulgrid file"に切り替える
+            # if succeeded, create link and copy in saveDir 
+            if Const.DUPLICATES_ORG_TOPO:
+                os.symlink(inputIni.amesh_voronoi.topodata_fp, topodata_fp_link)
+            if Const.DUPLICATES_ORG_SEEDS:
+                shutil.copy(inputIni.amesh_voronoi.voronoi_seeds_list_fp, 
+                            voronoi_seeds_list_fp_new)
+
+            #メモを残す
+            with open(os.path.join(save_dir_fp, "cmesh2_memo.txt"), 'a') as f:
+                f.write(f"\n--- {datetime.datetime.now()} ---\n")
+                f.write(f"mulgrid file was newly created by cmesh2 (create new mulgrid file).\n")
+                f.write(f"constants.DUPLICATES_ORG_SEEDS: {Const.DUPLICATES_ORG_SEEDS}\n")
+                if Const.DUPLICATES_ORG_SEEDS:
+                    f.write(f"Original 'voronoi_seeds_list_fp': {voronoi_seeds_list_fp_org}\n")
+                f.write(f"constants.DUPLICATES_ORG_TOPO: {Const.DUPLICATES_ORG_TOPO}\n")
+                if Const.DUPLICATES_ORG_TOPO:
+                    f.write(f"Original 'topodata_fp': {Const.DUPLICATES_ORG_TOPO}\n")
+
+            # form のファイルパスを書き換える
             tmp = dict(request.form)
-            return render_template('cmesh2.html', form=tmp, created = True,  msg="mulgrid file successfully created")
+            tmp['mulgridFileFp'] = create_relpath(mulgridFile_fp_new)
+            if Const.DUPLICATES_ORG_TOPO:
+                tmp['topodata_fp'] = create_relpath(topodata_fp_link)
+            else:
+                tmp['topodata_fp'] = create_relpath(topodata_fp_org)
+            if Const.DUPLICATES_ORG_SEEDS:
+                tmp['voronoi_seeds_list_fp'] = create_relpath(voronoi_seeds_list_fp_new)
+            else:
+                tmp['voronoi_seeds_list_fp'] = create_relpath(voronoi_seeds_list_fp_org)
+
+            msg['mul'] = "mulgrid file successfully created"
+                
+            # ラジオボタンcreatesMeshを"Use existing mulgrid file"に切り替える
+            return render_template('cmesh2.html', form=tmp, created = True,  msg=msg, projRoot=projRoot)
 
 
         elif int(request.form['createsMesh'])==0:
-            print(request.form)
             """ use existing mesh """
             # check file existence
-            error_msg = {}
             mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
+            mulgridFile_fp_copied = os.path.join(save_dir_fp, 
+                                               os.path.basename(mulgridFileFp))
             if not os.path.isfile(mulgridFileFp):
                 error_msg["mulgridFile_fp"] = f"File: {mulgridFileFp}  was not found. Please specify correct file path."
             if len(error_msg) > 0:
-                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
+                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False, projRoot=projRoot)
             
             tmp = dict(request.form)
             # 値の削除
@@ -260,22 +322,51 @@ def cmesh2_check():
                 tmp.pop('layer_thicknesses')
                 tmp.pop('tolar')
                 tmp.pop('top_layer_min_thickness')
+                tmp.pop('mulgridFileName')
             except:
                 # 握りつぶす
                 pass
             
+            # create problemDir before generation
+            msg = {}
+            if not os.path.isdir(save_dir_fp):
+                msg['dir'] = f"Directory: {save_dir_fp}  newly created"
+            os.makedirs(save_dir_fp, exist_ok=True)
+            
+            # create link in saveDir 
+            if Const.DUPLICATES_ORG_MULGRID:
+                if os.path.abspath(mulgridFileFp) != os.path.abspath(mulgridFile_fp_copied):
+                    shutil.copy(mulgridFileFp, mulgridFile_fp_copied)
+                    msg['mul'] = f"A copy of mulgrid file {create_relpath(mulgridFileFp)} was created in {save_dir_fp}"
+                # form のファイルパスを書き換える
+                tmp['mulgridFileFp'] = create_relpath(mulgridFile_fp_copied)
+            else:
+                tmp['mulgridFileFp'] = create_relpath(mulgridFileFp)
+            
+            #メモを残す
+            with open(os.path.join(save_dir_fp, "cmesh2_memo.txt"), 'a') as f:
+                f.write(f"\n--- {datetime.datetime.now()} ---\n")
+                f.write(f"cmesh2 (use existing mulgrid file).\n")
+                f.write(f"constants.DUPLICATES_ORG_MULGRID: {Const.DUPLICATES_ORG_MULGRID}\n")
+                if Const.DUPLICATES_ORG_MULGRID:
+                    f.write(f"mulgrid file was copied from: {mulgridFileFp}\n")
+                else:
+                    f.write(f"mulgrid file: {mulgridFileFp}\n")
+
             # read atmosphere_type from mulgrid and set to form
             tmp['includesAtmos'] = mulgrid(mulgridFileFp).atmosphere_type==0
 
+            print(tmp)
+
             # int(request.form['createsMesh'])==1でcreatedのときと同じ扱い
-            return render_template('cmesh2.html', form=tmp, created = True, msg=f"mulgrid file {create_relpath(mulgridFileFp)} was found")
+            return render_template('cmesh2.html', form=tmp, created = True, msg=msg, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
 @app.route('/cmesh3', methods=['GET', 'POST'])
 def cmesh3():
     if request.method == 'POST':
-        return render_template('cmesh3.html', form=request.form)
+        return render_template('cmesh3.html', form=request.form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -291,8 +382,7 @@ def cmesh3_validate(request:request):
             f"Resistivity structure data: "\
             f"'{create_fullpath(request.form['resistivity_structure_fp'])}'"\
             " not found" 
-    newIni = os.path.join(request.form['saveDir'], 
-                          request.form['problemName'], 'input_cmesh4.ini')
+    newIni = os.path.join(request.form['saveDir'], f'input_cmesh4_{request.form["problemName"]}.ini')
     if os.path.isfile(newIni)\
             and not 'overwrites_prob' in request.form:
         error_msg['problemName']= \
@@ -350,7 +440,7 @@ def cmesh3_check():
         error_msg = cmesh3_validate(request)
         logger.debug(error_msg)
         if len(error_msg) > 0:
-            return render_template('cmesh3.html', form=request.form, error_msg=error_msg)
+            return render_template('cmesh3.html', form=request.form, error_msg=error_msg, projRoot=projRoot)
         
         """ _readConfig.InputIniインスタンス作成"""
         if len(request.form["original_iniFp"])>0:
@@ -390,7 +480,11 @@ def cmesh3_check():
         """problem name"""
         inputIni.toughInput['problemName'] = request.form[f'problemName']
         """resistivity_structure_fp"""
-        inputIni.mesh.resistivity_structure_fp = create_relpath(request.form[f'resistivity_structure_fp'])
+        if Const.DUPLICATES_ORG_RESMODEL:
+            inputIni.mesh.resistivity_structure_fp = create_relpath(os.path.join(request.form[f'saveDir'], os.path.basename(request.form[f'resistivity_structure_fp'])))
+            os.symlink(create_fullpath(request.form[f'resistivity_structure_fp']), create_fullpath(inputIni.mesh.resistivity_structure_fp))
+        else:
+            inputIni.mesh.resistivity_structure_fp = create_relpath(request.form[f'resistivity_structure_fp'])
         inputIni.construct_path()
 
 
@@ -502,7 +596,9 @@ def cmesh3_check():
         # create save dir. 
         os.makedirs(inputIni.t2FileDirFp, exist_ok=True)
 
-        inputIni.inputIniFp = os.path.join(projRoot, inputIni.t2FileDirFp, "input_cmesh4.ini")
+        inputIni.inputIniFp = os.path.join(projRoot, 
+                                           inputIni.configuration.TOUGH_INPUT_DIR, 
+                                           f"input_cmesh4_{inputIni.toughInput['problemName']}.ini")
         inputIni.output2inifile(inputIni.inputIniFp)
         
         # pickle for cmesh4_visualize()
@@ -589,7 +685,7 @@ def cmesh3_readFromIni():
         form = convert_InputIni2form_cmesh3(inputIni, dict(request.form))
         logger.debug(form)
 
-        return render_template('cmesh3.html', form=form)
+        return render_template('cmesh3.html', form=form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -638,7 +734,7 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     else:
         # 追記モード
         ret = form
-    ret["saveDir"] = create_fullpath(ini.configuration.TOUGH_INPUT_DIR)
+    ret["saveDir"] = create_relpath(ini.configuration.TOUGH_INPUT_DIR)
     ret["convention"] = ini.mesh.convention
     if hasattr(ini, 'amesh_voronoi'):
         if hasattr(ini.amesh_voronoi, 'topodata_fp')\
@@ -875,7 +971,7 @@ def cmesh5():
             return redirect(url_for('index'))
         logger.debug('end cmesh5_read_inputIni')
 
-        return render_template('cmesh5.html', form=form)
+        return render_template('cmesh5.html', form=form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -903,21 +999,28 @@ def cmesh5_check():
                                    form=form, 
                                    error_msg={**msg_top_i, **msg_top_g}, # dictを結合
                                    error_msg_incon=error_msg_incon,
-                                   error_msg_gener=error_msg_gener)
+                                   error_msg_gener=error_msg_gener,
+                                   projRoot=projRoot)
         
 
         """save"""
         #if validate OK, add params to inifile and save
-        msg = cmesh5_write_file(request)
+        logger.debug("into cmesh5_write_file")
+        msg, outfp, outfp_inT2dir = cmesh5_write_file(request)
+        logger.debug("out cmesh5_write_file")
+
+        # set the path of created ini-format file for showing green message
+        form['ini_outfp_rel'] = create_relpath(outfp_inT2dir)
+        form['ini_outfp_full'] = create_fullpath(outfp_inT2dir)
 
         if len(msg) > 0 :
-            return render_template('cmesh5.html', form=form, error_msg=msg)
+            return render_template('cmesh5.html', form=form, error_msg=msg, projRoot=projRoot)
 
-        outfp = os.path.join('static', 'output', 'input_final.ini')
         return render_template('cmesh5.html', 
                                 form=form,
                                 downloadlink=outfp, 
-                                error_msg=msg)
+                                error_msg=msg,
+                                projRoot=projRoot)
 
     else:
         return redirect(url_for('index'))
@@ -1073,6 +1176,7 @@ def cmesh5_read_inputIni(request:request):
         raise InvalidToughInputException(f"Please specify configutation.TOUGH_INPUT_DIR in '{iniFp}'")
 
     form['inputIniFp'] = iniFp
+    form['inputIniFpRel'] = create_relpath(iniFp) 
     form['saveDirRel'] = create_relpath(TOUGH_INPUT_DIR)
     form['saveDirFull'] = create_fullpath(TOUGH_INPUT_DIR)
     if config.has_option('mesh', 'mulgridFileFp'):
@@ -1348,16 +1452,24 @@ def cmesh5_write_file(request:request):
     # 書き出し1
     outfp = os.path.join(pathlib.Path(__file__).parent.resolve(),
                          'static/output', 
-                         'input_final.ini')
+                         f'input_final_{config["toughInput"]["problemName"]}.ini')
     if os.path.isfile(outfp): os.remove(outfp)
     with open(outfp, 'w') as f:
         config.write(f)
+    logger.debug(f"File saved: {outfp}")
     
     # エラーチェックを兼ねて、inputIniに読み込ませる
+    logger.debug(f"-------------- test for reading Ini-file: {outfp} --------------")
     ini = _readConfig.InputIni().read_from_inifile(outfp)
     ini.rocktypeDuplicateCheck()
+    logger.debug(f"-------------- finished test Ini-file: {outfp} --------------")
+
+    # base directoryへコピー
+    outfp2 = create_fullpath(os.path.join(ini.configuration.TOUGH_INPUT_DIR, os.path.basename(outfp)))
+    shutil.copy(outfp, outfp2)
+    logger.debug(f"Ini-file: {outfp} was copied to {ini.configuration.TOUGH_INPUT_DIR}")
     
-    return msg_dict
+    return msg_dict, outfp, outfp2
 
 
 @app.route('/test_create', methods=['GET', 'POST'])
@@ -1369,14 +1481,15 @@ def test_create():
     if request.method == 'POST':
         createdFp = os.path.join(pathlib.Path(__file__).parent.resolve(), 
                     request.form['createdIniFp'])
+        
         ini = _readConfig.InputIni().read_from_inifile(createdFp)
         ini.rocktypeDuplicateCheck()
-        
+
         error_msg = {}
         short_msg = ""
         os.makedirs(ini.t2FileDirFp, exist_ok=True)
         logger.debug(f"dir: {ini.t2FileDirFp} is prepared")
-        if not os.path.isfile(ini.t2FileFp):
+        if not os.path.isfile(ini.t2FileFp) or 'overwrites_prob' in request.form:
             logger.debug(f"create new:{ini.t2FileFp}")
             if not os.path.isfile(ini.t2GridFp):
                 logger.debug(f"into method: makeGridFunc.makeGrid")
@@ -1387,19 +1500,122 @@ def test_create():
             logger.debug(f"finished: tough3exec_ws.makeToughInput")
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
         else:
-            error_msg['prob_exists'] = f"Problem: {create_relpath(ini.t2FileDirFp)}. Please specify different problem name and press (check)."
+            error_msg['prob_exists'] = f"The input file (t2data.dat): \"{create_relpath(ini.t2FileFp)}\"  has already been created. Please check 'Force overwrite' and try again."
         
         # return to cmesh5.html     
         form = dict(request.form)
+        form.pop('overwrites_prob', None) # reset status: 'overwrites_prob'
         form = construct_simulator_paths(form)
-        outfp = os.path.join('static', 'output', 'input_final.ini')
+        outfp = os.path.join('static', 'output', f'input_final_{request.form["problemName"]}.ini')
         return render_template('cmesh5.html', form=form, downloadlink=outfp, 
                                 error_msg=error_msg if len(error_msg)>0 else None,
-                                short_msg=short_msg
+                                short_msg=short_msg,
+                                projRoot=projRoot
                                 )
 
     else:
         return redirect(url_for('index'))
+
+@app.route('/ajax_test/')
+def ajax_test():
+    return app.send_static_file('ajax_test.html')
+
+
+@app.route('/ajax_test_api', methods=['GET', 'OPTIONS'])
+def ajax_test_api():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        a = request.args.get('key1', '')
+        print(a)
+        # これだとブラウザでエラーになる
+        # "blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+        # return jsonify({"data":f"I received {a}"}) 
+        return _corsify_actual_response(jsonify({"ajax_test_api_return1":f"I received {a}"}))
+
+@app.route('/checkrun', methods=['GET', 'OPTIONS'])
+def checkrun():
+    global THREADS_TOUGH_RUNNING
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = []
+        is_running = False
+        for i,thr in enumerate(THREADS_TOUGH_RUNNING):
+            is_running |= thr['thread'].is_alive()
+            info = 'running' if thr['thread'].is_alive() else 'dead'
+            # get number of steps and last time step length
+            cofts = glob.glob(os.path.join(thr['t2FileDir'],"FOFT*.csv"))
+            steps = None
+            time_step_length = None
+            time = None #[second]
+            time_y = None #[year]
+            if len(cofts)>0:
+                # case if COFT* found
+                with open(cofts[0], "r") as f:
+                    lines = f.readlines()
+                    steps = len(lines)-1 # number of lines except for 1st line
+                    if steps==1:
+                        time = time_step_length = float(lines[-1].split(",")[0])
+                        time_y = time/365.25/24/3600
+                    elif steps>2:
+                        time = float(lines[-1].split(",")[0])
+                        time_step_length =  time - float(lines[-2].split(",")[0])
+                        time_y = time/365.25/24/3600
+
+            msg = f'(Proc. {i+1}) inifp: {create_relpath(thr["inifp"])} is {info}. Steps: {steps}. Time: {time_y:.2f} year. Time step length: {time_step_length} [s]'
+            print(msg)
+            ret.append(msg)
+
+        return _corsify_actual_response(jsonify({'status':ret, 'is_running':is_running}))
+
+@app.route('/run_tough3', methods=['GET', 'OPTIONS'])
+def run_tough3():
+    # global IS_RUNNING_TOUGH3
+    global THREADS_TOUGH_RUNNING
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = {'status_msg':[], 'error_msg':[], 'flg_started':False}
+        inifp = request.args.get('key1', '').strip()
+
+        if not os.path.isfile(create_fullpath(inifp)):
+            ret['error_msg'].append(f"Flie not found: {inifp}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        if not os.path.isfile(MPIEXEC):
+            ret['error_msg'].append(f"MPIEXEC not found: {MPIEXEC}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        ini = _readConfig.InputIni().read_from_inifile(create_fullpath(inifp))
+
+        if not os.path.isfile(ini.configuration.COMM_EXEC):
+            ret['error_msg'].append(f"Executable not found: {ini.configuration.COMM_EXEC}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        # Check if tough3 simulation for the passed ini-file is running.
+        isrunning = create_relpath(inifp) in get_running_inifp_list()
+        
+        if isrunning:
+            ret['error_msg'].append(f"process for '{os.path.basename(inifp)}' is running")
+        else:
+            # If there are threads involving the same inifp, delete the older one
+            for i, thr in enumerate(THREADS_TOUGH_RUNNING):
+                if inifp in thr['inifp']:
+                    del THREADS_TOUGH_RUNNING[i]
+            # create new thread
+            thread = Thread(target=run.execute, 
+                            args=(_readConfig.InputIni().read_from_inifile(create_fullpath(inifp)),), 
+                            name="SubThread", 
+                            daemon=True)
+            # start execution
+            thread.start()
+            ret['status_msg'].append(f"start tough3 run for: {os.path.basename(inifp)}")
+            ret['flg_started'] =    True
+            THREADS_TOUGH_RUNNING.append({'thread':thread, 'inifp':create_fullpath(inifp), 't2FileDir':ini.t2FileDirFp})
+
+        ret['running_processes'] = get_running_inifp_list()
+        return _corsify_actual_response(jsonify(ret))
 
 @app.route('/python_str_to_eval_api', methods=['GET', 'OPTIONS'])
 def python_str_to_eval_api():
@@ -1448,6 +1664,16 @@ def api_voronoi_plot_qhull():
             error_msg = f"Error in seed_to_voronoi.creates_2d_voronoi_grid"
 
         return _corsify_actual_response(jsonify({"img_fp":re.sub("gui/", "", savefp), "error_msg":error_msg}))
+
+def get_running_inifp_list():
+    global THREADS_TOUGH_RUNNING
+    ret = []
+    for proc in THREADS_TOUGH_RUNNING:
+        thr: Thread = proc['thread']
+        if thr.is_alive():
+            ret.append(create_relpath(proc['inifp']))
+    return ret
+
 def _build_cors_preflight_response():
     # ajax開発用 CORS対策
     # https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
