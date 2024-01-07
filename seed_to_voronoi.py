@@ -12,6 +12,8 @@ import t2data
 import define
 
 MARGIN_LENGTH = 400 # edge length of outermost elements
+TOPO_CNT_INTBL1 = 50
+TOPO_CNT_INTBL2 = 10
 
 # column/vertex name に変換する関数
 def naming(convention, n):
@@ -83,6 +85,7 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
     vor = creates_2d_voronoi_grid(ini.amesh_voronoi.voronoi_seeds_list_fp, 
             min_edge_length=ini.amesh_voronoi.tolar,
             preview_save_fp=os.path.join(os.path.dirname(ini.mulgridFileFp),"voronoi_check.png"), 
+            topofp_for_plot=ini.amesh_voronoi.topodata_fp,
             show_preview=False)
 
     # 補足
@@ -215,7 +218,11 @@ def seed_to_mulgraph_no_topo(ini:_readConfig.InputIni, output_fp:str, showVorono
         f.write(layerstr)
         f.write("\n\n") # end of file (空行２つ)
 
-def creates_2d_voronoi_grid(seeds_list_fp:str, min_edge_length:float, preview_save_fp:str=None, show_preview=False)->Voronoi:
+def creates_2d_voronoi_grid(seeds_list_fp:str, 
+                            min_edge_length:float, 
+                            preview_save_fp:str=None, 
+                            topofp_for_plot:str=None,
+                            show_preview=False)->Voronoi:
     """_summary_
 
     Args:
@@ -292,6 +299,22 @@ def creates_2d_voronoi_grid(seeds_list_fp:str, min_edge_length:float, preview_sa
     # 確認用
     fig, ax = plt.subplots(figsize=(10,10))
     fig = voronoi_plot_2d(vor, ax, show_vertices=False, point_size=1)
+    if topofp_for_plot is not None:
+        # 地形データがあれば
+        # overlay topo
+        interp = makeGridAmeshVoro.load_topo_file(topofp_for_plot)
+        xrange = max(vor.points[:,0])-min(vor.points[:,0])
+        mrgn = xrange*0.05
+        x, y = np.meshgrid(
+            np.arange(min(vor.points[:,0])-mrgn, max(vor.points[:,0]+mrgn), xrange/250),
+            np.arange(min(vor.points[:,1])-mrgn, max(vor.points[:,1]+mrgn), xrange/250))
+        z = interp(x, y)
+        zmax = (math.floor(max(z.flat)/TOPO_CNT_INTBL1)+2)*TOPO_CNT_INTBL1 # 2*TOPO_CNT_INTBL1[m]だけ余裕をもたせる
+        zmin = math.floor(min(z.flat)/TOPO_CNT_INTBL1)*TOPO_CNT_INTBL1
+        cs = ax.contourf(x, y, z, levels=np.arange(zmin, zmax, 10))
+        ax.contour(cs, colors='k', alpha=0.5, linewidths=0.5, levels=np.arange(zmin, zmax, TOPO_CNT_INTBL1))
+        ax.contour(cs, colors='k', alpha=0.5, linewidths=0.1, levels=np.arange(zmin, zmax, TOPO_CNT_INTBL2))
+        fig.colorbar(cs, ax=ax, shrink=0.8)
     ax.set_aspect('equal')
     ax.set_xlabel("Northing [m]")
     ax.set_ylabel("Easting [m]")

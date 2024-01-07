@@ -1655,15 +1655,19 @@ def api_voronoi_plot_qhull():
         error_msg = None
 
         seedfp = request.args.get('seedfp', '')
+        topodata_fp = request.args.get('topodata_fp', '')
         try:
             min_edge_len = float(request.args.get('min_edge_len', ''))
         except:
-            error_msg = "invalid tolar: {request.args.get('min_edge_len', '')}"
+            error_msg = "invalid min_edge_len: {request.args.get('min_edge_len', '')}"
             return _corsify_actual_response(jsonify({"error_msg":error_msg}))
         
         if not os.path.isfile(create_fullpath(seedfp)):
             error_msg = f"voronoi_seeds_list_fp not found: '{seedfp}'"
             return _corsify_actual_response(jsonify({"error_msg":error_msg}))
+        
+        if not os.path.isfile(create_fullpath(topodata_fp)):
+            error_msg = f"topodata_fp not found: '{topodata_fp}'"
 
         """
         'Matplotlib is not thread-safe:...'
@@ -1674,7 +1678,9 @@ def api_voronoi_plot_qhull():
         try:
             seed_to_voronoi.creates_2d_voronoi_grid(
                 create_fullpath(seedfp), min_edge_len, 
-                preview_save_fp=create_fullpath(savefp), show_preview=False
+                preview_save_fp=create_fullpath(savefp), show_preview=False,
+                topofp_for_plot=\
+                    topodata_fp if os.path.isfile(create_fullpath(topodata_fp)) else None,
             )
         except:
             error_msg = f"Error in seed_to_voronoi.creates_2d_voronoi_grid"

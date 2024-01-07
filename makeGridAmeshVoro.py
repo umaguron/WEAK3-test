@@ -158,28 +158,9 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     print("*** reading topodata and generating interpolating function")
     start = time.perf_counter()
-    # create or load resistivity interpolating function 
-    pickledtopo = ini.amesh_voronoi.topodata_fp+"_pickled"
-    if os.path.isfile(pickledtopo):
-        print(f"load pickled interpolating function: {pickledtopo}")
-        # load selialized interpolating function
-        with open(pickledtopo, 'rb') as f:
-            interp = pickle.load(f)   
-    else:
-        print(f"create interpolating function and pickle: {pickledtopo}")
-        # read data file
-        df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
-        x = np.array(df['x']) * M_OVER_KM # km to m
-        y = np.array(df['y']) * M_OVER_KM # km to m
-        z = np.array(df['z']) * M_OVER_KM # km to m
-        # interpolating function
-        interp = LinearNDInterpolator(list(zip(x,y)), z)
-        # serialize and save
-        with open(pickledtopo, 'wb') as f:
-            pickle.dump(interp, f)    
+    interp = load_topo_file(topofile_fp=ini.amesh_voronoi.topodata_fp)
     end = time.perf_counter()
     print(f"    finished {end - start:10.2f}[s]")
-
 
     # append SURFA section to mulgraph file
     print("*** create mulgraph setting file of grid with topography")
@@ -1094,6 +1075,27 @@ def blockname(colname, layname, convention):
     return blkname
 
 
+def load_topo_file(topofile_fp):
+    # create or load resistivity interpolating function 
+    pickledtopo = topofile_fp+"_pickled"
+    if os.path.isfile(pickledtopo):
+        print(f"load pickled interpolating function: {pickledtopo}")
+        # load selialized interpolating function
+        with open(pickledtopo, 'rb') as f:
+            interp = pickle.load(f)   
+    else:
+        print(f"create interpolating function and pickle: {pickledtopo}")
+        # read data file
+        df = pd.read_csv(topofile_fp, delim_whitespace=True)
+        x = np.array(df['x']) * M_OVER_KM # km to m
+        y = np.array(df['y']) * M_OVER_KM # km to m
+        z = np.array(df['z']) * M_OVER_KM # km to m
+        # interpolating function
+        interp = LinearNDInterpolator(list(zip(x,y)), z)
+        # serialize and save
+        with open(pickledtopo, 'wb') as f:
+            pickle.dump(interp, f)
+    return interp
 
 
 
