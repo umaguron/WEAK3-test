@@ -534,7 +534,7 @@ def cmesh3_check():
         # configparser.ConfigParserオブジェクトに変換してからread_from_configにわたす
         parser = configparser.ConfigParser()
         parser.read_dict(config)
-        inputIni.atmosphere = _readConfig.InputIni._Atmosphere().read_from_config(config)
+        inputIni.atmosphere = _readConfig.InputIni._Atmosphere().read_from_config(parser)
 
         """rocktypes"""
         for rock_id in range(Const.ROCKTYPE_LEN):
