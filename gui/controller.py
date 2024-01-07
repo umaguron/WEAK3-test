@@ -245,12 +245,15 @@ def cmesh2_check():
             inputIni = _readConfig.InputIni()
             inputIni.toughInput = {}
             inputIni.mesh.type = AMESH_VORONOI
-            config = {}
-            config['amesh_voronoi'] = request.form
             inputIni.mulgridFileFp = mulgridFile_fp_new
-            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config)
             inputIni.mesh.convention = int(request.form['convention'])
             inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
+            # 入力値はdict化してからconfigparser.ConfigParserオブジェクトに変換し、read_from_configにわたす
+            config = {}
+            config['amesh_voronoi'] = dict(request.form)
+            parser = configparser.ConfigParser()
+            parser.read_dict(config)
+            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
             inputIni.amesh_voronoi.uses_amesh = eval(request.form['uses_amesh'])
             inputIni.amesh_voronoi.topodata_fp = create_relpath(topodata_fp_org)
             inputIni.amesh_voronoi.voronoi_seeds_list_fp = create_relpath(voronoi_seeds_list_fp_org)
@@ -463,9 +466,12 @@ def cmesh3_check():
         inputIni.mesh.type = AMESH_VORONOI
         inputIni.mesh.mulgridFileFp = create_relpath(request.form['mulgridFileFp'])
         if int(request.form['createsMesh'])==1:
+            # 入力値はdict化してからconfigparser.ConfigParserオブジェクトに変換し、read_from_configにわたす
             config_av = {}
-            config_av['amesh_voronoi'] = request.form
-            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config_av)
+            config_av['amesh_voronoi'] = dict(request.form)
+            parser = configparser.ConfigParser()
+            parser.read_dict(config)
+            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
             inputIni.mesh.convention = int(request.form['convention'])
             # inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
         else: 
@@ -476,7 +482,10 @@ def cmesh3_check():
         """problem dir."""
         config['configuration'] = {}
         config['configuration']['TOUGH_INPUT_DIR'] = create_relpath(request.form['saveDir'])
-        inputIni.configuration = _readConfig.InputIni._Configuration().read_from_config(config)
+        # configparser.ConfigParserオブジェクトに変換してからread_from_configにわたす
+        parser = configparser.ConfigParser()
+        parser.read_dict(config)
+        inputIni.configuration = _readConfig.InputIni._Configuration().read_from_config(parser)
         """problem name"""
         inputIni.toughInput['problemName'] = request.form[f'problemName']
         """resistivity_structure_fp"""
@@ -522,6 +531,9 @@ def cmesh3_check():
             config['atmosphere']['IRP'] = request.form['atmos_irp']
             config['atmosphere']['CP'] = request.form['atmos_cp']
             config['atmosphere']['ICP'] = request.form['atmos_icp']
+        # configparser.ConfigParserオブジェクトに変換してからread_from_configにわたす
+        parser = configparser.ConfigParser()
+        parser.read_dict(config)
         inputIni.atmosphere = _readConfig.InputIni._Atmosphere().read_from_config(config)
 
         """rocktypes"""
@@ -584,12 +596,16 @@ def cmesh3_check():
                 config[name]['regionSecList'] = repr(regionSecList)
                 logger.debug(regionSecList)
 
+                # configparser.ConfigParserオブジェクトに変換
+                parser = configparser.ConfigParser()
+                parser.read_dict(config)
+
                 if not 'rockSecList' in inputIni.toughInput:
                     inputIni.toughInput['rockSecList'] = [name]
-                    inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, config)]
+                    inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, parser)]
                 else:
                     inputIni.toughInput['rockSecList'].append(name)
-                    inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, config))
+                    inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, parser))
         
         """check & create"""
         inputIni.rocktypeDuplicateCheck()
