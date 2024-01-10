@@ -470,7 +470,7 @@ def cmesh3_check():
             config_av = {}
             config_av['amesh_voronoi'] = dict(request.form)
             parser = configparser.ConfigParser()
-            parser.read_dict(config)
+            parser.read_dict(config_av)
             inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
             inputIni.mesh.convention = int(request.form['convention'])
             # inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
