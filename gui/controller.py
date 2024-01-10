@@ -255,8 +255,8 @@ def cmesh2_check():
             parser.read_dict(config)
             inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
             inputIni.amesh_voronoi.uses_amesh = eval(request.form['uses_amesh'])
-            inputIni.amesh_voronoi.topodata_fp = create_relpath(topodata_fp_org)
-            inputIni.amesh_voronoi.voronoi_seeds_list_fp = create_relpath(voronoi_seeds_list_fp_org)
+            inputIni.amesh_voronoi.topodata_fp = create_fullpath(topodata_fp_org)
+            inputIni.amesh_voronoi.voronoi_seeds_list_fp = create_fullpath(voronoi_seeds_list_fp_org)
 
             # create problemDir before generation
             msg = {}
@@ -490,10 +490,10 @@ def cmesh3_check():
         inputIni.toughInput['problemName'] = request.form[f'problemName']
         """resistivity_structure_fp"""
         if Const.DUPLICATES_ORG_RESMODEL:
-            inputIni.mesh.resistivity_structure_fp = create_relpath(os.path.join(request.form[f'saveDir'], os.path.basename(request.form[f'resistivity_structure_fp'])))
-            os.symlink(create_fullpath(request.form[f'resistivity_structure_fp']), create_fullpath(inputIni.mesh.resistivity_structure_fp))
+            inputIni.mesh.resistivity_structure_fp = create_fullpath(os.path.join(request.form[f'saveDir'], os.path.basename(request.form[f'resistivity_structure_fp'])))
+            os.symlink(create_fullpath(request.form[f'resistivity_structure_fp']), inputIni.mesh.resistivity_structure_fp)
         else:
-            inputIni.mesh.resistivity_structure_fp = create_relpath(request.form[f'resistivity_structure_fp'])
+            inputIni.mesh.resistivity_structure_fp = create_fullpath(request.form[f'resistivity_structure_fp'])
         inputIni.construct_path()
 
 
