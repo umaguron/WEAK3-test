@@ -1288,6 +1288,49 @@ def cmesh5_read_inputIni(request:request):
             form[f"gener_{i}_heat"] = config[generSecs[i]]['temperature']
             form[f"gener_{i}_heatUnit"] = "tempc"
 
+    logger.debug("""create col map images""")
+    if config.has_option('mesh', 'mulgridFileFp') \
+            and os.path.isfile(create_fullpath(config['mesh']['mulgridFileFp'])):
+        geo = mulgrid(create_fullpath(config['mesh']['mulgridFileFp']))
+        # lib
+        import matplotlib.pyplot as plt
+        plt.rcParams["font.size"] = 6
+        ## TOPO ##
+        # retrieve topo data
+        elevations, X, Y = [], [], []
+        for col in geo.columnlist:
+            # X.append(col.centre[0])
+            # Y.append(col.centre[1])
+            elevations.append(col.surface)
+        geo.layer_plot(layer=geo.layerlist[-1], column_names=True, plt=plt,
+                       variable=elevations, variable_name='Elevation [m]',
+                       xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+        form['layer_image_topo'] = \
+            os.path.join('static','output',f'layer_topo_{time.time()}.png')
+        # invert y axis
+        lim = plt.ylim()    
+        plt.ylim((lim[1],lim[0]))
+        plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
+                                 form['layer_image_topo']))
+        plt.close()
+        ## permeability ##
+        perm_fp = os.path.join(form['saveDirFull'], form['problemName'], SAVEFIG_DIRNAME, PICKLED_MULGRID_PERM)
+        if os.path.isfile(perm_fp):
+            # load arrays pickled in makeGridAmeshVoro.makePermVariableVoronoiGrid()
+            variable_perm = np.load(perm_fp)
+            geo.layer_plot(layer=geo.layerlist[-1], column_names=True, plt=plt,
+                           variable=np.log10(variable_perm),
+                           variable_name='log10 permeability [m^2]',
+                           xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+            form['layer_image_perm'] = \
+                os.path.join('static','output',f'layer_perm_{time.time()}.png')
+            # invert y axis
+            lim = plt.ylim()    
+            plt.ylim((lim[1],lim[0]))
+            plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
+                                     form['layer_image_perm']))
+            plt.close()
+        
     return form
 
 

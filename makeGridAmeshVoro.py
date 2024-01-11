@@ -867,7 +867,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_PERMEABILITY, 
                                 plt=plt, 
                                 column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
+                                colourbar_limits=CBAR_LIM_LOG10PERM,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -880,7 +882,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_RESISTIVITY, 
                                 plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
+                                column_names=True,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -898,7 +902,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_PERMEABILITY, 
                                 plt=plt, 
                                 column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
+                                colourbar_limits=CBAR_LIM_LOG10PERM,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -911,7 +917,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_RESISTIVITY, 
                                 plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
+                                column_names=True,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    

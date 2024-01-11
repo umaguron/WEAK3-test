@@ -464,6 +464,8 @@
             <input type="hidden" value="{{ form.topodata_fp }}" name="topodata_fp">
             <input type="hidden" value="{{ form.one_d_save }}" name="one_d_save">
             <input type="hidden" value="{{ form.includesAtmos }}" class="form-control" name="includesAtmos" id="includesAtmos" />
+            <input type="hidden" value="{{ form.layer_image_topo }}" class="form-control" name="layer_image_topo" id="layer_image_topo" />
+            <input type="hidden" value="{{ form.layer_image_perm }}" class="form-control" name="layer_image_perm" id="layer_image_perm" />
             <!-- use default button -->
             <div class="sticky">
                 <div class="row">
@@ -1521,7 +1523,44 @@
                     <h3>GENER</h3>
                 </div>
                 <div class="col-6">
-                    <button type="button" class="btn btn-outline-primary btn-small col-2" id="addGener">add</button>
+                    <button type="button" class="btn btn-outline-primary btn-small col-4" id="addGener">add</button>
+                    <button class="btn btn-outline-primary btn-small col-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseColmap" aria-expanded="true" aria-controls="collapseColmap">
+                        column map
+                    </button>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <div id="collapseColmap" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <h5>Topography</h5>
+                            </div>
+                            <div class="col-6">
+                                <h5>Permeability</h5>
+                            </div>
+                        </div> 
+                        <div class="row">
+                            <div class="col-6">
+                                {% if form.layer_image_topo %}
+                                <a href="{{form.layer_image_topo}}" target="_blank">
+                                <img src="{{form.layer_image_topo}}" class="img-fluid" alt="{{form.layer_image_topo}}" title="{{form.layer_image_topo}}">
+                                </a>
+                                {% else %}
+                                To show columns map, create grid beforehand in cmesh3 & cmesh4
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                {% if form.layer_image_perm %}
+                                <a href="{{form.layer_image_perm}}"  target="_blank">
+                                <img src="{{form.layer_image_perm}}" class="img-fluid" alt="{{form.layer_image_perm}}" title="{{form.layer_image_perm}}">
+                                </a>    
+                                {% else %}
+                                To show columns map, create grid beforehand in cmesh3 & cmesh4
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <br>
@@ -1671,11 +1710,11 @@
             <div class="accordion" id="accordionExample">
                 <div class="accordion-item">
                     <div class="accordion-header" id="headingOne">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSolv" aria-expanded="true" aria-controls="collapseSolv">
                         <h5>Solver options</h5>
                     </button>
                     </div>
-                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                    <div id="collapseSolv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                         <div class="accordion-body">
                             <!--Option serial-->
                             <table class="table" id="solver_option_serial">
