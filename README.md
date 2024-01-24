@@ -58,11 +58,16 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
     
     TOUGH3の入力ファイル。メッシュ、TOUGH3の設定パラメータなど、シミュレーションに必要な情報のほとんどをここに書く。
 
-    サンプル
-    
-    * iniSample/input_voronoi_no_pmx.ini
+    サンプル (3-D)
+    * iniSample/input_voronoi_no_pmx.ini 
     * testdata/ksv/input.ini
     * testdata/shirane_vicinity/input.ini
+
+    サンプル (2-D radial)
+    * testdata/2d_radial/input_2d.ini
+    * testdata/2d_radial_sea/input_ewasg.ini
+    * testdata/fixed_p_injection/input_fixed_p.ini
+
     
     手動で頑張っても良いが、htmlによる支援ツールを使うのがおすすめ。（__GUIによるinput.ini作成__ 参照）
 

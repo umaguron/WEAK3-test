@@ -219,10 +219,13 @@ iapwsについては以下でもOK
 <br>
 
 # TOUGH3/TOUGH2の準備
-購入する or 同組織内で使っている人からもらう
+購入する or 同組織内で使っている人からもらう。コンパイル後のExecutableは以下のような名前に変更しておく。
+- TOUGH3の場合、'tough3-[module name (小文字)]'
+- TOUGH2の場合、'xt2_[module name (小文字)]'
+
 
 ### TOUGH3本体のbug fix
-TOUGH3本体にもいくつかバグが見つかっている。以下のURLに従いfixする。
+TOUGH3本体にもいくつかバグが見つかっている。以下のURLを参照しfixする。変更後はコンパイルを忘れずに。
 
 https://tough.lbl.gov/user-support/tough-bugs-fixes/
 
