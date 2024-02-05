@@ -8,11 +8,12 @@ import time
 import datetime
 
 # from unittest import result
-baseDir = pathlib.Path(__file__).parent.resolve()
-sys.path.append(baseDir)
-sys.path.append(os.path.join(baseDir,".."))
-sys.path.append(os.path.join(baseDir,"../femticUtil"))
-projRoot = os.path.abspath(os.path.join(baseDir,".."))
+baseDirCon = pathlib.Path(__file__).parent.resolve()
+sys.path.append(baseDirCon)
+sys.path.append(os.path.join(baseDirCon,".."))
+sys.path.append(os.path.join(baseDirCon,"../femticUtil"))
+sys.path.append(os.path.join(baseDirCon,"../topoUtil"))
+projRoot = os.path.abspath(os.path.join(baseDirCon,".."))
 from import_pytough_modules import *
 import _readConfig
 import makeGridAmeshVoro
@@ -40,10 +41,12 @@ import shutil
 import pickle
 from werkzeug.utils import secure_filename
 import readFemticResistivityModel as rFRM
+import xml2topo
 from threading import Thread
 import pandas as pd
 import seed_to_voronoi
 import matplotlib
+import matplotlib.pyplot as plt
 'Matplotlib is not thread-safe:...'
 # https://matplotlib.org/stable/users/faq.html#work-with-threads
 matplotlib.use('Agg') # これがないとAssertion failed:で落ちることがある
@@ -52,7 +55,7 @@ matplotlib.use('Agg') # これがないとAssertion failed:で落ちることが
 app = Flask(__name__, static_folder='static', static_url_path='')
 
 
-UPLOAD_FOLDER = os.path.join(projRoot,'gui/static/uploaded')
+UPLOAD_FOLDER = os.path.join(projRoot,os.path.join('gui','static','uploaded'))
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -121,7 +124,6 @@ def femtic():
 
 @app.route('/femtic_check', methods=['GET', 'POST'])
 def femtic_check():
-    print(baseDir)
     if request.method == 'POST':
         # save to app.config['UPLOAD_FOLDER']
         resistivityBlockIterDat = request.files['ResistivityBlockIterDat']
@@ -152,8 +154,136 @@ def femtic_check():
         
     else:
         return redirect(url_for('femtic'))
-    return render_template('femtic.html', form=request.form)
+
+@app.route('/topo')
+def topo():
+    return render_template('topo.html', form=request.form)
+
+@app.route('/topo_check', methods=['GET', 'POST'])
+def topo_check():
+    if request.method == 'POST':
+
+        dir = request.form['topoXmlDirFp']
+
+        # validation
+        error_msg = {}
+        # if not os.path.isdir(dir):
+        if len(glob.glob(os.path.join(dir)))==0:
+            error_msg['topoXmlDirFp'] = f"Directory:\"{dir}\" not found"
+        
+        ## get xml file list
+        xmls = glob.glob(os.path.join(dir, "FG*.xml"))
+        bathy_files = glob.glob(request.form['jodc_bathy'])
+        
+        ## validation
+        if len(xmls)==0:
+            error_msg['topoXml'] = f"Any topo xml file:\"{Const.TOPO_XML_FN}\" not found"
+        if len(bathy_files)==0 and len(request.form['jodc_bathy'])>0:
+            error_msg['bathy'] = f"bathymetry file:\"{request.form['jodc_bathy']}\" not found"
+        
+        if int(request.form['resolution'])<1:
+            error_msg['resolution'] = f"Coarseness must be greater than 1"
+
+        if len(request.form['cen_lat'])==0:
+            _, clat = xml2topo.get_center_loc_xmls(xmls)
+        else:
+            clat = float(request.form['cen_lat'])
+
+        if len(request.form['cen_lon'])==0:
+            clon, _ = xml2topo.get_center_loc_xmls(xmls)
+        else:
+            clon = float(request.form['cen_lon'])
     
+        if len(request.form['dist_lim_ns'])==0 and len(request.form['dist_lim_ew'])==0:
+            dist_lim=None
+        elif len(request.form['dist_lim_ns'])!=0 and len(request.form['dist_lim_ew'])!=0:
+            dist_lim={'ns': float(request.form['dist_lim_ns']), 
+                      'ew': float(request.form['dist_lim_ew'])}
+            if dist_lim['ns'] <= 0 or dist_lim['ew'] <= 0:
+                error_msg['dist_lim'] = f"Invalid Coordinate Limits"
+        else:
+            error_msg['dist_lim'] = f"Invalid Coordinate Limits"
+        
+        if len(error_msg) > 0:
+            return render_template('topo.html', error_msg=error_msg, form=request.form)
+        
+        center = {'lat':clat, 'lon':clon}
+
+
+        ## read xmls
+        topo_output_fp = os.path.join(baseDirCon, "static", "output", Const.TOPO_OUTPUT_FN)
+        ax = plt.subplot()
+        with open(topo_output_fp, 'w') as f1:
+            f1.write('x y z\n')
+            # read each xml and write xyz to file object
+            for xml in xmls:
+                X,Y,Z, LAT, LON = xml2topo.read_xml(xml, center, 
+                                                    skip_interbal=int(request.form['resolution']), 
+                                                    handler_xy=f1, dist_lim=dist_lim)
+                if len(X)==0:
+                    continue
+                ax.plot(LON, LAT, 'o',  ms=0.1, alpha=0.5) 
+                ax.plot([min(LON), max(LON), max(LON), min(LON), min(LON)], 
+                         [min(LAT), min(LAT), max(LAT), max(LAT), min(LAT)], 
+                         'b-', lw=0.2, label=os.path.basename(xml))
+                ax.text((max(LON)+min(LON))/2, (max(LAT)+min(LAT))/2, 
+                         os.path.basename(xml)[7:23], ha='center', fontsize=3, wrap=True)
+
+        with open(topo_output_fp, 'r') as f:
+            if len(f.readlines()) < 10:
+                error_msg['topo_output_error'] = f"The output file is almost empty, please check input xml files, center coordinates, and coordinates limits."
+                return render_template('topo.html', error_msg=error_msg, form=request.form)
+
+        ## jodc bathymetry
+        if len(request.form['Z0'].strip())==0:
+            Z0 = 0
+        else:
+            Z0 = float(request.form['Z0'])
+        with open(topo_output_fp, 'a') as f:
+            for bathy in bathy_files:
+                LAT, LON = xml2topo.read_jodc_bathy(bathy, center, f, Z0, dist_lim)
+                
+                if len(LAT)==0:
+                    continue
+                ax.plot(LON, LAT, 'bo', ms=1) 
+        ax.set_aspect('equal')
+        plt.savefig(os.path.join(baseDirCon, "static", "output", "range.png"), dpi=600)
+        plt.close()
+
+
+        ## plot 
+        df = pd.read_csv(topo_output_fp, delim_whitespace=True)
+        step = 100 #[m]
+        z_max = math.floor(max(df['z']*1000)/step+1)*step
+        z_min = math.floor(min(df['z']*1000)/step)*step
+        # z_min = max(math.floor(min(df['z']*1000)/step)*step,0)
+        fig, ax = plt.subplots(1,1,sharex=True, sharey=True)
+        ax.tricontour(df['y'], df['x'], df['z']*1000, 
+                      levels=np.arange(z_min, z_max, Const.CONT_INTBL*1000), 
+                      linewidths=0.1, colors='white')
+        ax.tricontour(df['y'], df['x'], df['z']*1000, 
+                      levels=[0], linewidths=0.5, colors='white')
+        c = ax.tricontourf(df['y'], df['x'], df['z']*1000, levels=np.arange(z_min, z_max, (z_max-z_min)/100), 
+                           cmap='gist_earth')
+        ax.plot(0,0,'ro',ms=5)
+                        # cmap='terrain')
+        ax.set_title(f'Center: ({center["lat"]:.5f}, {center["lon"]:.5f})')
+        ax.set_xlabel('Easting (m)')
+        ax.set_ylabel('Northing (m)')
+        ax.set_aspect('equal')
+        fig.colorbar(c, ax=ax, label="Elevation [m]")
+        plt.savefig(os.path.join(baseDirCon, "static", "output", "topo_check_plot.png"), dpi=600)
+        plt.close()
+        
+        return f"""
+        <a href="static/output/topo.dat" download><h1>download {Const.TOPO_OUTPUT_FN}</h1></a>
+        <img src="static/output/topo_check_plot.png" alt="topo_check_plot.png" style="width:80%">
+        <img src="static/output/range.png" alt="range.png" style="width:80%">
+        """
+    else:
+        return redirect(url_for('topo'))
+    
+
 @app.route('/cmesh1_check', methods=['GET', 'POST'])
 def cmesh1_check():
     if request.method == 'POST':
@@ -903,7 +1033,7 @@ def cmesh4_visualize():
         with open(os.path.join(os.path.dirname(form['inputIniFp']), 
                                PICKLED_INPUTINI), 
                   'rb') as f:
-            ini = pickle.load(f)  
+            ini:_readConfig.InputIni = pickle.load(f)  
         geo_topo = mulgrid(ini.mulgridFileFp)
         
         # load arrays pickled in makeGridAmeshVoro.makePermVariableVoronoiGrid()
@@ -984,6 +1114,7 @@ def cmesh5():
         try:
             form = cmesh5_read_inputIni(request)
         except FileNotFoundError:
+            logger.error('FileNotFoundError raised in cmesh5_read_inputIni')
             return redirect(url_for('index'))
         logger.debug('end cmesh5_read_inputIni')
 
@@ -1164,8 +1295,7 @@ def cmesh5_read_inputIni(request:request):
         # return redirect(url_for('index')) # これはうまく動かない
         raise FileNotFoundError # 代わりに手動でエラーをraiseする。
     
-    # parse ini file to config file
-    logger.debug("parse ini file to config file")
+    logger.debug("""parse ini file to config file""")
     config = configparser.ConfigParser(defaults=None)
     config.read(iniFp)
     
@@ -1173,7 +1303,7 @@ def cmesh5_read_inputIni(request:request):
     """ path of each simulators """
     form = construct_simulator_paths(form)
     
-    """ read param values from config and substitute values to form """
+    logger.debug(""" read param values from config and substitute values to form """)
     for sec, key, name in dict_gui.PARANAME_INI_GUI_CMESH5:
         try:
             form[name] = config[sec][key]
@@ -1181,7 +1311,7 @@ def cmesh5_read_inputIni(request:request):
         except:
             logger.debug(f"[{sec}]{key} not found")
     
-    """ construct paths """
+    logger.debug(""" construct paths """)
     if config.has_option('configuration', 'TOUGH_INPUT_DIR'):
         TOUGH_INPUT_DIR = config['configuration']['TOUGH_INPUT_DIR']
     elif config.has_option('configuration', 'configini'):
@@ -1205,7 +1335,7 @@ def cmesh5_read_inputIni(request:request):
         form['mulgridFileFpFull'] = create_fullpath(form['mulgridFileFpRel'])
 
    
-    """parse MOPsXX"""
+    logger.debug("""parse MOPsXX""")
     for mop in ('mops02','mops03','mops04','mops05','mops06'):
         if config.has_option('toughInput', mop) and len(config['toughInput'][mop])>0:
             logger.debug(f"parse {mop}: {config['toughInput'][mop]}")
@@ -1230,7 +1360,7 @@ def cmesh5_read_inputIni(request:request):
         else:
             form['mops16'] = ""
     
-    """parse SELEC.1, SELEC.2 (eco2n_v2)"""
+    logger.debug("""parse SELEC.1, SELEC.2 (eco2n_v2)""")
     if config.has_option('toughInput', 'selection_line1') \
                 and len(config['toughInput']['selection_line1'])>0:
         selec = eval(config['toughInput']['selection_line1'])
@@ -1243,13 +1373,13 @@ def cmesh5_read_inputIni(request:request):
             form[f'FE{i+1}'] = repr(s) if s is not None else ""
 
 
-    """FOFT/COFT"""
+    logger.debug("""FOFT/COFT""")
     if config.has_option('toughInput', 'prints_hc_surface') \
                 and len(config['toughInput']['prints_hc_surface'])>0:
         form['prints_hc_surface'] = "uses" \
             if eval(config['toughInput']['prints_hc_surface']) else ""
 
-    """parse INCON section"""
+    logger.debug("""parse INCON section""")
     if  config.has_option('toughInput', 'problemNamePreviousRun') \
                 and len(config['toughInput']['problemNamePreviousRun']) > 0:
         form["usesAnotherResAsINCON"] = "0"
@@ -1260,7 +1390,7 @@ def cmesh5_read_inputIni(request:request):
                 and len(config['toughInput']['initial_t_grad']) > 0:
         form["usesAnotherResAsINCON"] = "2"
 
-    """parse PRIMARY variables"""
+    logger.debug("""parse PRIMARY variables""")
     try:
         pa = eval(config['atmosphere']['PRIMARY_AIR'])
         for i, p in enumerate(pa):
@@ -1274,7 +1404,7 @@ def cmesh5_read_inputIni(request:request):
     except:
         logger.warning("cannot read [toughInput] PRIMARY_default")
                 
-    """parse GENER section"""
+    logger.debug("""parse GENER section""")
     if  config.has_option('toughInput', 'generSecList') \
                 and len(config['toughInput']['generSecList']) > 0:
         generSecs = eval(config['toughInput']['generSecList'])
@@ -1510,7 +1640,7 @@ def cmesh5_write_file(request:request):
 
     # 書き出し1
     outfp = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                         'static/output', 
+                         'static','output', 
                          f'input_final_{config["toughInput"]["problemName"]}.ini')
     if os.path.isfile(outfp): os.remove(outfp)
     with open(outfp, 'w') as f:
@@ -1600,11 +1730,14 @@ def checkrun():
     elif request.method == "GET":
         ret = []
         is_running = False
+        print("--------- 1 --------")
         for i,thr in enumerate(THREADS_TOUGH_RUNNING):
+            print("-------- 2 ---------")
             is_running |= thr['thread'].is_alive()
             info = 'running' if thr['thread'].is_alive() else 'dead'
             # get number of steps and last time step length
             cofts = glob.glob(os.path.join(thr['t2FileDir'],"FOFT*.csv"))
+            print("-------- 3 ---------")
             steps = None
             time_step_length = None
             time = None #[second]
@@ -1612,6 +1745,7 @@ def checkrun():
             if len(cofts)>0:
                 # case if COFT* found
                 with open(cofts[0], "r") as f:
+                    print("-------- 4 ---------")
                     lines = f.readlines()
                     steps = len(lines)-1 # number of lines except for 1st line
                     if steps==1:
@@ -1621,7 +1755,8 @@ def checkrun():
                         time = float(lines[-1].split(",")[0])
                         time_step_length =  time - float(lines[-2].split(",")[0])
                         time_y = time/365.25/24/3600
-
+            print("-------- 5 ---------")
+            print(i+1, thr["inifp"], info, steps, time_y, time_step_length)
             msg = f'(Proc. {i+1}) inifp: {create_relpath(thr["inifp"])} is {info}. Steps: {steps}. Time: {time_y:.2f} year. Time step length: {time_step_length} [s]'
             print(msg)
             ret.append(msg)

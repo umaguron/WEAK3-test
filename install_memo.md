@@ -85,6 +85,7 @@ conda install matplotlib pandas numpy scipy
 + flask
 + iapws
 + dill
++ pyproj
 
 コマンド
 
@@ -95,6 +96,7 @@ pip install vtk
 pip install flask
 pip install iapws
 pip install dill
+pip install pyproj
 ```
 
 注) ライブラリを入れる前にpythonのインタープリタがanacondaのものと同一か確認したほうがよい

@@ -69,5 +69,12 @@ class Const(object):
     # if True, a copy of 'existing mulgrid file' (cmesh2, Use existing mulgrid file) is created in base directory (TOUGH_INPUT_DIR)
     DUPLICATES_ORG_MULGRID = True
 
+    # topo XML file glob wildcard
+    TOPO_XML_FN = "FG*.xml"
+    # output file name of topography
+    TOPO_OUTPUT_FN = "topo.dat"
+    # contour interbal [km] of check plot of topography (@topo_check)
+    CONT_INTBL = 0.1
+
     
 
