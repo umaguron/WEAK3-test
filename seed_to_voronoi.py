@@ -323,6 +323,7 @@ def creates_2d_voronoi_grid(seeds_list_fp:str,
         fig.savefig(preview_save_fp, dpi=150)
     if show_preview:
         plt.show()
+    plt.close()
     
     return vor
 
