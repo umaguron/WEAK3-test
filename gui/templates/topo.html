@@ -48,7 +48,7 @@
     </ol>
     <h5>Download JODC bathymetry data</h5>
     <ol>
-        <li>Go to <a href="https://www.jodc.go.jp/vpage/depth500_file.html" target="_blank">500m Gridded Barhymetry Data</a></li>
+        <li>Go to <a href="https://jdoss1.jodc.go.jp/vpage/depth500_file_j.html" target="_blank">500m Gridded Barhymetry Data</a></li>
         <li>Select the area you want on the map.</li>
         <li>Check <b>Z0</b> value (elevation of Lowest Low-water Level) <a href="https://www1.kaiho.mlit.go.jp/TIDE/datum/" target="_blank">description</a></li>
     </ol>
@@ -70,7 +70,7 @@
             </div>
             <div class="col-3">
                 <p><b>Z0</b> [m] (positive downward)</p>
-                <input type="number" value="{{ form.Z0 }}" class="form-control" name="Z0" placeholder="0.0"/>
+                <input type="number" value="{{ form.Z0 }}" class="form-control" name="Z0" step="0.01" placeholder="0.0"/>
             </div>
         </div>
         <br>
