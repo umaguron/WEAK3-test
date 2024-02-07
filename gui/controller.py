@@ -251,29 +251,10 @@ def topo_check():
         plt.close()
 
 
-        ## plot 
-        df = pd.read_csv(topo_output_fp, delim_whitespace=True)
-        step = 100 #[m]
-        z_max = math.floor(max(df['z']*1000)/step+1)*step
-        z_min = math.floor(min(df['z']*1000)/step)*step
-        # z_min = max(math.floor(min(df['z']*1000)/step)*step,0)
-        fig, ax = plt.subplots(1,1,sharex=True, sharey=True)
-        ax.tricontour(df['y'], df['x'], df['z']*1000, 
-                      levels=np.arange(z_min, z_max, Const.CONT_INTBL*1000), 
-                      linewidths=0.1, colors='white')
-        ax.tricontour(df['y'], df['x'], df['z']*1000, 
-                      levels=[0], linewidths=0.5, colors='white')
-        c = ax.tricontourf(df['y'], df['x'], df['z']*1000, levels=np.arange(z_min, z_max, (z_max-z_min)/100), 
-                           cmap='gist_earth')
-        ax.plot(0,0,'ro',ms=5)
-                        # cmap='terrain')
-        ax.set_title(f'Center: ({center["lat"]:.5f}, {center["lon"]:.5f})')
-        ax.set_xlabel('Easting (m)')
-        ax.set_ylabel('Northing (m)')
-        ax.set_aspect('equal')
-        fig.colorbar(c, ax=ax, label="Elevation [m]")
-        plt.savefig(os.path.join(baseDirCon, "static", "output", "topo_check_plot.png"), dpi=600)
-        plt.close()
+        ## plot map
+        title = f'Center: ({center["lat"]:.5f}, {center["lon"]:.5f})'
+        save_fp = os.path.join(baseDirCon, "static", "output", "topo_check_plot.png")
+        topo_plot(topo_output_fp, save_fp, title)
         
         return f"""
         <a href="static/output/topo.dat" download><h1>download {Const.TOPO_OUTPUT_FN}</h1></a>
@@ -282,7 +263,116 @@ def topo_check():
         """
     else:
         return redirect(url_for('topo'))
+
+def topo_plot(topodat_fp, save_img_fp, title=None, dist_lim=None):
+    """
+    create topography map from topodata (x,y,z)
     
+    Args:
+        topodat_fp (_type_): _description_
+        save_img_fp (_type_): _description_
+        title (_type_, optional): _description_. Defaults to None.
+        dist_lim (_type_, optional): {'ns':..., 'ew':...}. length unit is [km]. Defaults to None.
+    """
+
+    df = pd.read_csv(topodat_fp, delim_whitespace=True)
+    if dist_lim is not None:
+        df_p = df[(-dist_lim['ns']/2<df.x)&(-dist_lim['ew']/2<df.y)&(df.x<dist_lim['ns']/2)&(df.y<dist_lim['ew']/2)]
+    else:
+        df_p = df
+    step = 100 #[m]
+    z_max = math.floor(max(df_p['z']*1000)/step+1)*step
+    z_min = math.floor(min(df_p['z']*1000)/step)*step
+    # z_min = max(math.floor(min(df_p['z']*1000)/step)*step,0)
+    fig, ax = plt.subplots(1,1,sharex=True, sharey=True)
+    ax.tricontour(df_p['y'], df_p['x'], df_p['z']*1000, 
+                    levels=np.arange(z_min, z_max, Const.CONT_INTBL*1000), 
+                    linewidths=0.1, colors='white')
+    ax.tricontour(df_p['y'], df_p['x'], df_p['z']*1000, 
+                    levels=[0], linewidths=0.5, colors='white')
+    c = ax.tricontourf(df_p['y'], df_p['x'], df_p['z']*1000, levels=np.arange(z_min, z_max, (z_max-z_min)/100), 
+                        cmap='gist_earth')
+    ax.plot(0,0,'ro',ms=5)
+                    # cmap='terrain')
+    ax.set_title(title)
+    ax.set_xlabel('Easting (m)')
+    ax.set_ylabel('Northing (m)')
+    ax.set_aspect('equal')
+    fig.colorbar(c, ax=ax, label="Elevation [m]")
+    plt.savefig(save_img_fp, dpi=600)
+    plt.close()
+
+@app.route('/topodat_check_plot', methods=['GET', 'POST'])
+def topodat_check_plot():
+    return render_template('topodat_check_plot.html', form=request.form)
+
+@app.route('/topodat_check_plot_check', methods=['GET', 'POST'])
+def topodat_check_plot_check():
+    if request.method == 'POST':
+        fp = request.form['topodatfp']
+        if not os.path.isfile(fp):
+            return render_template('topo.html', error_msg={'err':"topography file not found"}, form=request.form)
+
+        if len(request.form['dist_lim_ns'])==0 and len(request.form['dist_lim_ew'])==0:
+            dist_lim=None
+        elif len(request.form['dist_lim_ns'])!=0 and len(request.form['dist_lim_ew'])!=0:
+            dist_lim={'ns': float(request.form['dist_lim_ns']), 
+                      'ew': float(request.form['dist_lim_ew'])}
+        else:
+            return render_template('topo.html', error_msg={'err':f"Invalid Coordinate Limits"}, form=request.form)
+            
+        coarseness_l = int(request.form['coarseness_l'])
+        coarseness_o = int(request.form['coarseness_o'])
+
+        topo_output_fp = os.path.join(baseDirCon, "static", "output", Const.TOPO_OUTPUT_FN)
+        with open(fp, "r") as f1, open(topo_output_fp, "w") as f2:
+            f2.write(f1.readline())
+            for i, line in enumerate(f1):
+                arr = [float(_) for _ in line.split()]
+                if arr[2]>=0:
+                    # land area
+                    if i % coarseness_l == 0:
+                        if dist_lim is None:
+                            f2.write(line)
+                        else:
+                            if -dist_lim['ns']/2 <= arr[0] <= dist_lim['ns']/2\
+                                    and -dist_lim['ew']/2 <= arr[1] <= dist_lim['ew']/2:
+                                f2.write(line)
+                            else:
+                                continue
+                else:
+                    # land area
+                    if i % coarseness_o == 0:
+                        if dist_lim is None:
+                            f2.write(line)
+                        else:
+                            if -dist_lim['ns']/2 <= arr[0] <= dist_lim['ns']/2\
+                                    and -dist_lim['ew']/2 <= arr[1] <= dist_lim['ew']/2:
+                                f2.write(line)
+                            else:
+                                continue
+
+        ## plot map
+        title = f'{os.path.basename(fp)} coarseness land:{coarseness_l} bathy:{coarseness_o}'
+        save_fp = os.path.join(baseDirCon, "static", "output", "topodat_check_plot_check.png")
+        topo_plot(topo_output_fp, save_fp, title)
+
+        ## plot point map
+        df = pd.read_csv(topo_output_fp, delim_whitespace=True)
+        ax = plt.subplot()
+        ax.plot(df.y, df.x, 'o', ms=0.02)
+        ax.set_aspect('equal')
+        plt.savefig(os.path.join(baseDirCon, "static", "output", "range.png"), dpi=600)
+        plt.close()
+
+        return f"""
+        <a href="static/output/topo.dat" download><h1>download {Const.TOPO_OUTPUT_FN}</h1></a>
+        <img src="static/output/topodat_check_plot_check.png" alt="topodat_check_plot_check.png" style="width:80%">
+        <img src="static/output/range.png" alt="range.png" style="width:80%">
+        """
+    else:
+        return redirect(url_for('topodat_check_plot'))
+
 
 @app.route('/cmesh1_check', methods=['GET', 'POST'])
 def cmesh1_check():
