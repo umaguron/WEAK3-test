@@ -99,30 +99,77 @@ KW_HYDRST = "hydrst"
 HOSTROCK_RESISTIVITY = 100
 
 # String used to determine whether or not to output the section view.
-FLAG_NAME_RES = 'res'
-FLAG_NAME_TEMP = 'temp'
-FLAG_NAME_FLOW = 'flow'
-FLAG_NAME_SAT = 'sat'
-FLAG_NAME_HEAT = 'heat'
-FLAG_NAME_X_NACL_L = 'x_nacl_l'
+FLAG_NAME_RES = 'RES'
+FLAG_NAME_FLOW = 'FLOW'
+FLAG_NAME_HEAT = 'HEAT'
 
 # The appropriate cbar is selected in the t2outUtil.get_cbar_limit method based on the FLAG NAME.
 CBAR_LIM_NaCl_CONTENT = [0, 0.02]
 CBAR_LIM_LOG10RES = [-0.5,3.5]
 CBAR_LIM_LOG10PERM = [-10,-20]
-CBAR_LIM_TEMP = [0,270]
-# CBAR_LIM_SAT = [0,0.2]
-CBAR_LIM_SAT = None
+CBAR_LIM = {
+    'TEMP': [0,300],
+    'SAT_G': [0, 0.5],
+    'SAT_L': [0, 1],
+    'PRES': None,
+    'SAT_S': None,
+    'X_WATER_G': None,
+    'X_NaCl_G': None,
+    'X_CO2_G': None,
+    'X_WATER_L': None,
+    'X_NaCl_L': [0, 0.04],
+    'X_CO2_L': None,
+    'REL_G': None,
+    'REL_L': None,
+    'PCAP_GL': None,
+    'DEN_G': None,
+    'DEN_L': None,
+    'POR': None,
+}
 
 # The appropriate unit name is selected in the t2outUtil.get_unit method based on the FLAG NAME.
-UNIT_NaCl_CONTENT = 'wt%'
-UNIT_TEMP = 'C'
-UNIT_SAT = None
+UNIT = {
+    FLAG_NAME_RES: 'ohm-m',
+    'TEMP': 'C',
+    'SAT_G': None,
+    'SAT_L': None,
+    'PRES': 'Pa',
+    'SAT_S': None,
+    'X_WATER_G': None,
+    'X_NaCl_G': None,
+    'X_CO2_G': None,
+    'X_WATER_L': None,
+    'X_NaCl_L': None,
+    'X_CO2_L': None,
+    'REL_G': None,
+    'REL_L': None,
+    'PCAP_GL': None,
+    'DEN_G': None,
+    'DEN_L': None,
+    'POR': None,
+}
 
-# The appropriate unit name is selected in the t2outUtil.get_contour_intbal method based on the FLAG NAME.
-CONTOUR_TEMP = [25,50,100,150,200,250,290,300]
-CONTOUR_SAT = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-CONTOUR_RES = False
+# The appropriate contour interbals is selected in the t2outUtil.get_contour_intbal method based on the FLAG NAME.
+CONTOUR_POS = {
+    FLAG_NAME_RES: False, # log10
+    'TEMP': [25,50,100,150,200,250,290,300],
+    'SAT_G': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    'SAT_L': False,
+    'PRES': False,
+    'SAT_S': False,
+    'X_WATER_G': False,
+    'X_NaCl_G': False,
+    'X_CO2_G': False,
+    'X_WATER_L': False,
+    'X_NaCl_L': False,
+    'X_CO2_L': False,
+    'REL_G': False,
+    'REL_L': False,
+    'PCAP_GL': False,
+    'DEN_G': False,
+    'DEN_L': False,
+    'POR': False,
+}
 
 """figure"""
 CMAP_PERMEABILITY = "gist_rainbow"

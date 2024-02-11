@@ -2170,6 +2170,7 @@ def _df_elem_calc_bulk_resistivity(row:pd.Series):
     if math.isnan(row['POR']):
         """応急処置2021/5/23 porosityがNaNで出力される場合がある"""
         brine_proportion = 0.1 * row['SAT_L']
+        print("[t2outUtil._df_elem_calc_bulk_resistivity] WARNING!! porosity: NaN")
     else:
         brine_proportion = row['POR'] * row['SAT_L']
     cond_upper, cond_lower = \
@@ -2505,15 +2506,12 @@ def _df_elem_calc_bulk_molality(row:pd.Series):
 def get_cbar_limits(variable_name):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
-    """
-    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
-        return CBAR_LIM_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
-        return CBAR_LIM_SAT
-    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
+    """    
+    if FLAG_NAME_RES == variable_name.upper().strip(): 
         return CBAR_LIM_LOG10RES 
-    elif FLAG_NAME_X_NACL_L in variable_name.lower().strip(): 
-        return CBAR_LIM_NaCl_CONTENT
+    
+    if variable_name.upper().strip() in CBAR_LIM:
+        return CBAR_LIM[variable_name]
     else: 
         return None
 
@@ -2521,33 +2519,28 @@ def get_cbar_limits_flow(variable_name):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
     """
-    if FLAG_NAME_FLOW in variable_name.lower(): 
+    if FLAG_NAME_FLOW in variable_name.upper(): 
         return CBARLIMIT_DEFAULT_FLOW
-    elif FLAG_NAME_HEAT in variable_name.lower(): 
+    elif FLAG_NAME_HEAT in variable_name.upper(): 
         return CBARLIMIT_DEFAULT_HEAT
     return None
+    
 
 def get_unit(variable_name):
     """
     This method selects the appropriate unit name based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower(): 
-        return UNIT_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower(): 
-        return UNIT_SAT
+    if variable_name.upper().strip() in UNIT:
+        return UNIT[variable_name]
     else: 
-        return None
+        return False
 
 def get_contour_intbal(variable_name):
     """
     This method selects the appropriate contour interbal from define.py based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
-        return CONTOUR_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
-        return CONTOUR_SAT
-    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
-        return CONTOUR_RES
+    if variable_name.upper().strip() in CONTOUR_POS:
+        return CONTOUR_POS[variable_name]
     else: 
         return False
 
