@@ -23,6 +23,8 @@ pythonに色々なライブラリを導入することになるので、anaconda
     以下を参考に各自のhomeディレクトリにanacondaをインストール<br>
     https://www.python.jp/install/anaconda/unix/install.html
 
++ pythonのバージョンは3.9にするのが無難。(最新のものだとPyTOUGHが動かないことがある)
+```conda install python=3.9```
 
 
 
@@ -60,6 +62,13 @@ pythonに色々なライブラリを導入することになるので、anaconda
 からダウンロードもしくはgit cloneしてくる。
 2. 任意の場所に展開する。
 3. define_path.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリのパスを設定する。
+4. gitが使用可能な場合、以下のようにしてもOK
+```
+# @project root
+mkdir lib
+cd lib
+git clone https://github.com/acroucher/PyTOUGH
+```
 <br><br>
 
 ## 2. その他ライブラリ
@@ -130,6 +139,18 @@ iapwsについては以下でもOK
 
 ## 3.  pyTOUGHの修正
 そのままだと実装が古くて動かない部分がある。
+
+#### **mulgrid.py内部**
+すべての```if line == 'x':```
+を
+```if isinstance(line, str) and line == 'x':```
+に、<br>
+すべての```if line == 'y':```
+を
+```if isinstance(line, str) and line == 'y':```
+に、変更する
+
+
 #### **mulgrid.py: 2647行目付近**
 `from matplotlib.mlab import griddata`
 <br>
@@ -252,6 +273,7 @@ data/sowat_read.txt: sowat出力の塩水の熱力学データ
 以下からダウンロードする。
 https://drive.google.com/file/d/15HadRCdfGIZC_kKjQVaU1tYeTGnMXK5k/view?usp=sharing
 
+ダウンロードしたものをdata/以下に配置する
 <br>
 <br>
 
