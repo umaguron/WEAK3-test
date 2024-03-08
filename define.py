@@ -265,3 +265,9 @@ DIR_SURFACE_FLOW_AREA_TABLE = "surflow_table"
 SUF_SURFLOW_NET = "_net"
 SUF_SURFLOW_DIRC1 = "_dirc1"
 SUF_SURFLOW_DIRC2 = "_dirc2"
+
+
+"""Command to be executed immediately before the TOUGH execution in run.py"""
+COMM_BF_EXEC = """
+module purge
+export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH"""

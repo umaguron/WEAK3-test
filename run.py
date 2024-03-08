@@ -83,15 +83,13 @@ def execute(ini:_readConfig.InputIni, n_process_parallel=None):
         if execParallel:
             # mode parallel
             os.system(f"""
-            module purge
-            export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
+            {COMM_BF_EXEC}
             {MPIEXEC} -n {nProc} {ini.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
             """)
         else:
             # mode serial 
             os.system(f"""
-            module purge
-            export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
+            {COMM_BF_EXEC}
             {ini.configuration.COMM_EXEC} {FILENAME_T2DATA} {FILENAME_TOUGH_OUTPUT}
             """)
     if ini.toughInput['simulator']==SIMULATOR_NAME_T2:

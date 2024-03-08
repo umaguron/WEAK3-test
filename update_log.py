@@ -25,14 +25,13 @@ parser.add_argument("-all","--updateAll",
             action='store_true')
 args = parser.parse_args()
 
-
 if args.updateAll and args.inputIni is not None: 
     sys.exit("-h, --help:  show help message")
 elif not args.updateAll and args.inputIni is None: 
     sys.exit("-h, --help:  show help message")
 elif not args.updateAll and args.inputIni is not None: 
     """ restore single result """
-    print(f"*** ini: {re.sub(str(baseDir.absolute()),'',args.inputIni)}")
+    print(f"*** ini: {pathlib.Path(args.inputIni).resolve().relative_to(baseDir)}")
     try:
         # resister to DB
         logDbUtil.addResultToLog(args.inputIni)
@@ -73,8 +72,8 @@ elif args.updateAll and args.inputIni is None:
                 if re.match(r".*\.ini$", f.name): 
                     ini = os.path.join(dir, f.name)
             
-            print(f"\n*** dir: {re.sub(str(baseDir.absolute()),'',dir)}")
-            print(f"*** ini: {re.sub(dir+'/','',ini)}")
+            print(f"\n*** dir: {pathlib.Path(dir).resolve().relative_to(baseDir)}")
+            print(f"*** ini: {pathlib.Path(ini).resolve().relative_to(pathlib.Path(dir).resolve())}")
             
             try:
                 # resister to DB
