@@ -107,6 +107,12 @@ pip install iapws
 pip install dill
 pip install pyproj
 ```
+**重要) flaskのバージョンを落としておく (2024/03/08時点で最新版だとうまく動かない)**
+```
+pip install flask==2.3.1
+```
+<br>
+
 
 注) ライブラリを入れる前にpythonのインタープリタがanacondaのものと同一か確認したほうがよい
 ```
@@ -149,21 +155,6 @@ iapwsについては以下でもOK
 を
 ```if isinstance(line, str) and line == 'y':```
 に、変更する
-
-
-#### **mulgrid.py: 2647行目付近**
-`from matplotlib.mlab import griddata`
-<br>
-を以下に変更
-<br>
-`from scipy.interpolate import griddata`
-
-#### **mulgrid.py: 2652行目付近**
-`valgrid = griddata(xc, yc, valc, xgrid, ygrid, interp = 'linear')`
-<br>
-を以下に変更
-<br>
-`valgrid = griddata((xc, yc), valc, (xgrid[None,:], ygrid[:,None]), method = 'linear')`
 
 <br>
 
