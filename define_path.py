@@ -23,7 +23,6 @@ BIN_DIR = "/home/matsunaga/Tough3/bin/"
 BIN_DIR_T2 = "/home/matsunaga/Tough2/Source_Core/"
 # another TOUGH3 
 BIN_DIR_LOCAL = "/Users/matsunagakousei/sourceCodes/TOUGH3_source/TOUGH3v1.0/Mac_executables/bin"
-BIN_DIR_LOCAL = "/Users/matsunagakousei/Documents/資料/TOUGH_package/ERI-licence/TOUGH3v1.1/tough3_v1.1/Mac_executables/bin"
 
 """executable name"""
 # filename of executable in BIN_DIR
