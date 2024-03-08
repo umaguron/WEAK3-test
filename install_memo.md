@@ -257,6 +257,20 @@ https://tough.lbl.gov/user-support/tough-bugs-fixes/
 
 
 <br>
+
+# Windowsの場合に必要な作業
+define.pyの```COMM_BF_EXEC```を空にしておく
+```
+COMM_BF_EXEC = """
+module purge
+export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH"""
+```
+-->
+```
+COMM_BF_EXEC = ""
+```
+
+<br>
 <br>
 
 # (参考) anacondaコマンド
