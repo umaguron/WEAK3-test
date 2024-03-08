@@ -31,30 +31,16 @@ baseDir = pathlib.Path(__file__).parent.resolve()
 ## read inputIni ##
 ini = _readConfig.InputIni().read_from_inifile(args.inputIni)
 
-if ini.mesh.type == REGULAR:
-    
-    if os.path.isfile(ini.t2GridFp) and not args.force_overwrite_all:
-        print(f"t2Grid file : {ini.t2GridFp} exists")
-        sys.exit(f"    add option -fa to force overwrite")
+makeGridFunc.makeGrid(
+        ini=ini,
+        force_overwrite_all=args.force_overwrite_all,
+        open_viewer=args.open_viewer,
+        force_overwrite_t2data=args.force_overwrite_t2data,
+        plot_all_layers=args.plot_all_layers, 
+        layer=args.layer
+)
 
-    makeGridFunc.makeGridRegular(ini, 
-                                overWrites=args.force_overwrite_all, 
-                                showsProfiles=args.open_viewer)
-
-elif ini.mesh.type == AMESH_VORONOI:
-    ini.rocktypeDuplicateCheck()
-    # create save dir. 
-    try:
-        os.makedirs(ini.t2FileDirFp, exist_ok=True) \
-            if args.force_overwrite_all or args.force_overwrite_t2data \
-            else os.makedirs(ini.t2FileDirFp)
-    except FileExistsError:
-        print(f"directory: {ini.t2FileDirFp} exists")
-        print(f"    add option -f to force overwrite")
-        sys.exit()
-    
-    makeGridAmeshVoro.makePermVariableVoronoiGrid(ini, 
-                                force_overwrite_all=args.force_overwrite_all,
-                                open_viewer=args.open_viewer,
-                                plot_all_layers=args.plot_all_layers,
-                                layer_no_to_plot=args.layer)
+try: 
+    shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+except shutil.SameFileError:
+    pass

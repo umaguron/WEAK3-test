@@ -58,11 +58,16 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
     
     TOUGH3の入力ファイル。メッシュ、TOUGH3の設定パラメータなど、シミュレーションに必要な情報のほとんどをここに書く。
 
-    サンプル
-    
-    * iniSample/input_voronoi_no_pmx.ini
+    サンプル (3-D)
+    * iniSample/input_voronoi_no_pmx.ini 
     * testdata/ksv/input.ini
     * testdata/shirane_vicinity/input.ini
+
+    サンプル (2-D radial)
+    * testdata/2d_radial/input_2d.ini
+    * testdata/2d_radial_sea/input_ewasg.ini
+    * testdata/fixed_p_injection/input_fixed_p.ini
+
     
     手動で頑張っても良いが、htmlによる支援ツールを使うのがおすすめ。（__GUIによるinput.ini作成__ 参照）
 
@@ -82,11 +87,11 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
 
      ```bash
      # 実行コマンドの例
-     python3 makeGrid.py input.ini -f   # create mesh
-     python3 tough3exec_ws.py input.ini -f   # create TOUGH3 inputs
-     python3 run.py input.ini   # run TOUGH3
-     python3 update_log.py -ini input.ini   # register the results to database 
-     python3 makeVtu.py input.ini -pl -coft -foft -suf  # creating figures from the results
+     python makeGrid.py input.ini -f   # create mesh
+     python tough3exec_ws.py input.ini -f   # create TOUGH3 inputs
+     python run.py input.ini   # run TOUGH3
+     python update_log.py -ini input.ini   # register the results to database 
+     python makeVtu.py input.ini -pl -coft -foft -suf  # creating figures from the results
      ```
 
     * 以下のスクリプトで上記コマンドを一括で実行できる
@@ -99,7 +104,12 @@ install_memo.mdの「テスト実行」に従って一通りやってみるの�
     log.db登録されたログはプロジェクトルートにて以下のコマンドにより確認できる
 
     ```
+    # mac/linuxの場合
     ./log
+    ```
+    ```
+    # windowsの場合
+    ./log.bat
     ```
 
 # 各プログラムのオプションについて
@@ -172,7 +182,7 @@ TOUGH3/TOUGH2を実行
 
 1. 仮想サーバの起動
    ```
-   python3 gui/controller.py
+   python gui/controller.py
    # 開発用サーバがデバッグモードで起動される
    ```
 
@@ -195,11 +205,11 @@ TOUGH3/TOUGH2を実行
      これらをプロジェクトルート基準で同じ階層に配置する。(#便利コマンド 参照)
 
 # 便利コマンド
-ワークステーション(WS)とローカル(各自のマシン)の2箇所に同じ環境を構築すれば、どちらでも同じ動作が期待できる。
-入力ファイルの作成や結果の可視化を手元で試せたり、色々便利かもしれない。
+プロジェクト内のどこに各種ファイルが書き出されるかは、入力ファイル*.iniの設定値によってのみ決定され、プログラムの実行場所に依存しない。つまり入力ファイル*.iniが同一である限り、どの環境でWEAK3を動かしても(プロジェクトルート基準で)同一の階層にファイルが出力される。計算の実行はワークステーション(WS)で、入力ファイルの作成や結果の確認はローカル(各自のマシン)で、というような2つの環境を使い分けるうえで便利な仕様となっている。
 <br>
 <br>
 ローカルからWSにファイルをコピーするには、ファイル __util__ に定義したコマンドを使うのが便利。
+<br>
 
 __util__ の中に以下を書いておく必要がある。
 * WSのアドレス(ユーザー名@IPアドレス)

@@ -5,32 +5,24 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <!-- キャッシュを保持させない -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous"> -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <!-- jumble -->
-    <script type="text/javascript" src="/js/jquery.jrumble.1.3.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script> -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> -->
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
     <!-- constants -->
-    <script type="text/javascript" src="/cmesh5_defaults.js"></script>
+    <script type="text/javascript" src="/static/cmesh5_defaults.js"></script>
+    <script type="text/javascript" src="/static/cmesh5_ajax.js"></script>
     <script>
-        // Initialize jRumble on Selector
-        $( function () {
-            $('#demo1').jrumble({
-                x: 10,
-                y: 10,
-                rotation: 4
-            });
-            $('#demo1').hover(function(){
-                $(this).trigger('stopRumble');
-            }, function(){
-                $(this).trigger('startRumble');
-            });
-
-        });
         // set default values
         function fill_by_default_values() {
             // 値がない場合のみ入力
@@ -342,21 +334,21 @@
             <div class="row align-items-center" >
                 <div class="col-6">
                     <p class="display-6" style="color:#198754 ;">
-                        {{form.problemName}}.ini successfully created !
+                        Ini-format file was successfully created !
                     </p>
                 </div>
-                <div class="col-3">
+                <div class="col-2">
                     <a href="{{ downloadlink }}" download>
                         <button type="button" class="btn btn-success col-12">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
                                 <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                                 <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                             </svg>
-                            Download
+                            Download INI
                         </button>
                     </a>
                 </div>
-                <div class="col-3 ">
+                <div class="col-4">
                     <form method="post" action="test_create" id="test_create">
                         <input type="hidden" name="createdIniFp" value="{{downloadlink}}">
                         {% for key, elem in form.items() -%}
@@ -367,17 +359,45 @@
                             <path d="M9.502 5.513a.144.144 0 0 0-.202.134V6.65a.5.5 0 0 1-.5.5H2.5v2.9h6.3a.5.5 0 0 1 .5.5v1.003c0 .108.11.176.202.134l3.984-2.933a.51.51 0 0 1 .042-.028.147.147 0 0 0 0-.252.51.51 0 0 1-.042-.028L9.502 5.513zM8.3 5.647a1.144 1.144 0 0 1 1.767-.96l3.994 2.94a1.147 1.147 0 0 1 0 1.946l-3.994 2.94a1.144 1.144 0 0 1-1.767-.96v-.503H2a.5.5 0 0 1-.5-.5v-3.9a.5.5 0 0 1 .5-.5h6.3v-.503z"/>
                             </svg>
                             Create inputs
+                            <span class="badge rounded-pill bg-dark">Force overwrite
+                                <input class="form-check-input" type="checkbox" name="overwrites_prob" value="uses" {% if form.overwrites_prob == "uses" %} checked {% endif %} style="margin-top:0">
+                            </span>
                         </button>
                     </form>
                 </div>
             </div>
             {% if short_msg %}
                 <div class="row">
-                    <p style="color:#198754 ;">{{ short_msg }}</p>
+                    <div class="col">
+                        <div class="alert alert-success d-flex align-items-center" role="alert">
+                            <div>{{ short_msg }}</div>
+                        </div>
+                    </div> 
+                    <div class="col">
+                        <button class="btn btn-success col-12" onclick="run_tough3()">run</button>
+                    </div> 
+                </div>
+                <div class="row">
+                    <div><b>status_msg:</b><div id="elem1"></div></div>
+                    <div><b>error_msg:</b><div id="elem2"></div></div>
+                    <div><b>running_processes:</b><div id="elem3"></div></div>
+                    <div><b>check run results:</b><div id="elem4"></div></div>
                 </div>
             {% endif %}
+            <hr>
             <div class="row" style="color:#198754 ;">
-                Following files are also required to create TOUGH3 inputs in different environment. 
+                Current project root: <b>{{ projRoot }}</b>
+                <br>
+                The following files are required to create TOUGH3 inputs in different environment. 
+                <br>
+                <br>
+                This ini-format file can be placed anywhere beneath the project root: 
+                <ul>
+                    <li>
+                    <b>{{ form.ini_outfp_rel }}</b>
+                    </li>
+                </ul>
+                The following files must be placed appropriately relative to the project root:
                 <ul>
                     <li>
                     <b>{{ form.mulgridFileFpRel }}</b>
@@ -405,9 +425,7 @@
                     </li>
                     {%endif%}
                 </ul>
-                They must be properly placed with respect to the project root, as described above.
-                <br>
-                Following directory also have to be created. 
+                The following directory also have to be created. 
                 <ul>
                     <li>
                     <b>{{ form.saveDirRel }}</b>
@@ -440,10 +458,14 @@
             <input type="hidden" value="{{ form.mulgridFileFpRel }}" name="mulgridFileFpRel">
             <input type="hidden" value="{{ form.mulgridFileFpFull }}" name="mulgridFileFpFull">
             <input type="hidden" value="{{ form.inputIniFp }}" name="inputIniFp">
+            <input type="hidden" value="{{ form.ini_outfp_rel }}" name="ini_outfp_rel">
+            <input type="hidden" value="{{ form.ini_outfp_full }}" name="ini_outfp_full">
             <input type="hidden" value="{{ form.resistivity_structure_fp }}" name="resistivity_structure_fp">
             <input type="hidden" value="{{ form.topodata_fp }}" name="topodata_fp">
             <input type="hidden" value="{{ form.one_d_save }}" name="one_d_save">
             <input type="hidden" value="{{ form.includesAtmos }}" class="form-control" name="includesAtmos" id="includesAtmos" />
+            <input type="hidden" value="{{ form.layer_image_topo }}" class="form-control" name="layer_image_topo" id="layer_image_topo" />
+            <input type="hidden" value="{{ form.layer_image_perm }}" class="form-control" name="layer_image_perm" id="layer_image_perm" />
             <!-- use default button -->
             <div class="sticky">
                 <div class="row">
@@ -1501,7 +1523,44 @@
                     <h3>GENER</h3>
                 </div>
                 <div class="col-6">
-                    <button type="button" class="btn btn-outline-primary btn-small col-2" id="addGener">add</button>
+                    <button type="button" class="btn btn-outline-primary btn-small col-4" id="addGener">add</button>
+                    <button class="btn btn-outline-primary btn-small col-4" type="button" data-bs-toggle="collapse" data-bs-target="#collapseColmap" aria-expanded="true" aria-controls="collapseColmap">
+                        column map
+                    </button>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <div id="collapseColmap" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                    <div class="accordion-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <h5>Topography</h5>
+                            </div>
+                            <div class="col-6">
+                                <h5>Permeability</h5>
+                            </div>
+                        </div> 
+                        <div class="row">
+                            <div class="col-6">
+                                {% if form.layer_image_topo %}
+                                <a href="{{form.layer_image_topo}}" target="_blank">
+                                <img src="{{form.layer_image_topo}}" class="img-fluid" alt="{{form.layer_image_topo}}" title="{{form.layer_image_topo}}">
+                                </a>
+                                {% else %}
+                                To show columns map, create grid beforehand in cmesh3 & cmesh4
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                {% if form.layer_image_perm %}
+                                <a href="{{form.layer_image_perm}}"  target="_blank">
+                                <img src="{{form.layer_image_perm}}" class="img-fluid" alt="{{form.layer_image_perm}}" title="{{form.layer_image_perm}}">
+                                </a>    
+                                {% else %}
+                                To show columns map, create grid beforehand in cmesh3 & cmesh4
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <br>
@@ -1651,11 +1710,11 @@
             <div class="accordion" id="accordionExample">
                 <div class="accordion-item">
                     <div class="accordion-header" id="headingOne">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSolv" aria-expanded="true" aria-controls="collapseSolv">
                         <h5>Solver options</h5>
                     </button>
                     </div>
-                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                    <div id="collapseSolv" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
                         <div class="accordion-body">
                             <!--Option serial-->
                             <table class="table" id="solver_option_serial">

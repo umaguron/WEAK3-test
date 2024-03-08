@@ -13,6 +13,7 @@ import functionUtil as fu
 # import pickle
 import dill as pickle
 import define_logging
+import seed_to_voronoi
 
 vtk = os.path.join(baseDir, "mesh_with_topography.vtk")
 
@@ -55,6 +56,12 @@ def main():
         open_viewer=args.open_viewer,
         plot_all_layers=args.plot_all_layers,
         layer_no_to_plot=args.layer)
+    
+    try: 
+        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
+    except shutil.SameFileError:
+        pass
+
         
 """
 type: A_VORO
@@ -126,11 +133,104 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
         f"{__name__}.{sys._getframe().f_code.co_name}")
     import os
 
-    mulgraph_no_topo_fn = os.path.join(baseDir, "mesh_no_topography.geo")
+    mulgraph_no_topo_fn = os.path.join(baseDir, FILENAME_TMP_MULGRAPH_NO_TOPO)
+    
+    # functionalized 2023/11/27
+    """
+    create voronoi grid and convert it to mulgraph file (no topography included)
+    """
+    if ini.amesh_voronoi.uses_amesh:
+        # use AMESH (Haukwa, 1998)
+        executesAmesh(ini, output_fp=mulgraph_no_topo_fn)
+    else:
+        # use scipy.spatial.Voronoi
+        seed_to_voronoi.seed_to_mulgraph_no_topo(
+            ini, output_fp=mulgraph_no_topo_fn, showVoronoi=False)
+    
+    # "ini.amesh_voronoi.elevation_top_layer" is layer center elevation of the top layer
+    bottom_of_bottom_layer_elev = ini.amesh_voronoi.elevation_top_layer \
+                                + ini.amesh_voronoi.layer_thicknesses[0] \
+                                - sum(ini.amesh_voronoi.layer_thicknesses)
+    geo = mulgrid(mulgraph_no_topo_fn)
+
+    """
+    assign topography
+    """
+    print("*** reading topodata and generating interpolating function")
+    start = time.perf_counter()
+    interp = load_topo_file(topofile_fp=ini.amesh_voronoi.topodata_fp)
+    end = time.perf_counter()
+    print(f"    finished {end - start:10.2f}[s]")
+
+    # append SURFA section to mulgraph file
+    print("*** create mulgraph setting file of grid with topography")
+    with open(mulgraph_no_topo_fn, "r") as f1,\
+        open(ini.mulgridFileFp, "w") as f2:
+        line_bf = f1.readline()
+        f2.write(line_bf)
+        for line in f1:
+            # detect end of file (空行が2回続くとそこがend of file)
+            if len(line_bf.strip())==0 and len(line.strip())==0:
+                # if end of file, add SURFA section
+                f2.write("SURFA\n")
+                for col in geo.columnlist:
+                    col:column
+                    elev = interp(col.centre)[0]
+                    logger.debug(f"col:{col} elevation: {elev:.1f}")
+                    if elev <= bottom_of_bottom_layer_elev + ini.amesh_voronoi.top_layer_min_thickness:
+                        logger.error(f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
+                                     f" than the elevation at the bottom of domain"
+                                     f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
+                        logger.error(f"Please add more elements in 'layer_thicknesses'.")
+                        
+                        """ visualize position of bad column with topography """
+                        import matplotlib.pyplot as plt
+                        geo.layer_plot(plt=plt, column_names=[col.name])
+                        plt.plot(col.centre[0], col.centre[1], 'ro', ms=10)
+                        x = np.linspace(-10000, 10000, 1000)
+                        y = np.linspace(-10000, 10000, 1000)
+                        X, Y = np.meshgrid(x,y)
+                        Z = interp(X,Y)
+                        plt.contour(X,Y,Z,np.arange(-5000,2500,100),colors='blue', linewidths=1)
+                        plt.contour(X,Y,Z,np.arange(-5000,2500,10),colors='blue', linewidths=0.2)
+                        # invert y axis
+                        lim = plt.ylim()    
+                        plt.ylim((lim[1],lim[0]))
+                        plt.savefig(ini.mulgridFileFp+f"_error_at_col{col}.pdf")
+                        """"""
+
+                        raise SurfaceElevationLowerThanBottomLayerException(
+                                    f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
+                                    f" than the elevation at the bottom of domain"
+                                    f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
+                    f2.write(f"{str(col):3}{elev:>10.1f}\n")
+                break
+            else:
+                # if not end of file,
+                f2.write(line)
+            line_bf = line
+
+    print("    finished")
+
+    # to avoid generating too thin top layer 
+    print("*** snap_columns_to_layers")
+    geo_topo = mulgrid(ini.mulgridFileFp)
+    print(ini.amesh_voronoi.top_layer_min_thickness)
+    geo_topo.snap_columns_to_layers(min_thickness=ini.amesh_voronoi.top_layer_min_thickness)
+    # you have to write mulgrid-file after doing snap_columns_to_layers()
+    geo_topo.write(ini.mulgridFileFp)
+
+
+def executesAmesh(ini:_readConfig.InputIni, output_fp:str):
+    
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+    import os
     
     # clean
     try:
-        os.remove(mulgraph_no_topo_fn) 
+        os.remove(output_fp) 
         os.remove(os.path.join(AMESH_DIR, AMESH_INPUT_FILENAME))
         os.remove(os.path.join(AMESH_DIR, AMESH_SEGMT_FILENAME))
     except FileNotFoundError:
@@ -154,7 +254,6 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
         # from_ameshでエラーになるのはseedの数が原因ではなさそう。
         # 945個以上でエラーになってもtolarを小さくするとエラーはなくなった
         pass
-
 
     """
     create AMESH input file
@@ -217,75 +316,8 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
     """
     geo.set_atmosphere_type(0 if ini.atmosphere.includesAtmos else 2)
 
-    geo.write(mulgraph_no_topo_fn)
+    geo.write(output_fp)
 
-
-    """
-    assign topography
-    """
-    print("*** reading topodata and generating interpolating function")
-    start = time.perf_counter()
-    # create or load resistivity interpolating function 
-    pickledtopo = ini.amesh_voronoi.topodata_fp+"_pickled"
-    if os.path.isfile(pickledtopo):
-        print(f"load pickled interpolating function: {pickledtopo}")
-        # load selialized interpolating function
-        with open(pickledtopo, 'rb') as f:
-            interp = pickle.load(f)   
-    else:
-        print(f"create interpolating function and pickle: {pickledtopo}")
-        # read data file
-        df = pd.read_csv(ini.amesh_voronoi.topodata_fp, delim_whitespace=True)
-        x = np.array(df['x']) * M_OVER_KM # km to m
-        y = np.array(df['y']) * M_OVER_KM # km to m
-        z = np.array(df['z']) * M_OVER_KM # km to m
-        # interpolating function
-        interp = LinearNDInterpolator(list(zip(x,y)), z)
-        # serialize and save
-        with open(pickledtopo, 'wb') as f:
-            pickle.dump(interp, f)    
-    end = time.perf_counter()
-    print(f"    finished {end - start:10.2f}[s]")
-
-
-    # append SURFA section to mulgraph file
-    print("*** create mulgraph setting file of grid with topography")
-    with open(mulgraph_no_topo_fn, "r") as f1,\
-        open(ini.mulgridFileFp, "w") as f2:
-        line_bf = f1.readline()
-        f2.write(line_bf)
-        for line in f1:
-            # detect end of file (空行が2回続くとそこがend of file)
-            if len(line_bf.strip())==0 and len(line.strip())==0:
-                # if end of file, add SURFA section
-                f2.write("SURFA\n")
-                for col in geo.columnlist:
-                    elev = interp(col.centre)[0]
-                    logger.debug(f"col:{col} elevation: {elev:.1f}")
-                    if elev <= bottom_of_bottom_layer_elev + ini.amesh_voronoi.top_layer_min_thickness:
-                        logger.error(f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
-                                     f" than the elevation at the bottom of domain"
-                                     f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
-                        logger.error(f"Please add more elements in 'layer_thicknesses'.")
-                        raise SurfaceElevationLowerThanBottomLayerException(
-                                    f"Surface elevation ({elev:.1f}) at column '{col}' is lower"
-                                    f" than the elevation at the bottom of domain"
-                                    f" ({bottom_of_bottom_layer_elev+ini.amesh_voronoi.top_layer_min_thickness}).")
-                    f2.write(f"{str(col):3}{elev:>10.1f}\n")
-                break
-            else:
-                # if not end of file,
-                f2.write(line)
-            line_bf = line
-
-    print("    finished")
-
-    # to avoid generating too thin top layer 
-    print("*** snap_columns_to_layers")
-    geo_topo = mulgrid(ini.mulgridFileFp)
-    print(ini.amesh_voronoi.top_layer_min_thickness)
-    geo_topo.snap_columns_to_layers(min_thickness=ini.amesh_voronoi.top_layer_min_thickness)
-    geo_topo.write(ini.mulgridFileFp)
 
 
 def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
@@ -319,6 +351,10 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     if ini.mesh.type != AMESH_VORONOI:
         sys.exit()
 
+    """create dir"""
+    if not os.path.isdir(ini.t2FileDirFp):
+        os.makedirs(ini.t2FileDirFp, exist_ok=True)
+
     """
     if mulgraph_with_topo_fn does not exist, 
     create it from seed points list using AMESH prog
@@ -326,9 +362,9 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     if not os.path.isfile(ini.mulgridFileFp)\
             or force_overwrite_all:
         create_mulgrid_with_topo(ini)
-    elif not os.path.isfile(ini.mulgridFileFp):
-        print(f"mulgridFileFp not found: {ini.mulgridFileFp}")
-        raise Exception(f"mulgridFileFp not found: {ini.mulgridFileFp}")
+    if not os.path.isfile(ini.mulgridFileFp):
+        print(f"mulgridFileFp not created: {ini.mulgridFileFp}")
+        raise Exception(f"mulgridFileFp not created: {ini.mulgridFileFp}")
 
     """
     read mulgraph file that includes topo
@@ -531,14 +567,11 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
     #         binc = t2blockincon(variable=inc[blk.name].variable, block=blknm)
     #         inc.add_incon(binc)
 
+    # TODO 海水対応。上面に海水を割り当てるからむがある場合、この段階で空気層との接続をカットしておく必要がある。
+    
 
     # write tough input file
     dat.write(ini.t2GridFp)
-    try: 
-        shutil.copy2(ini.inputIniFp, ini.t2FileDirFp)
-    except shutil.SameFileError:
-        pass
-
 
     # test plot (interpolated resistivity structure)
     temp_res = [] 
@@ -628,9 +661,9 @@ def visualize_vslice(ini:_readConfig.InputIni,
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
         # topo
-        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
                             colors='blue', linewidths=1, alpha=0.3)
-        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
                             colors='blue', linewidths=2, alpha=0.3)
         # plot location of profiles
         for i, line in enumerate(ini.plot.profile_lines_list):
@@ -765,9 +798,9 @@ def visualize_vslice(ini:_readConfig.InputIni,
     # topo
     geo_topo.layer_plot(layer=geo_topo.layerlist[-1], variable=elevations, plt=plt, title="elevation", xlabel="Northing (m)", ylabel="Easting (m)")
     if not open_viewer:
-        plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
                         colors='white', linewidths=0.5)
-        plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+        plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
                         colors='white', linewidths=1)
         # symbol
         for key, tup in TOPO_MAP_SYMBOL.items():
@@ -834,7 +867,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_PERMEABILITY, 
                                 plt=plt, 
                                 column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
+                                colourbar_limits=CBAR_LIM_LOG10PERM,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -847,7 +882,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_RESISTIVITY, 
                                 plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
+                                column_names=True,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -865,7 +902,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_PERMEABILITY, 
                                 plt=plt, 
                                 column_names=True,
-                                colourbar_limits=CBAR_LIM_LOG10PERM)
+                                colourbar_limits=CBAR_LIM_LOG10PERM,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -878,7 +917,9 @@ def visualize_layer(ini:_readConfig.InputIni,
                                 colourmap=CMAP_RESISTIVITY, 
                                 plt=plt,
                                 colourbar_limits=CBAR_LIM_LOG10RES,
-                                column_names=True)
+                                column_names=True,
+                                xlabel = 'Northing (m)', 
+                                ylabel = 'Easting (m)',)
             if not open_viewer:
                 # invert y axis
                 lim = plt.ylim()    
@@ -1042,6 +1083,27 @@ def blockname(colname, layname, convention):
     return blkname
 
 
+def load_topo_file(topofile_fp):
+    # create or load resistivity interpolating function 
+    pickledtopo = topofile_fp+"_pickled"
+    if os.path.isfile(pickledtopo):
+        print(f"load pickled interpolating function: {pickledtopo}")
+        # load selialized interpolating function
+        with open(pickledtopo, 'rb') as f:
+            interp = pickle.load(f)   
+    else:
+        print(f"create interpolating function and pickle: {pickledtopo}")
+        # read data file
+        df = pd.read_csv(topofile_fp, delim_whitespace=True)
+        x = np.array(df['x']) * M_OVER_KM # km to m
+        y = np.array(df['y']) * M_OVER_KM # km to m
+        z = np.array(df['z']) * M_OVER_KM # km to m
+        # interpolating function
+        interp = LinearNDInterpolator(list(zip(x,y)), z)
+        # serialize and save
+        with open(pickledtopo, 'wb') as f:
+            pickle.dump(interp, f)
+    return interp
 
 
 

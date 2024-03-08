@@ -78,7 +78,8 @@ II = ini.toughInput
 
 t2o.create_savefig_dir(ini)
 # make grid
-makeGridFunc.makeGrid(ini, overWrites=True if ini.mesh.type.upper().strip() == REGULAR else False)
+if ini.mesh.type.upper().strip() == REGULAR:
+    makeGridFunc.makeGrid(ini, force_overwrite_all=True)
 
 # check file existence
 
@@ -134,8 +135,8 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
         if df_conn is None: 
             # skip creating fig
             return None
-        _slice_plot_flow(geo,df_conn,ini,dat,plt,line,l,timeNow,saveDir,overWrites)
-        return 
+        fn = _slice_plot_flow(geo,df_conn,ini,dat,plt,line,l,timeNow,saveDir,overWrites)
+        return os.path.join(saveDir, fn)
         
     if FLAG_NAME_RES == var_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
         variable = t2o.calc_bulk_resistivity(t2o.dfCleanElem2(df_elem, ini.mesh.convention))
@@ -212,6 +213,10 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         
         # plot
         kwds['flow'] = np.array(t2o.dfCleanConn(df_conn, ini.mesh.convention)[fcn])
+        if sum(kwds['flow'])==0: 
+            # case when all of flow vector magnitude is 0
+            continue
+
         geo.slice_plot(**kwds)
         
         # save
@@ -219,7 +224,7 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         plt.savefig(fp)
         print("saved:", fp)
         plt.close()
-    return 
+    return f'{floAllColName}_{timeNow}_line{l}.pdf'
 
 
 def original_surfacemap(variable_name:str, values:list, 
@@ -254,9 +259,9 @@ def original_surfacemap(variable_name:str, values:list,
         X.append(col.centre[0])
         Y.append(col.centre[1])
         elevations.append(col.surface)
-    plt.tricontour(X, Y, elevations, np.arange(1000,2500,100), 
+    plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
                 colors='white', linewidths=0.5)
-    plt.tricontour(X, Y, elevations, np.arange(500,2500,500), 
+    plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
                 colors='white', linewidths=1)
 
     # add symbol
@@ -365,11 +370,12 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
             df_conn = lst2.connection.DataFrame
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, 
-                                       saveDir=ini.t2FileDirFp, df_conn=df_conn,
-                                       extension='png' if args.createGif else 'pdf')
-                    if fp is not None and os.path.isfile(fp): 
-                        fp_var_list_list[l][i].append(fp)
+                    if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                        fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, 
+                                        saveDir=ini.t2FileDirFp, df_conn=df_conn,
+                                        extension='png' if args.createGif else 'pdf')
+                        if fp is not None and os.path.isfile(fp): 
+                            fp_var_list_list[l][i].append(fp)
                     
             exists_next_step = lst2.next()
 
@@ -389,8 +395,9 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
         plt.close()
         for l, line in enumerate(ini.plot.profile_lines_list):
             for i, var_name in enumerate(variables):
-                fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=df_conn, overWrites=True)
-                if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)
+                if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                    fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=df_conn, overWrites=True)
+                    if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)
 
 # if option -plc given, plot profile of region
 if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
@@ -447,10 +454,11 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
             df_elem = out
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    fp = original_plot(var_name, timeNow, df_elem, line, l, ini, datG, plt, 
-                                       saveDir=ini.t2FileDirFp, df_conn=None,
-                                       extension='png' if args.createGifCsv else 'pdf')
-                    if fp is not None: fp_var_list_list[l][i].append(fp) 
+                    if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                        fp = original_plot(var_name, timeNow, df_elem, line, l, ini, datG, plt, 
+                                        saveDir=ini.t2FileDirFp, df_conn=None,
+                                        extension='png' if args.createGifCsv else 'pdf')
+                        if fp is not None: fp_var_list_list[l][i].append(fp) 
 
         # print(fp_var1_list)
         # print(fp_var2_list)
@@ -467,19 +475,20 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
 
         for l, line in enumerate(ini.plot.profile_lines_list):
             for i, var_name in enumerate(variables):
+                if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
 
-                fp = original_plot(var_name, allTimesteps[-1], df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=None, overWrites=True)
-                if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)
-                # geo.layer_plot(layer=1800, 
-                #             variable=t2o.dfCleanElem(df_elem,var_name, ini.mesh.convention),
-                #             variable_name=var_name,
-                #             colourbar_limits=t2o.get_cbar_limits(var_name),
-                #             plt=plt,
-                #             unit=t2o.get_unit(var_name))
-                # plt.savefig(os.path.join(ini.t2FileDirFp,f'lay{var_name}_{allTimesteps[-1]}.png'))
-                # print("saved:", os.path.join(ini.t2FileDirFp,f'lay{var_name}_{allTimesteps[-1]}.png'))
-                # # plt.show()
-                # plt.close()
+                    fp = original_plot(var_name, allTimesteps[-1], df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=None, overWrites=True)
+                    if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)
+                    # geo.layer_plot(layer=1800, 
+                    #             variable=t2o.dfCleanElem(df_elem,var_name, ini.mesh.convention),
+                    #             variable_name=var_name,
+                    #             colourbar_limits=t2o.get_cbar_limits(var_name),
+                    #             plt=plt,
+                    #             unit=t2o.get_unit(var_name))
+                    # plt.savefig(os.path.join(ini.t2FileDirFp,f'lay{var_name}_{allTimesteps[-1]}.png'))
+                    # print("saved:", os.path.join(ini.t2FileDirFp,f'lay{var_name}_{allTimesteps[-1]}.png'))
+                    # # plt.show()
+                    # plt.close()
 
 
 # if option -t given, plot time series for specified element

@@ -1,23 +1,32 @@
 # from distutils.log import error
-import os 
+import glob
+import os
+import re 
 import sys
 import pathlib
 import time
+import datetime
 
 # from unittest import result
-baseDir = pathlib.Path(__file__).parent.resolve()
-sys.path.append(baseDir)
-sys.path.append(os.path.join(baseDir,".."))
-projRoot = os.path.abspath(os.path.join(baseDir,".."))
+baseDirCon = pathlib.Path(__file__).parent.resolve()
+sys.path.append(baseDirCon)
+sys.path.append(os.path.join(baseDirCon,".."))
+sys.path.append(os.path.join(baseDirCon,"../femticUtil"))
+sys.path.append(os.path.join(baseDirCon,"../topoUtil"))
+projRoot = os.path.abspath(os.path.join(baseDirCon,".."))
 from import_pytough_modules import *
 import _readConfig
 import makeGridAmeshVoro
 import makeGridFunc
 import tough3exec_ws
+import run
 from flask import Flask
 from flask import render_template
 from flask import Markup
 from flask import request
+from flask import flash
+from flask import make_response
+from flask import jsonify
 # from flask import session
 # from flask import g
 from flask import redirect, url_for
@@ -30,9 +39,31 @@ import dict_gui
 import time
 import shutil
 import pickle
-from constants import Const
+from werkzeug.utils import secure_filename
+import readFemticResistivityModel as rFRM
+import xml2topo
+from threading import Thread
+import pandas as pd
+import seed_to_voronoi
+import matplotlib
+import matplotlib.pyplot as plt
+'Matplotlib is not thread-safe:...'
+# https://matplotlib.org/stable/users/faq.html#work-with-threads
+matplotlib.use('Agg') # これがないとAssertion failed:で落ちることがある
+               
 
 app = Flask(__name__, static_folder='static', static_url_path='')
+
+
+UPLOAD_FOLDER = os.path.join(projRoot,os.path.join('gui','static','uploaded'))
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# TOUGH3 run by api
+IS_RUNNING_TOUGH3 = False
+# list of {'thread': (threading.Thread), 'inifp': (str)}
+THREADS_TOUGH_RUNNING = []
 
 # Constの中身をそのままjinja2でつかえるようにする
 from constants import Const
@@ -83,6 +114,266 @@ def cmesh1():
 def usage():
     return app.send_static_file('usage.html')
 
+@app.route('/makeVoroSeedsList2')
+def makeVoroSeedsList2():
+    return app.send_static_file('makeVoroSeedsList2.html')
+
+@app.route('/femtic')
+def femtic():
+    return render_template('femtic.html', form=request.form)
+
+@app.route('/femtic_check', methods=['GET', 'POST'])
+def femtic_check():
+    if request.method == 'POST':
+        # save to app.config['UPLOAD_FOLDER']
+        resistivityBlockIterDat = request.files['ResistivityBlockIterDat']
+        if resistivityBlockIterDat.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        resFp = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(resistivityBlockIterDat.filename))
+        resistivityBlockIterDat.save(resFp)
+        # save to app.config['UPLOAD_FOLDER']
+        meshDat = request.files['MeshDat']
+        if meshDat.filename == '':
+            flash('No selected file')
+            return redirect(request.url)       
+        meshFp = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(meshDat.filename))
+        meshDat.save(meshFp)
+        # call methods in readFemticResistivityModel
+        db = rFRM.DB_CellElementNodeRelation(meshFp, resFp, rFRM.FP_DATABASE)
+        db.restore()
+        outputFp = os.path.join(projRoot, 'gui/static/output/cellCenterResistivity.txt')
+        db.outputAsXYZRho(outputFp, 
+                          resistivity_threshold=float(request.form['resistivity_threshold']))
+        # clean
+        os.remove(resFp)
+        os.remove(meshFp)
+        return """
+        <a href="static/output/cellCenterResistivity.txt" download>download</a>
+        """
+        
+    else:
+        return redirect(url_for('femtic'))
+
+@app.route('/topo')
+def topo():
+    return render_template('topo.html', form=request.form)
+
+@app.route('/topo_check', methods=['GET', 'POST'])
+def topo_check():
+    if request.method == 'POST':
+
+        dir = request.form['topoXmlDirFp']
+
+        # validation
+        error_msg = {}
+        # if not os.path.isdir(dir):
+        if len(glob.glob(os.path.join(dir)))==0:
+            error_msg['topoXmlDirFp'] = f"Directory:\"{dir}\" not found"
+        
+        ## get xml file list
+        xmls = glob.glob(os.path.join(dir, "FG*.xml"))
+        bathy_files = glob.glob(request.form['jodc_bathy'])
+        
+        ## validation
+        if len(xmls)==0:
+            error_msg['topoXml'] = f"Any topo xml file:\"{Const.TOPO_XML_FN}\" not found"
+        if len(bathy_files)==0 and len(request.form['jodc_bathy'])>0:
+            error_msg['bathy'] = f"bathymetry file:\"{request.form['jodc_bathy']}\" not found"
+        
+        if int(request.form['resolution'])<1:
+            error_msg['resolution'] = f"Coarseness must be greater than 1"
+
+        if len(request.form['cen_lat'])==0:
+            _, clat = xml2topo.get_center_loc_xmls(xmls)
+        else:
+            clat = float(request.form['cen_lat'])
+
+        if len(request.form['cen_lon'])==0:
+            clon, _ = xml2topo.get_center_loc_xmls(xmls)
+        else:
+            clon = float(request.form['cen_lon'])
+    
+        if len(request.form['dist_lim_ns'])==0 and len(request.form['dist_lim_ew'])==0:
+            dist_lim=None
+        elif len(request.form['dist_lim_ns'])!=0 and len(request.form['dist_lim_ew'])!=0:
+            dist_lim={'ns': float(request.form['dist_lim_ns']), 
+                      'ew': float(request.form['dist_lim_ew'])}
+            if dist_lim['ns'] <= 0 or dist_lim['ew'] <= 0:
+                error_msg['dist_lim'] = f"Invalid Coordinate Limits"
+        else:
+            error_msg['dist_lim'] = f"Invalid Coordinate Limits"
+        
+        if len(error_msg) > 0:
+            return render_template('topo.html', error_msg=error_msg, form=request.form)
+        
+        center = {'lat':clat, 'lon':clon}
+
+
+        ## read xmls
+        topo_output_fp = os.path.join(baseDirCon, "static", "output", Const.TOPO_OUTPUT_FN)
+        ax = plt.subplot()
+        with open(topo_output_fp, 'w') as f1:
+            f1.write('x y z\n')
+            # read each xml and write xyz to file object
+            for xml in xmls:
+                X,Y,Z, LAT, LON = xml2topo.read_xml(xml, center, 
+                                                    skip_interbal=int(request.form['resolution']), 
+                                                    handler_xy=f1, dist_lim=dist_lim)
+                if len(X)==0:
+                    continue
+                ax.plot(LON, LAT, 'o',  ms=0.1, alpha=0.5) 
+                ax.plot([min(LON), max(LON), max(LON), min(LON), min(LON)], 
+                         [min(LAT), min(LAT), max(LAT), max(LAT), min(LAT)], 
+                         'b-', lw=0.2, label=os.path.basename(xml))
+                ax.text((max(LON)+min(LON))/2, (max(LAT)+min(LAT))/2, 
+                         os.path.basename(xml)[7:23], ha='center', fontsize=3, wrap=True)
+
+        with open(topo_output_fp, 'r') as f:
+            if len(f.readlines()) < 10:
+                error_msg['topo_output_error'] = f"The output file is almost empty, please check input xml files, center coordinates, and coordinates limits."
+                return render_template('topo.html', error_msg=error_msg, form=request.form)
+
+        ## jodc bathymetry
+        if len(request.form['Z0'].strip())==0:
+            Z0 = 0
+        else:
+            Z0 = float(request.form['Z0'])
+        with open(topo_output_fp, 'a') as f:
+            for bathy in bathy_files:
+                LAT, LON = xml2topo.read_jodc_bathy(bathy, center, f, Z0, dist_lim)
+                
+                if len(LAT)==0:
+                    continue
+                ax.plot(LON, LAT, 'bo', ms=1) 
+        ax.set_aspect('equal')
+        plt.savefig(os.path.join(baseDirCon, "static", "output", "range.png"), dpi=600)
+        plt.close()
+
+
+        ## plot map
+        title = f'Center: ({center["lat"]:.5f}, {center["lon"]:.5f})'
+        save_fp = os.path.join(baseDirCon, "static", "output", "topo_check_plot.png")
+        topo_plot(topo_output_fp, save_fp, title)
+        
+        return f"""
+        <a href="static/output/topo.dat" download><h1>download {Const.TOPO_OUTPUT_FN}</h1></a>
+        <img src="static/output/topo_check_plot.png" alt="topo_check_plot.png" style="width:80%">
+        <img src="static/output/range.png" alt="range.png" style="width:80%">
+        """
+    else:
+        return redirect(url_for('topo'))
+
+def topo_plot(topodat_fp, save_img_fp, title=None, dist_lim=None):
+    """
+    create topography map from topodata (x,y,z)
+    
+    Args:
+        topodat_fp (_type_): _description_
+        save_img_fp (_type_): _description_
+        title (_type_, optional): _description_. Defaults to None.
+        dist_lim (_type_, optional): {'ns':..., 'ew':...}. length unit is [km]. Defaults to None.
+    """
+
+    df = pd.read_csv(topodat_fp, delim_whitespace=True)
+    if dist_lim is not None:
+        df_p = df[(-dist_lim['ns']/2<df.x)&(-dist_lim['ew']/2<df.y)&(df.x<dist_lim['ns']/2)&(df.y<dist_lim['ew']/2)]
+    else:
+        df_p = df
+    step = 100 #[m]
+    z_max = math.floor(max(df_p['z']*1000)/step+1)*step
+    z_min = math.floor(min(df_p['z']*1000)/step)*step
+    # z_min = max(math.floor(min(df_p['z']*1000)/step)*step,0)
+    fig, ax = plt.subplots(1,1,sharex=True, sharey=True)
+    ax.tricontour(df_p['y'], df_p['x'], df_p['z']*1000, 
+                    levels=np.arange(z_min, z_max, Const.CONT_INTBL*1000), 
+                    linewidths=0.1, colors='white')
+    ax.tricontour(df_p['y'], df_p['x'], df_p['z']*1000, 
+                    levels=[0], linewidths=0.5, colors='white')
+    c = ax.tricontourf(df_p['y'], df_p['x'], df_p['z']*1000, levels=np.arange(z_min, z_max, (z_max-z_min)/100), 
+                        cmap='gist_earth')
+    ax.plot(0,0,'ro',ms=5)
+                    # cmap='terrain')
+    ax.set_title(title)
+    ax.set_xlabel('Easting (m)')
+    ax.set_ylabel('Northing (m)')
+    ax.set_aspect('equal')
+    fig.colorbar(c, ax=ax, label="Elevation [m]")
+    plt.savefig(save_img_fp, dpi=600)
+    plt.close()
+
+@app.route('/topodat_check_plot', methods=['GET', 'POST'])
+def topodat_check_plot():
+    return render_template('topodat_check_plot.html', form=request.form)
+
+@app.route('/topodat_check_plot_check', methods=['GET', 'POST'])
+def topodat_check_plot_check():
+    if request.method == 'POST':
+        fp = request.form['topodatfp']
+        if not os.path.isfile(fp):
+            return render_template('topo.html', error_msg={'err':"topography file not found"}, form=request.form)
+
+        if len(request.form['dist_lim_ns'])==0 and len(request.form['dist_lim_ew'])==0:
+            dist_lim=None
+        elif len(request.form['dist_lim_ns'])!=0 and len(request.form['dist_lim_ew'])!=0:
+            dist_lim={'ns': float(request.form['dist_lim_ns']), 
+                      'ew': float(request.form['dist_lim_ew'])}
+        else:
+            return render_template('topo.html', error_msg={'err':f"Invalid Coordinate Limits"}, form=request.form)
+            
+        coarseness_l = int(request.form['coarseness_l'])
+        coarseness_o = int(request.form['coarseness_o'])
+
+        topo_output_fp = os.path.join(baseDirCon, "static", "output", Const.TOPO_OUTPUT_FN)
+        with open(fp, "r") as f1, open(topo_output_fp, "w") as f2:
+            f2.write(f1.readline())
+            for i, line in enumerate(f1):
+                arr = [float(_) for _ in line.split()]
+                if arr[2]>=0:
+                    # land area
+                    if i % coarseness_l == 0:
+                        if dist_lim is None:
+                            f2.write(line)
+                        else:
+                            if -dist_lim['ns']/2 <= arr[0] <= dist_lim['ns']/2\
+                                    and -dist_lim['ew']/2 <= arr[1] <= dist_lim['ew']/2:
+                                f2.write(line)
+                            else:
+                                continue
+                else:
+                    # land area
+                    if i % coarseness_o == 0:
+                        if dist_lim is None:
+                            f2.write(line)
+                        else:
+                            if -dist_lim['ns']/2 <= arr[0] <= dist_lim['ns']/2\
+                                    and -dist_lim['ew']/2 <= arr[1] <= dist_lim['ew']/2:
+                                f2.write(line)
+                            else:
+                                continue
+
+        ## plot map
+        title = f'{os.path.basename(fp)} coarseness land:{coarseness_l} bathy:{coarseness_o}'
+        save_fp = os.path.join(baseDirCon, "static", "output", "topodat_check_plot_check.png")
+        topo_plot(topo_output_fp, save_fp, title)
+
+        ## plot point map
+        df = pd.read_csv(topo_output_fp, delim_whitespace=True)
+        ax = plt.subplot()
+        ax.plot(df.y, df.x, 'o', ms=0.02)
+        ax.set_aspect('equal')
+        plt.savefig(os.path.join(baseDirCon, "static", "output", "range.png"), dpi=600)
+        plt.close()
+
+        return f"""
+        <a href="static/output/topo.dat" download><h1>download {Const.TOPO_OUTPUT_FN}</h1></a>
+        <img src="static/output/topodat_check_plot_check.png" alt="topodat_check_plot_check.png" style="width:80%">
+        <img src="static/output/range.png" alt="range.png" style="width:80%">
+        """
+    else:
+        return redirect(url_for('topodat_check_plot'))
+
+
 @app.route('/cmesh1_check', methods=['GET', 'POST'])
 def cmesh1_check():
     if request.method == 'POST':
@@ -115,7 +406,7 @@ def cmesh1_check():
 
 @app.route('/cmesh2', methods=['GET', 'POST'])
 def cmesh2():
-    return render_template('cmesh2.html', form=request.form, created=False)
+    return render_template('cmesh2.html', form=request.form, created=False, projRoot=projRoot)
     # if request.method == 'POST':
     #     return render_template('cmesh2.html', form=request.form, created=False)
     # else:
@@ -124,23 +415,42 @@ def cmesh2():
 @app.route('/cmesh2_check', methods=['GET', 'POST'])
 def cmesh2_check():
     if request.method == 'POST':
+        error_msg = {}
+        """check problem directory firstly"""
+        if os.path.isdir(create_fullpath(request.form['saveDir'])) and int(request.form['createsMesh'])==1:
+            # case "create new mesh" && base directory exists
+            error_msg['s_dir'] = f"Directory \"{create_fullpath(request.form['saveDir'])}\" already exists"
+        
+        tmp = dict(request.form)
+        tmp['saveDir'] = create_relpath(request.form['saveDir'])
+
+        if len(error_msg) > 0:
+            return render_template('cmesh2.html', error_msg=error_msg, form=tmp,  projRoot=projRoot)
+
+        save_dir_fp = create_fullpath(request.form['saveDir'])
+        # check saveDir 
+        if os.path.isfile(save_dir_fp):
+            error_msg["prob_dir_isfile"] = f"Problem directory: {save_dir_fp} is exists and is file. Provide the different file path."
+
+        # if No error, then check mesh
         if int(request.form['createsMesh'])==1:
             """ create new mesh """
-            topodata_fp_full = create_fullpath(request.form['topodata_fp'])
-            voronoi_seeds_list_fp = create_fullpath(request.form['voronoi_seeds_list_fp'])
+            voronoi_seeds_list_fp_org = create_fullpath(request.form['voronoi_seeds_list_fp'])
+            topodata_fp_org = create_fullpath(request.form['topodata_fp'])
+            mulgridFile_fp_new = os.path.join(save_dir_fp, request.form['mulgridFileName'])
+            voronoi_seeds_list_fp_new = os.path.join(save_dir_fp, "seed.txt")
+            topodata_fp_link = os.path.join(save_dir_fp, os.path.basename(request.form['topodata_fp']))
 
             """validation"""
-            error_msg = {}
-            if not os.path.isfile(topodata_fp_full):
-                error_msg["topodata_fp"] = f"{topodata_fp_full}   does not exist. Please create."
-            if not os.path.isfile(voronoi_seeds_list_fp):
-                error_msg["voronoi_seeds_list_fp"] = f"File: {voronoi_seeds_list_fp}   does not exist. Please create."
-            if os.path.isdir(create_fullpath(request.form['mulgridFileFp'])):
-                error_msg["mulgridFile_fp_dir"] = f"{request.form['mulgridFileFp']} is directory. Please specify different file path."
-            elif os.path.isfile(create_fullpath(request.form['mulgridFileFp'])):
-                error_msg["mulgridFile_fp"] = f"{create_fullpath(request.form['mulgridFileFp'])}  already exist. Please specify different file path."
-            if not os.path.isdir(create_fullpath(os.path.dirname(request.form['mulgridFileFp']))):
-                error_msg["mulgridDir"] = f"Directory: {create_fullpath(os.path.dirname(request.form['mulgridFileFp']))} does not exist. Please create it beforehand."
+            if not os.path.isfile(topodata_fp_org):
+                error_msg["topodata_fp"] = f"topodata_fp: {topodata_fp_org}   does not exist. Provide the correct file path."
+            if not os.path.isfile(voronoi_seeds_list_fp_org):
+                error_msg["voronoi_seeds_list_fp"] = f"voronoi_seeds_list_fp: {voronoi_seeds_list_fp_org}   does not exist. Provide the correct file path."
+            if os.path.isdir(mulgridFile_fp_new):
+                error_msg["mulgridFile_fp_dir"] = f"{mulgridFile_fp_new} is directory. Please specify different file path."
+            elif os.path.isfile(mulgridFile_fp_new):
+                error_msg["mulgridFile_fp"] = f"mulgridFile_fp: {mulgridFile_fp_new}  already exist. Please specify different file path."
+            
             try:
                 _ = eval(request.form['layer_thicknesses'])
                 if not isinstance(_, (tuple, list, np.ndarray)):
@@ -148,39 +458,81 @@ def cmesh2_check():
             except:
                 error_msg["layer_thicknesses"] = f"error in 'layer_thicknesses': Can not interpret '{request.form['layer_thicknesses']}'."
 
-
             if len(error_msg) > 0:
-                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
+                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False, projRoot=projRoot)
 
             """ _readConfig.InputIniインスタンス作成"""
             inputIni = _readConfig.InputIni()
             inputIni.toughInput = {}
             inputIni.mesh.type = AMESH_VORONOI
-            config = {}
-            config['amesh_voronoi'] = request.form
-            inputIni.mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
-            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config)
+            inputIni.mulgridFileFp = mulgridFile_fp_new
             inputIni.mesh.convention = int(request.form['convention'])
             inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
+            # 入力値はdict化してからconfigparser.ConfigParserオブジェクトに変換し、read_from_configにわたす
+            config = {}
+            config['amesh_voronoi'] = dict(request.form)
+            parser = configparser.ConfigParser()
+            parser.read_dict(config)
+            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
+            inputIni.amesh_voronoi.uses_amesh = eval(request.form['uses_amesh'])
+            inputIni.amesh_voronoi.topodata_fp = create_fullpath(topodata_fp_org)
+            inputIni.amesh_voronoi.voronoi_seeds_list_fp = create_fullpath(voronoi_seeds_list_fp_org)
+
+            # create problemDir before generation
+            msg = {}
+            if not os.path.isdir(save_dir_fp):
+                msg['dir'] = f"Directory: {save_dir_fp}  newly created"
+            os.makedirs(save_dir_fp, exist_ok=True)
 
             # create mesh file
             makeGridAmeshVoro.create_mulgrid_with_topo(inputIni)
 
-            # ラジオボタンcreatesMeshを"Use existing mulgrid file"に切り替える
+            # if succeeded, create link and copy in saveDir 
+            if Const.DUPLICATES_ORG_TOPO:
+                os.symlink(inputIni.amesh_voronoi.topodata_fp, topodata_fp_link)
+            if Const.DUPLICATES_ORG_SEEDS:
+                shutil.copy(inputIni.amesh_voronoi.voronoi_seeds_list_fp, 
+                            voronoi_seeds_list_fp_new)
+
+            #メモを残す
+            with open(os.path.join(save_dir_fp, "cmesh2_memo.txt"), 'a') as f:
+                f.write(f"\n--- {datetime.datetime.now()} ---\n")
+                f.write(f"mulgrid file was newly created by cmesh2 (create new mulgrid file).\n")
+                f.write(f"constants.DUPLICATES_ORG_SEEDS: {Const.DUPLICATES_ORG_SEEDS}\n")
+                if Const.DUPLICATES_ORG_SEEDS:
+                    f.write(f"Original 'voronoi_seeds_list_fp': {voronoi_seeds_list_fp_org}\n")
+                f.write(f"constants.DUPLICATES_ORG_TOPO: {Const.DUPLICATES_ORG_TOPO}\n")
+                if Const.DUPLICATES_ORG_TOPO:
+                    f.write(f"Original 'topodata_fp': {Const.DUPLICATES_ORG_TOPO}\n")
+
+            # form のファイルパスを書き換える
             tmp = dict(request.form)
-            return render_template('cmesh2.html', form=tmp, created = True,  msg="mulgrid file successfully created")
+            tmp['mulgridFileFp'] = create_relpath(mulgridFile_fp_new)
+            if Const.DUPLICATES_ORG_TOPO:
+                tmp['topodata_fp'] = create_relpath(topodata_fp_link)
+            else:
+                tmp['topodata_fp'] = create_relpath(topodata_fp_org)
+            if Const.DUPLICATES_ORG_SEEDS:
+                tmp['voronoi_seeds_list_fp'] = create_relpath(voronoi_seeds_list_fp_new)
+            else:
+                tmp['voronoi_seeds_list_fp'] = create_relpath(voronoi_seeds_list_fp_org)
+
+            msg['mul'] = "mulgrid file successfully created"
+                
+            # ラジオボタンcreatesMeshを"Use existing mulgrid file"に切り替える
+            return render_template('cmesh2.html', form=tmp, created = True,  msg=msg, projRoot=projRoot)
 
 
         elif int(request.form['createsMesh'])==0:
-            print(request.form)
             """ use existing mesh """
             # check file existence
-            error_msg = {}
             mulgridFileFp = create_fullpath(request.form['mulgridFileFp'])
+            mulgridFile_fp_copied = os.path.join(save_dir_fp, 
+                                               os.path.basename(mulgridFileFp))
             if not os.path.isfile(mulgridFileFp):
                 error_msg["mulgridFile_fp"] = f"File: {mulgridFileFp}  was not found. Please specify correct file path."
             if len(error_msg) > 0:
-                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False)
+                return render_template('cmesh2.html', error_msg=error_msg, form=request.form, created=False, projRoot=projRoot)
             
             tmp = dict(request.form)
             # 値の削除
@@ -193,22 +545,51 @@ def cmesh2_check():
                 tmp.pop('layer_thicknesses')
                 tmp.pop('tolar')
                 tmp.pop('top_layer_min_thickness')
+                tmp.pop('mulgridFileName')
             except:
                 # 握りつぶす
                 pass
             
+            # create problemDir before generation
+            msg = {}
+            if not os.path.isdir(save_dir_fp):
+                msg['dir'] = f"Directory: {save_dir_fp}  newly created"
+            os.makedirs(save_dir_fp, exist_ok=True)
+            
+            # create link in saveDir 
+            if Const.DUPLICATES_ORG_MULGRID:
+                if os.path.abspath(mulgridFileFp) != os.path.abspath(mulgridFile_fp_copied):
+                    shutil.copy(mulgridFileFp, mulgridFile_fp_copied)
+                    msg['mul'] = f"A copy of mulgrid file {create_relpath(mulgridFileFp)} was created in {save_dir_fp}"
+                # form のファイルパスを書き換える
+                tmp['mulgridFileFp'] = create_relpath(mulgridFile_fp_copied)
+            else:
+                tmp['mulgridFileFp'] = create_relpath(mulgridFileFp)
+            
+            #メモを残す
+            with open(os.path.join(save_dir_fp, "cmesh2_memo.txt"), 'a') as f:
+                f.write(f"\n--- {datetime.datetime.now()} ---\n")
+                f.write(f"cmesh2 (use existing mulgrid file).\n")
+                f.write(f"constants.DUPLICATES_ORG_MULGRID: {Const.DUPLICATES_ORG_MULGRID}\n")
+                if Const.DUPLICATES_ORG_MULGRID:
+                    f.write(f"mulgrid file was copied from: {mulgridFileFp}\n")
+                else:
+                    f.write(f"mulgrid file: {mulgridFileFp}\n")
+
             # read atmosphere_type from mulgrid and set to form
             tmp['includesAtmos'] = mulgrid(mulgridFileFp).atmosphere_type==0
 
+            print(tmp)
+
             # int(request.form['createsMesh'])==1でcreatedのときと同じ扱い
-            return render_template('cmesh2.html', form=tmp, created = True, msg=f"mulgrid file {create_relpath(mulgridFileFp)} was found")
+            return render_template('cmesh2.html', form=tmp, created = True, msg=msg, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
 @app.route('/cmesh3', methods=['GET', 'POST'])
 def cmesh3():
     if request.method == 'POST':
-        return render_template('cmesh3.html', form=request.form)
+        return render_template('cmesh3.html', form=request.form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -224,13 +605,13 @@ def cmesh3_validate(request:request):
             f"Resistivity structure data: "\
             f"'{create_fullpath(request.form['resistivity_structure_fp'])}'"\
             " not found" 
-    if os.path.isdir(os.path.join(request.form['saveDir'], 
-                                  request.form['problemName']))\
+    newIni = os.path.join(request.form['saveDir'], f'input_cmesh4_{request.form["problemName"]}.ini')
+    if os.path.isfile(newIni)\
             and not 'overwrites_prob' in request.form:
         error_msg['problemName']= \
-            f"problem: "\
-            f"'{os.path.join(request.form['saveDir'],request.form['problemName'])}'"\
-            f" already exists." 
+            f"The .ini file to which we are trying to export the entered information: "\
+            f"'{newIni}'  already exists.\n"\
+            f"If you want to proceed anyway, check the 'Force overwrite' checkbox." 
 
     # validation用ダミー変数&クラス
     rho, x, y, z, k_x, k_y, k_z, phi, surface, depth, porosity, perm = 1,2,3,4,5,6,7,8,9,10,11,12
@@ -282,7 +663,7 @@ def cmesh3_check():
         error_msg = cmesh3_validate(request)
         logger.debug(error_msg)
         if len(error_msg) > 0:
-            return render_template('cmesh3.html', form=request.form, error_msg=error_msg)
+            return render_template('cmesh3.html', form=request.form, error_msg=error_msg, projRoot=projRoot)
         
         """ _readConfig.InputIniインスタンス作成"""
         if len(request.form["original_iniFp"])>0:
@@ -305,9 +686,12 @@ def cmesh3_check():
         inputIni.mesh.type = AMESH_VORONOI
         inputIni.mesh.mulgridFileFp = create_relpath(request.form['mulgridFileFp'])
         if int(request.form['createsMesh'])==1:
+            # 入力値はdict化してからconfigparser.ConfigParserオブジェクトに変換し、read_from_configにわたす
             config_av = {}
-            config_av['amesh_voronoi'] = request.form
-            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(config_av)
+            config_av['amesh_voronoi'] = dict(request.form)
+            parser = configparser.ConfigParser()
+            parser.read_dict(config_av)
+            inputIni.amesh_voronoi = _readConfig.InputIni._AmeshVoronoi().read_from_config(parser)
             inputIni.mesh.convention = int(request.form['convention'])
             # inputIni.atmosphere.includesAtmos = eval(request.form['includesAtmos'])
         else: 
@@ -318,11 +702,18 @@ def cmesh3_check():
         """problem dir."""
         config['configuration'] = {}
         config['configuration']['TOUGH_INPUT_DIR'] = create_relpath(request.form['saveDir'])
-        inputIni.configuration = _readConfig.InputIni._Configuration().read_from_config(config)
+        # configparser.ConfigParserオブジェクトに変換してからread_from_configにわたす
+        parser = configparser.ConfigParser()
+        parser.read_dict(config)
+        inputIni.configuration = _readConfig.InputIni._Configuration().read_from_config(parser)
         """problem name"""
         inputIni.toughInput['problemName'] = request.form[f'problemName']
         """resistivity_structure_fp"""
-        inputIni.mesh.resistivity_structure_fp = create_relpath(request.form[f'resistivity_structure_fp'])
+        if Const.DUPLICATES_ORG_RESMODEL:
+            inputIni.mesh.resistivity_structure_fp = create_fullpath(os.path.join(request.form[f'saveDir'], os.path.basename(request.form[f'resistivity_structure_fp'])))
+            os.symlink(create_fullpath(request.form[f'resistivity_structure_fp']), inputIni.mesh.resistivity_structure_fp)
+        else:
+            inputIni.mesh.resistivity_structure_fp = create_fullpath(request.form[f'resistivity_structure_fp'])
         inputIni.construct_path()
 
 
@@ -334,7 +725,12 @@ def cmesh3_check():
         config['atmosphere'] = {}
         # config['atmosphere']['includesAtmos'] = 'True' if 'includes_atmos' in request.form else 'False'
         config['atmosphere']['includesAtmos'] = request.form[f'includesAtmos']
-        config['atmosphere']['PRIMARY_AIR'] = '[]' # 仮 (cmesh5で埋める)
+        # 空気層の設定の中で唯一cmesh3で設定されない項目。元iniファイルに設定がある場合は引き継ぐようにする。
+        try:
+            config['atmosphere']['PRIMARY_AIR'] = repr(inputIni.atmosphere.PRIMARY_AIR)
+        except:
+            # 仮 (cmesh5で設定する)
+            config['atmosphere']['PRIMARY_AIR'] = '[]' 
         # cmesh3の処理に追加しようと思ったがやめた。現段階ではP,Tの設定をcmesh3ではしない。
         # config['atmosphere']['primary_tmp_pres'] = request.form[f'primary_tmp_pres']
         # config['atmosphere']['primary_tmp_temp'] = request.form[f'primary_tmp_temp']
@@ -355,7 +751,10 @@ def cmesh3_check():
             config['atmosphere']['IRP'] = request.form['atmos_irp']
             config['atmosphere']['CP'] = request.form['atmos_cp']
             config['atmosphere']['ICP'] = request.form['atmos_icp']
-        inputIni.atmosphere = _readConfig.InputIni._Atmosphere().read_from_config(config)
+        # configparser.ConfigParserオブジェクトに変換してからread_from_configにわたす
+        parser = configparser.ConfigParser()
+        parser.read_dict(config)
+        inputIni.atmosphere = _readConfig.InputIni._Atmosphere().read_from_config(parser)
 
         """rocktypes"""
         for rock_id in range(Const.ROCKTYPE_LEN):
@@ -417,22 +816,29 @@ def cmesh3_check():
                 config[name]['regionSecList'] = repr(regionSecList)
                 logger.debug(regionSecList)
 
+                # configparser.ConfigParserオブジェクトに変換
+                parser = configparser.ConfigParser()
+                parser.read_dict(config)
+
                 if not 'rockSecList' in inputIni.toughInput:
                     inputIni.toughInput['rockSecList'] = [name]
-                    inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, config)]
+                    inputIni.rockSecList = [_readConfig.InputIni._RocktypeSec(name, parser)]
                 else:
                     inputIni.toughInput['rockSecList'].append(name)
-                    inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, config))
+                    inputIni.rockSecList.append(_readConfig.InputIni._RocktypeSec(name, parser))
         
         """check & create"""
         inputIni.rocktypeDuplicateCheck()
         # create save dir. 
         os.makedirs(inputIni.t2FileDirFp, exist_ok=True)
 
-        inputIni.inputIniFp = os.path.join(projRoot, inputIni.t2FileDirFp, "input.ini")
+        inputIni.inputIniFp = os.path.join(projRoot, 
+                                           inputIni.configuration.TOUGH_INPUT_DIR, 
+                                           f"input_cmesh4_{inputIni.toughInput['problemName']}.ini")
         inputIni.output2inifile(inputIni.inputIniFp)
         
         # pickle for cmesh4_visualize()
+        # 不完全なファイルの場合_readConfig.InputIni().read_from_inifile()では読み込めないため。
         with open(os.path.join(os.path.dirname(inputIni.inputIniFp), 
                                PICKLED_INPUTINI), 
                   'wb') as f:
@@ -515,7 +921,7 @@ def cmesh3_readFromIni():
         form = convert_InputIni2form_cmesh3(inputIni, dict(request.form))
         logger.debug(form)
 
-        return render_template('cmesh3.html', form=form)
+        return render_template('cmesh3.html', form=form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -564,7 +970,7 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
     else:
         # 追記モード
         ret = form
-    ret["saveDir"] = create_fullpath(ini.configuration.TOUGH_INPUT_DIR)
+    ret["saveDir"] = create_relpath(ini.configuration.TOUGH_INPUT_DIR)
     ret["convention"] = ini.mesh.convention
     if hasattr(ini, 'amesh_voronoi'):
         if hasattr(ini.amesh_voronoi, 'topodata_fp')\
@@ -665,7 +1071,7 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
     shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_LAYER_SURFACE}.png"),
                     create_fullpath(f"gui/static/output/{IMG_LAYER_SURFACE}_{timestamp}.png"))
     show_images['layer_surface'] = \
-        {'path':f'output/{IMG_LAYER_SURFACE}_{timestamp}.png',
+        {'path':f'static/output/{IMG_LAYER_SURFACE}_{timestamp}.png',
          'caption':'IMG_LAYER_SURFACE'}
     
     show_images['slice_vertical'] = {}
@@ -675,8 +1081,8 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
         shutil.copy2(os.path.join(inputIni.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.png"),
                         create_fullpath(f"gui/static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png"))
         show_images['slice_vertical'][f'{l}'] = \
-            {'resis_path':f'output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
-             'perm_path':f'output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
+            {'resis_path':f'static/output/{IMG_RESIS_SLICE_LINE}{l}_{timestamp}.png',
+             'perm_path':f'static/output/{IMG_PERM_SLICE_LINE}{l}_{timestamp}.png',
              'caption':repr(line)}
  
     show_images['slice_horizontal'] = {}
@@ -694,8 +1100,8 @@ def copy_visualized_mulgrid_imgs(inputIni: _readConfig.InputIni, layers: list=[]
             shutil.copy2(orginal_res, copied_res)
         
         show_images['slice_horizontal'][f'{layer}'] = \
-            {'resis_path':f'output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
-             'perm_path':f'output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+            {'resis_path':f'static/output/{IMG_RESIS_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
+             'perm_path':f'static/output/{IMG_PERM_LAYER}{layer.replace(" ", "_")}_{timestamp}.png',
              'caption':repr(layer)}
 
     logger.info('imgs copied to gui/static/output/ : '+repr(show_images))
@@ -717,7 +1123,7 @@ def cmesh4_visualize():
         with open(os.path.join(os.path.dirname(form['inputIniFp']), 
                                PICKLED_INPUTINI), 
                   'rb') as f:
-            ini = pickle.load(f)  
+            ini:_readConfig.InputIni = pickle.load(f)  
         geo_topo = mulgrid(ini.mulgridFileFp)
         
         # load arrays pickled in makeGridAmeshVoro.makePermVariableVoronoiGrid()
@@ -798,10 +1204,11 @@ def cmesh5():
         try:
             form = cmesh5_read_inputIni(request)
         except FileNotFoundError:
+            logger.error('FileNotFoundError raised in cmesh5_read_inputIni')
             return redirect(url_for('index'))
         logger.debug('end cmesh5_read_inputIni')
 
-        return render_template('cmesh5.html', form=form)
+        return render_template('cmesh5.html', form=form, projRoot=projRoot)
     else:
         return redirect(url_for('index'))
 
@@ -829,21 +1236,28 @@ def cmesh5_check():
                                    form=form, 
                                    error_msg={**msg_top_i, **msg_top_g}, # dictを結合
                                    error_msg_incon=error_msg_incon,
-                                   error_msg_gener=error_msg_gener)
+                                   error_msg_gener=error_msg_gener,
+                                   projRoot=projRoot)
         
 
         """save"""
         #if validate OK, add params to inifile and save
-        msg = cmesh5_write_file(request)
+        logger.debug("into cmesh5_write_file")
+        msg, outfp, outfp_inT2dir = cmesh5_write_file(request)
+        logger.debug("out cmesh5_write_file")
+
+        # set the path of created ini-format file for showing green message
+        form['ini_outfp_rel'] = create_relpath(outfp_inT2dir)
+        form['ini_outfp_full'] = create_fullpath(outfp_inT2dir)
 
         if len(msg) > 0 :
-            return render_template('cmesh5.html', form=form, error_msg=msg)
+            return render_template('cmesh5.html', form=form, error_msg=msg, projRoot=projRoot)
 
-        outfp = os.path.join('output', request.form['problemName']+'.ini')
         return render_template('cmesh5.html', 
                                 form=form,
                                 downloadlink=outfp, 
-                                error_msg=msg)
+                                error_msg=msg,
+                                projRoot=projRoot)
 
     else:
         return redirect(url_for('index'))
@@ -971,8 +1385,7 @@ def cmesh5_read_inputIni(request:request):
         # return redirect(url_for('index')) # これはうまく動かない
         raise FileNotFoundError # 代わりに手動でエラーをraiseする。
     
-    # parse ini file to config file
-    logger.debug("parse ini file to config file")
+    logger.debug("""parse ini file to config file""")
     config = configparser.ConfigParser(defaults=None)
     config.read(iniFp)
     
@@ -980,7 +1393,7 @@ def cmesh5_read_inputIni(request:request):
     """ path of each simulators """
     form = construct_simulator_paths(form)
     
-    """ read param values from config and substitute values to form """
+    logger.debug(""" read param values from config and substitute values to form """)
     for sec, key, name in dict_gui.PARANAME_INI_GUI_CMESH5:
         try:
             form[name] = config[sec][key]
@@ -988,7 +1401,7 @@ def cmesh5_read_inputIni(request:request):
         except:
             logger.debug(f"[{sec}]{key} not found")
     
-    """ construct paths """
+    logger.debug(""" construct paths """)
     if config.has_option('configuration', 'TOUGH_INPUT_DIR'):
         TOUGH_INPUT_DIR = config['configuration']['TOUGH_INPUT_DIR']
     elif config.has_option('configuration', 'configini'):
@@ -999,6 +1412,7 @@ def cmesh5_read_inputIni(request:request):
         raise InvalidToughInputException(f"Please specify configutation.TOUGH_INPUT_DIR in '{iniFp}'")
 
     form['inputIniFp'] = iniFp
+    form['inputIniFpRel'] = create_relpath(iniFp) 
     form['saveDirRel'] = create_relpath(TOUGH_INPUT_DIR)
     form['saveDirFull'] = create_fullpath(TOUGH_INPUT_DIR)
     if config.has_option('mesh', 'mulgridFileFp'):
@@ -1011,7 +1425,7 @@ def cmesh5_read_inputIni(request:request):
         form['mulgridFileFpFull'] = create_fullpath(form['mulgridFileFpRel'])
 
    
-    """parse MOPsXX"""
+    logger.debug("""parse MOPsXX""")
     for mop in ('mops02','mops03','mops04','mops05','mops06'):
         if config.has_option('toughInput', mop) and len(config['toughInput'][mop])>0:
             logger.debug(f"parse {mop}: {config['toughInput'][mop]}")
@@ -1036,7 +1450,7 @@ def cmesh5_read_inputIni(request:request):
         else:
             form['mops16'] = ""
     
-    """parse SELEC.1, SELEC.2 (eco2n_v2)"""
+    logger.debug("""parse SELEC.1, SELEC.2 (eco2n_v2)""")
     if config.has_option('toughInput', 'selection_line1') \
                 and len(config['toughInput']['selection_line1'])>0:
         selec = eval(config['toughInput']['selection_line1'])
@@ -1049,13 +1463,13 @@ def cmesh5_read_inputIni(request:request):
             form[f'FE{i+1}'] = repr(s) if s is not None else ""
 
 
-    """FOFT/COFT"""
+    logger.debug("""FOFT/COFT""")
     if config.has_option('toughInput', 'prints_hc_surface') \
                 and len(config['toughInput']['prints_hc_surface'])>0:
         form['prints_hc_surface'] = "uses" \
             if eval(config['toughInput']['prints_hc_surface']) else ""
 
-    """parse INCON section"""
+    logger.debug("""parse INCON section""")
     if  config.has_option('toughInput', 'problemNamePreviousRun') \
                 and len(config['toughInput']['problemNamePreviousRun']) > 0:
         form["usesAnotherResAsINCON"] = "0"
@@ -1066,21 +1480,21 @@ def cmesh5_read_inputIni(request:request):
                 and len(config['toughInput']['initial_t_grad']) > 0:
         form["usesAnotherResAsINCON"] = "2"
 
-    """parse PRIMARY variables"""
+    logger.debug("""parse PRIMARY variables""")
     try:
         pa = eval(config['atmosphere']['PRIMARY_AIR'])
         for i, p in enumerate(pa):
-            form[f'primary_atm_{i+1}'] = p
+            form[f'primary_atm_{i+1}'] = "" if p is None else p
     except:
         logger.warning("cannot read [atmosphere] PRIMARY_AIR")
     try:
         pd = eval(config['toughInput']['PRIMARY_default'])
         for i, p in enumerate(pd):
-            form[f'primary_def_{i+1}'] = p
+            form[f'primary_def_{i+1}'] = "" if p is None else p
     except:
         logger.warning("cannot read [toughInput] PRIMARY_default")
                 
-    """parse GENER section"""
+    logger.debug("""parse GENER section""")
     if  config.has_option('toughInput', 'generSecList') \
                 and len(config['toughInput']['generSecList']) > 0:
         generSecs = eval(config['toughInput']['generSecList'])
@@ -1094,6 +1508,49 @@ def cmesh5_read_inputIni(request:request):
             form[f"gener_{i}_heat"] = config[generSecs[i]]['temperature']
             form[f"gener_{i}_heatUnit"] = "tempc"
 
+    logger.debug("""create col map images""")
+    if config.has_option('mesh', 'mulgridFileFp') \
+            and os.path.isfile(create_fullpath(config['mesh']['mulgridFileFp'])):
+        geo = mulgrid(create_fullpath(config['mesh']['mulgridFileFp']))
+        # lib
+        import matplotlib.pyplot as plt
+        plt.rcParams["font.size"] = 6
+        ## TOPO ##
+        # retrieve topo data
+        elevations, X, Y = [], [], []
+        for col in geo.columnlist:
+            # X.append(col.centre[0])
+            # Y.append(col.centre[1])
+            elevations.append(col.surface)
+        geo.layer_plot(layer=geo.layerlist[-1], column_names=True, plt=plt,
+                       variable=elevations, variable_name='Elevation [m]',
+                       xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+        form['layer_image_topo'] = \
+            os.path.join('static','output',f'layer_topo_{time.time()}.png')
+        # invert y axis
+        lim = plt.ylim()    
+        plt.ylim((lim[1],lim[0]))
+        plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
+                                 form['layer_image_topo']))
+        plt.close()
+        ## permeability ##
+        perm_fp = os.path.join(form['saveDirFull'], form['problemName'], SAVEFIG_DIRNAME, PICKLED_MULGRID_PERM)
+        if os.path.isfile(perm_fp):
+            # load arrays pickled in makeGridAmeshVoro.makePermVariableVoronoiGrid()
+            variable_perm = np.load(perm_fp)
+            geo.layer_plot(layer=geo.layerlist[-1], column_names=True, plt=plt,
+                           variable=np.log10(variable_perm),
+                           variable_name='log10 permeability [m^2]',
+                           xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+            form['layer_image_perm'] = \
+                os.path.join('static','output',f'layer_perm_{time.time()}.png')
+            # invert y axis
+            lim = plt.ylim()    
+            plt.ylim((lim[1],lim[0]))
+            plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
+                                     form['layer_image_perm']))
+            plt.close()
+        
     return form
 
 
@@ -1273,17 +1730,25 @@ def cmesh5_write_file(request:request):
 
     # 書き出し1
     outfp = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                         'static/output', 
-                         form['problemName']+'.ini')
+                         'static','output', 
+                         f'input_final_{config["toughInput"]["problemName"]}.ini')
     if os.path.isfile(outfp): os.remove(outfp)
     with open(outfp, 'w') as f:
         config.write(f)
+    logger.debug(f"File saved: {outfp}")
     
     # エラーチェックを兼ねて、inputIniに読み込ませる
+    logger.debug(f"-------------- test for reading Ini-file: {outfp} --------------")
     ini = _readConfig.InputIni().read_from_inifile(outfp)
     ini.rocktypeDuplicateCheck()
+    logger.debug(f"-------------- finished test Ini-file: {outfp} --------------")
+
+    # base directoryへコピー
+    outfp2 = create_fullpath(os.path.join(ini.configuration.TOUGH_INPUT_DIR, os.path.basename(outfp)))
+    shutil.copy(outfp, outfp2)
+    logger.debug(f"Ini-file: {outfp} was copied to {ini.configuration.TOUGH_INPUT_DIR}")
     
-    return msg_dict
+    return msg_dict, outfp, outfp2
 
 
 @app.route('/test_create', methods=['GET', 'POST'])
@@ -1293,34 +1758,225 @@ def test_create():
         f"controller.{sys._getframe().f_code.co_name}")
     
     if request.method == 'POST':
-        createdFp = os.path.join(pathlib.Path(__file__).parent.resolve(),
-                    'static', 
+        createdFp = os.path.join(pathlib.Path(__file__).parent.resolve(), 
                     request.form['createdIniFp'])
+        
         ini = _readConfig.InputIni().read_from_inifile(createdFp)
         ini.rocktypeDuplicateCheck()
-        
+
         error_msg = {}
         short_msg = ""
         os.makedirs(ini.t2FileDirFp, exist_ok=True)
-        if not os.path.isfile(ini.t2FileFp):
+        logger.debug(f"dir: {ini.t2FileDirFp} is prepared")
+        if not os.path.isfile(ini.t2FileFp) or 'overwrites_prob' in request.form:
+            logger.debug(f"create new:{ini.t2FileFp}")
             if not os.path.isfile(ini.t2GridFp):
-                # makeGridAmeshVoro.makePermVariableVoronoiGrid(ini)
-                makeGridFunc.makeGrid(ini=ini, overWrites=False, showsProfiles=False)
+                logger.debug(f"into method: makeGridFunc.makeGrid")
+                makeGridFunc.makeGrid(ini=ini, force_overwrite_all=False, force_overwrite_t2data=True, open_viewer=False)
+                logger.debug(f"finined: makeGridFunc.makeGrid")
+            logger.debug(f"into method: tough3exec_ws.makeToughInput")
             tough3exec_ws.makeToughInput(ini)
+            logger.debug(f"finished: tough3exec_ws.makeToughInput")
             short_msg = f"TOUGH inputs created in {ini.t2FileDirFp}"
         else:
-            error_msg['prob_exists'] = f"Problem: {create_relpath(ini.t2FileDirFp)}. Please specify different problem name and press (check)."
+            error_msg['prob_exists'] = f"The input file (t2data.dat): \"{create_relpath(ini.t2FileFp)}\"  has already been created. Please check 'Force overwrite' and try again."
         
         # return to cmesh5.html     
         form = dict(request.form)
+        form.pop('overwrites_prob', None) # reset status: 'overwrites_prob'
         form = construct_simulator_paths(form)
-        outfp = os.path.join('output', request.form['problemName']+'.ini')
+        outfp = os.path.join('static', 'output', f'input_final_{request.form["problemName"]}.ini')
         return render_template('cmesh5.html', form=form, downloadlink=outfp, 
                                 error_msg=error_msg if len(error_msg)>0 else None,
-                                short_msg=short_msg
+                                short_msg=short_msg,
+                                projRoot=projRoot
                                 )
 
     else:
         return redirect(url_for('index'))
+
+@app.route('/ajax_test/')
+def ajax_test():
+    return app.send_static_file('ajax_test.html')
+
+
+@app.route('/ajax_test_api', methods=['GET', 'OPTIONS'])
+def ajax_test_api():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        a = request.args.get('key1', '')
+        print(a)
+        # これだとブラウザでエラーになる
+        # "blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+        # return jsonify({"data":f"I received {a}"}) 
+        return _corsify_actual_response(jsonify({"ajax_test_api_return1":f"I received {a}"}))
+
+@app.route('/checkrun', methods=['GET', 'OPTIONS'])
+def checkrun():
+    global THREADS_TOUGH_RUNNING
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = []
+        is_running = False
+        print("--------- 1 --------")
+        for i,thr in enumerate(THREADS_TOUGH_RUNNING):
+            print("-------- 2 ---------")
+            is_running |= thr['thread'].is_alive()
+            info = 'running' if thr['thread'].is_alive() else 'dead'
+            # get number of steps and last time step length
+            cofts = glob.glob(os.path.join(thr['t2FileDir'],"FOFT*.csv"))
+            print("-------- 3 ---------")
+            steps = None
+            time_step_length = None
+            time = None #[second]
+            time_y = None #[year]
+            if len(cofts)>0:
+                # case if COFT* found
+                with open(cofts[0], "r") as f:
+                    print("-------- 4 ---------")
+                    lines = f.readlines()
+                    steps = len(lines)-1 # number of lines except for 1st line
+                    if steps==1:
+                        time = time_step_length = float(lines[-1].split(",")[0])
+                        time_y = time/365.25/24/3600
+                    elif steps>2:
+                        time = float(lines[-1].split(",")[0])
+                        time_step_length =  time - float(lines[-2].split(",")[0])
+                        time_y = time/365.25/24/3600
+            print("-------- 5 ---------")
+            print(i+1, thr["inifp"], info, steps, time_y, time_step_length)
+            msg = f'(Proc. {i+1}) inifp: {create_relpath(thr["inifp"])} is {info}. Steps: {steps}. Time: {time_y:.2f} year. Time step length: {time_step_length} [s]'
+            print(msg)
+            ret.append(msg)
+
+        return _corsify_actual_response(jsonify({'status':ret, 'is_running':is_running}))
+
+@app.route('/run_tough3', methods=['GET', 'OPTIONS'])
+def run_tough3():
+    # global IS_RUNNING_TOUGH3
+    global THREADS_TOUGH_RUNNING
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = {'status_msg':[], 'error_msg':[], 'flg_started':False}
+        inifp = request.args.get('key1', '').strip()
+
+        if not os.path.isfile(create_fullpath(inifp)):
+            ret['error_msg'].append(f"Flie not found: {inifp}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        if not os.path.isfile(MPIEXEC):
+            ret['error_msg'].append(f"MPIEXEC not found: {MPIEXEC}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        ini = _readConfig.InputIni().read_from_inifile(create_fullpath(inifp))
+
+        if not os.path.isfile(ini.configuration.COMM_EXEC):
+            ret['error_msg'].append(f"Executable not found: {ini.configuration.COMM_EXEC}")
+            return _corsify_actual_response(jsonify(ret))
+        
+        # Check if tough3 simulation for the passed ini-file is running.
+        isrunning = create_relpath(inifp) in get_running_inifp_list()
+        
+        if isrunning:
+            ret['error_msg'].append(f"process for '{os.path.basename(inifp)}' is running")
+        else:
+            # If there are threads involving the same inifp, delete the older one
+            for i, thr in enumerate(THREADS_TOUGH_RUNNING):
+                if inifp in thr['inifp']:
+                    del THREADS_TOUGH_RUNNING[i]
+            # create new thread
+            thread = Thread(target=run.execute, 
+                            args=(_readConfig.InputIni().read_from_inifile(create_fullpath(inifp)),), 
+                            name="SubThread", 
+                            daemon=True)
+            # start execution
+            thread.start()
+            ret['status_msg'].append(f"start tough3 run for: {os.path.basename(inifp)}")
+            ret['flg_started'] =    True
+            THREADS_TOUGH_RUNNING.append({'thread':thread, 'inifp':create_fullpath(inifp), 't2FileDir':ini.t2FileDirFp})
+
+        ret['running_processes'] = get_running_inifp_list()
+        return _corsify_actual_response(jsonify(ret))
+
+@app.route('/python_str_to_eval_api', methods=['GET', 'OPTIONS'])
+def python_str_to_eval_api():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        ret = None
+        error_msg = None
+        try:
+            ret = eval(request.args.get('key1', ''))
+        except:
+            error_msg = "Error in python eval()"
+
+        return _corsify_actual_response(jsonify({"eval_result":ret, "error_msg":error_msg}))
+
+@app.route('/api_voronoi_plot_qhull', methods=['GET', 'OPTIONS'])
+def api_voronoi_plot_qhull():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    elif request.method == "GET":
+        error_msg = None
+
+        seedfp = request.args.get('seedfp', '')
+        topodata_fp = request.args.get('topodata_fp', '')
+        try:
+            min_edge_len = float(request.args.get('min_edge_len', ''))
+        except:
+            error_msg = "invalid min_edge_len: {request.args.get('min_edge_len', '')}"
+            return _corsify_actual_response(jsonify({"error_msg":error_msg}))
+        
+        if not os.path.isfile(create_fullpath(seedfp)):
+            error_msg = f"voronoi_seeds_list_fp not found: '{seedfp}'"
+            return _corsify_actual_response(jsonify({"error_msg":error_msg}))
+        
+        if not os.path.isfile(create_fullpath(topodata_fp)):
+            error_msg = f"topodata_fp not found: '{topodata_fp}'"
+
+        """
+        'Matplotlib is not thread-safe:...'
+        https://matplotlib.org/stable/users/faq.html#work-with-threads
+        """
+        now = time.time()
+        savefp = f'gui/static/output/vorocheck_{now}.png'
+        try:
+            seed_to_voronoi.creates_2d_voronoi_grid(
+                create_fullpath(seedfp), min_edge_len, 
+                preview_save_fp=create_fullpath(savefp), show_preview=False,
+                topofp_for_plot=\
+                    topodata_fp if os.path.isfile(create_fullpath(topodata_fp)) else None,
+            )
+        except:
+            error_msg = f"Error in seed_to_voronoi.creates_2d_voronoi_grid"
+
+        return _corsify_actual_response(jsonify({"img_fp":re.sub("gui/", "", savefp), "error_msg":error_msg}))
+
+def get_running_inifp_list():
+    global THREADS_TOUGH_RUNNING
+    ret = []
+    for proc in THREADS_TOUGH_RUNNING:
+        thr: Thread = proc['thread']
+        if thr.is_alive():
+            ret.append(create_relpath(proc['inifp']))
+    return ret
+
+def _build_cors_preflight_response():
+    # ajax開発用 CORS対策
+    # https://stackoverflow.com/questions/25594893/how-to-enable-cors-in-flask
+    # https://qiita.com/Shoma0210/items/4405898205a1822f5826
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Headers', "*")
+    response.headers.add('Access-Control-Allow-Methods', "*")
+    return response
+
+def _corsify_actual_response(response):
+    # ajax開発用 CORS対策
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 app.run(port=8000, debug=True)  

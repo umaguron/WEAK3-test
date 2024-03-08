@@ -147,16 +147,15 @@ class InputIni(object):
         self.mesh = self._MeshSec().read_from_config(self.config)
         if self.mesh.type == AMESH_VORONOI:
             """ amesh voronoi """
-            try:
-                self.amesh_voronoi = self._AmeshVoronoi().read_from_config(self.config)
-            except:
-                # すでにグリッド作成済みで設定不要の場合
-                pass
+            self.amesh_voronoi = self._AmeshVoronoi().read_from_config(self.config)
         self.solver = self._SolverSec().read_from_config(self.config)
         self.plot = self._PlotSec().read_from_config(self.config)
         self.boundary = self._Boundary().read_from_config(self.config)
         self.atmosphere = self._Atmosphere().read_from_config(self.config)
         self.configuration = self._Configuration().read_from_config(self.config)
+
+        if self.config.has_section('sea'):
+            self.sea = self._Sea().read_from_config(self.config)
 
         # read section [toughInput]
         # GUIで使うときは[toughInput]セクションが不完全な場合に読み込みが行われるので、
@@ -306,12 +305,24 @@ class InputIni(object):
         """
         Define a path of executable by using 'module' in inputIni and 'BIN_DIR' in define_path.py.
         """
+        mod_name = ret['module'].lower()
+        
         if ret['simulator']==SIMULATOR_NAME_T3:
-            self.configuration.COMM_EXEC = \
-                os.path.join(BIN_DIR,f"tough3-{ret['module']}")
+            if mod_name in EXEC_FILENAME:
+                self.configuration.COMM_EXEC = \
+                    os.path.join(BIN_DIR, EXEC_FILENAME[mod_name])
+            else:
+                logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME")
+                raise InvalidToughInputException
+        
         if ret['simulator']==SIMULATOR_NAME_T2:
-            self.configuration.COMM_EXEC = \
-                os.path.join(BIN_DIR_T2,f"xt2_{ret['module']}")
+            if mod_name in EXEC_FILENAME_T2:
+                self.configuration.COMM_EXEC = \
+                    os.path.join(BIN_DIR_T2, EXEC_FILENAME_T2[mod_name])
+            else:
+                logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME_T2")
+                raise InvalidToughInputException
+        
         if ret['simulator']==SIMULATOR_NAME_T3_LOCAL:
             """
             simulator='TOUGH3_LOCAL' is totally same as simulator='TOUGH3' 
@@ -319,20 +330,27 @@ class InputIni(object):
             """
             ret['simulator'] = SIMULATOR_NAME_T3
             if BIN_DIR_LOCAL is None:
-                self.configuration.COMM_EXEC = \
-                    os.path.join(BIN_DIR,f"tough3-{ret['module']}")
-                logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
-                logger.warning(f"             use COMM_EXEC: {self.configuration.COMM_EXEC}")
+                logger.error("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
+                raise InvalidToughInputException
+                # self.configuration.COMM_EXEC = \
+                #     os.path.join(BIN_DIR,f"tough3-{ret['module']}")
+                # logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
+                # logger.warning(f"             use COMM_EXEC: {self.configuration.COMM_EXEC}")
             else:
-                self.configuration.COMM_EXEC = \
-                    os.path.join(BIN_DIR_LOCAL,f"tough3-{ret['module']}")
+                if mod_name in EXEC_FILENAME_LOCAL:
+                    self.configuration.COMM_EXEC = \
+                        os.path.join(BIN_DIR_LOCAL, EXEC_FILENAME_LOCAL[mod_name])
+                else:
+                    logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME_T2")
+                    raise InvalidToughInputException
 
         ret['problemName'] = self.config.get('toughInput', 'problemName')
         # ret['mulgridFileName'] = self.config.get('toughInput', 'mulgridFileName')
         try:
             ret['mulgridFileName'] = self.config.get('toughInput', 'mulgridFileName')
         except configparser.NoOptionError:
-            ret['mulgridFileName'] = ret['problemName'] + ".dat"
+            pass
+            # ret['mulgridFileName'] = ret['problemName'] + ".dat"
         
         # ret['t2DataFileName'] = self.config.get('toughInput', 't2DataFileName')
         # ret['gridVtkFileName'] = self.config.get('toughInput', 'gridVtkFileName')
@@ -442,7 +460,7 @@ class InputIni(object):
             ret['prints_hc_inj'] = eval(self.config.get('toughInput', 'prints_hc_inj'))
         except:
             ret['prints_hc_inj'] = False
-        if "eco2n_v2" == ret['module'].strip():
+        if ECO2N in ret['module'].strip() or EWASG == ret['module'].strip():
             # SELEC
             ret['selection_line1'] = eval(self.config.get('toughInput', 'selection_line1'))
             ret['selection_line2'] = eval(self.config.get('toughInput', 'selection_line2'))
@@ -480,6 +498,14 @@ class InputIni(object):
                 self.primary_sec_list = []
                 for secName in primary_sec_list:
                     self.primary_sec_list.append(self._PrimarySec(secName, self.config))
+        
+        else:
+            if self.config.has_option('toughInput', 'specifies_variable_INCON') and \
+                    eval(self.config.get('toughInput', 'specifies_variable_INCON')):
+                logger.error("If 'problemNamePreviousRun' is specified, 'specifies_variable_INCON' must not be True")
+                raise InvalidToughInputException
+            else:
+                ret['specifies_variable_INCON'] = False
         
         self.fixed_p_regions_seclist = []
         if self.config.has_option('toughInput', 'fixed_p_regions_seclist'):
@@ -774,7 +800,7 @@ class InputIni(object):
             Returns:
                 True or False
             """
-            # region
+            # regions
             for reg in self.regionSecList:
                 if reg.xmin <= blk.centre[0] < reg.xmax \
                         and reg.ymin <= blk.centre[1] < reg.ymax \
@@ -870,6 +896,84 @@ class InputIni(object):
                 self.atmos.capillarity = {'parameters':[0.0, 0.0, 1.0], 'type':1}
                 self.atmos.tortuosity = 1.0
             
+            return self
+    
+    class _Sea(object):
+
+        def __init__(self):
+            pass 
+
+        def read_from_config(self, config: configparser.ConfigParser):
+            """ get logger """
+            logger = define_logging.getLogger(
+                f"{__class__.__name__}.{sys._getframe().f_code.co_name}")
+
+            self.sea_level = float(config['sea']['sea_level'])
+            self.closeness_to_seawater_blk = float(config['sea']['closeness_to_seawater_blk'])
+
+            if config.has_option('sea', 'primary_xcom'):
+                self.primary_xcom = float(config['sea']['primary_xcom'])
+            else:
+                self.primary_xcom = SEA_PRIMARY_XCOM_DEFAULT
+
+            """作ったけどいらなかった
+            try:
+                if (not config.has_option('sea', 'nad')) and \
+                        (not config.has_option('sea', 'density')) and \
+                        (not config.has_option('sea', 'porosity')) and \
+                        (not config.has_option('sea', 'permeability')) and \
+                        (not config.has_option('sea', 'conductivity')) and \
+                        (not config.has_option('sea', 'specific_heat')):
+                    ## if rocktype is not specified
+                    logger.info("Use a default rock type for the sea.")
+                    self.sea = \
+                        rocktype(name = "sea", 
+                                 nad = 2, 
+                                 density = SEA_BLK_DENSITY,
+                                 porosity = SEA_BLK_POROSITY,
+                                 permeability = SEA_BLK_PERMEABILITY,
+                                 conductivity = SEA_BLK_CONDUCTIVITY,
+                                 specific_heat = SEA_BLK_SPECIFIC_HEAT)
+                    self.sea.tortuosity = SEA_BLK_TORTUOSITY
+                    self.sea.relative_permeability = SEA_BLK_RELATIVE_PERMEABILITY
+                    self.sea.capillarity = SEA_BLK_CAPILlARITY
+                
+                else:
+                    ## if rocktype is specified
+                    self.sea = \
+                        rocktype(name = "sea", 
+                                nad = int(config['sea']['nad']), 
+                                density = float(config['sea']['density']), 
+                                porosity = float(config['sea']['porosity']), 
+                                permeability = eval(config['sea']['permeability']), 
+                                conductivity = float(config['sea']['conductivity']), 
+                                specific_heat = float(config['sea']['specific_heat']))
+                    if self.sea.nad >= 1:
+                        if config.has_option('sea', 'tortuosity'):
+                            self.sea.tortuosity = float(config['sea']['tortuosity'])
+                        else:
+                            logger.error("If 'nad' >= 1, 'tortuosity' must be specified.")
+                            raise InvalidToughInputException
+                    if self.sea.nad >= 2:
+                        if config.has_option('sea', 'RP') and \
+                                config.has_option('sea', 'IRP') and \
+                                config.has_option('sea', 'CP') and \
+                                config.has_option('sea', 'ICP'):
+                            self.sea.relative_permeability = \
+                                {'parameters': eval(config['sea']['RP']), 
+                                    'type': int(config['sea']['IRP'])}
+                            self.sea.capillarity = \
+                                {'parameters':eval(config['sea']['CP']), 
+                                    'type':int(config['sea']['ICP'])}
+                        else:
+                            logger.error("If 'nad' >= 2, 'RP', 'IRP', 'CP', 'ICP' must be specified.")
+                            raise InvalidToughInputException
+
+            except:
+                logger.error("Error in section [sea] setting")
+                raise InvalidToughInputException
+            """
+        
             return self
 
     class _GenerSec(object):
@@ -995,6 +1099,11 @@ class InputIni(object):
             except KeyError:
                 pass
 
+            def check(val, sec): 
+                if type(val) is int or type(val) is float or type(val) is str:
+                    logger.error(f"section [{sec}], blk length must be specified as list or tuple") 
+                return val
+
             if self.type == REGULAR:
                 """
                 ragial or recutangular
@@ -1006,20 +1115,50 @@ class InputIni(object):
                     rsec = config['mesh']['rblocksSec']
                     self.rblocks = []
                     for l in config[rsec]:
-                        self.rblocks += list(eval(config[rsec][l])) 
+                        self.rblocks += list(check(eval(config[rsec][l]),rsec)) 
 
                     zsec = config['mesh']['zblocksSec']
                     self.zblocks = []
                     for l in config[zsec]:
-                        self.zblocks += list(eval(config[zsec][l])) 
+                        self.zblocks += list(check(eval(config[zsec][l]),zsec))
+                    
+                    # cone (added 2023/12/10)
+                    self.incorporatesCone = True
+                    if config.has_option('mesh', 'cone_top_elevation') and \
+                            config.has_option('mesh', 'cone_base_radius') and \
+                            config.has_option('mesh', 'cone_height_above_base') and \
+                            (not config.has_option('mesh', 'cone_shape_elev') and \
+                            not config.has_option('mesh', 'cone_shape_r')):
+                        # simple cone case
+                        self.isSimpleCone = True
+                        self.cone_top_elevation = float(config['mesh']['cone_top_elevation'])
+                        self.cone_base_radius = float(config['mesh']['cone_base_radius'])
+                        self.cone_height_above_base = float(config['mesh']['cone_height_above_base'])
+                    elif config.has_option('mesh', 'cone_shape_elev') and \
+                            config.has_option('mesh', 'cone_shape_r') and \
+                            (not config.has_option('mesh', 'cone_top_elevation') and \
+                            not config.has_option('mesh', 'cone_base_radius') and \
+                            not config.has_option('mesh', 'cone_height_above_base')):
+                        # flexible cone case
+                        self.isSimpleCone = False
+                        self.cone_shape_elev = eval(config['mesh']['cone_shape_elev'])
+                        self.cone_shape_r = eval(config['mesh']['cone_shape_r'])
+                    elif config.has_option('mesh', 'cone_top_elevation') or \
+                            config.has_option('mesh', 'cone_base_radius') or \
+                            config.has_option('mesh', 'cone_height_above_base') or \
+                            config.has_option('mesh', 'cone_shape_elev') or \
+                            config.has_option('mesh', 'cone_shape_r'):
+                        # invalid cone setting
+                        logger.error("Invalid cone setting.\n"
+                                     " Set (cone_top_elevation, cone_base_radius, cone_height_above_base) or\n"
+                                     " Set (cone_shape_elev, cone_shape_r)")
+                        raise InvalidToughInputException
+                    else:
+                        # no cone case
+                        self.incorporatesCone = False             
                 
                 else:
                     logger.info(f"gridtype: RECTANGULAR")
-                    
-                    def check(val, sec): 
-                        if type(val) is int or type(val) is float or type(val) is str:
-                            sys.exit(f"section [{sec}], blk length must be specified as list or tuple") 
-                        return val
                     
                     xsec = config['mesh']['xblocksSec']
                     self.xblocks = []
@@ -1050,16 +1189,29 @@ class InputIni(object):
             pass
 
         def read_from_config(self, config: configparser.ConfigParser):
-            self.topodata_fp = os.path.join(baseDir, config['amesh_voronoi']['topodata_fp'])
-            self.voronoi_seeds_list_fp = \
-                os.path.join(baseDir, config['amesh_voronoi']['voronoi_seeds_list_fp'])
-            self.elevation_top_layer = float(config['amesh_voronoi']['elevation_top_layer'])
-            self.layer_thicknesses = eval(config['amesh_voronoi']['layer_thicknesses'])
-            self.tolar = float(config['amesh_voronoi']['tolar'])
-            try:
+            if config.has_option('amesh_voronoi', 'topodata_fp'):
+                self.topodata_fp = os.path.join(baseDir, config['amesh_voronoi']['topodata_fp'])
+            if config.has_option('amesh_voronoi', 'voronoi_seeds_list_fp'):
+                self.voronoi_seeds_list_fp = \
+                    os.path.join(baseDir, config['amesh_voronoi']['voronoi_seeds_list_fp'])
+            if config.has_option('amesh_voronoi', 'elevation_top_layer'):
+                self.elevation_top_layer = float(config['amesh_voronoi']['elevation_top_layer'])
+            if config.has_option('amesh_voronoi', 'layer_thicknesses'):
+                self.layer_thicknesses = eval(config['amesh_voronoi']['layer_thicknesses'])
+            if config.has_option('amesh_voronoi', 'tolar'):
+                self.tolar = float(config['amesh_voronoi']['tolar'])
+            if config.has_option('amesh_voronoi', 'top_layer_min_thickness'):
                 self.top_layer_min_thickness = float(config['amesh_voronoi']['top_layer_min_thickness'])
-            except:
+            else:
                 self.top_layer_min_thickness = TOP_LAYER_MIN_THICKNESS_DEFAULT
+            try:
+                if len(config['amesh_voronoi']['uses_amesh'])>0:
+                    self.uses_amesh = eval(config['amesh_voronoi']['uses_amesh'])
+                else:
+                    self.uses_amesh = False
+            except:
+                self.uses_amesh = False
+            
             return self
 
     class _Boundary(object):
@@ -1161,7 +1313,7 @@ class InputIni(object):
                 else:
                     config.set('toughInput', key, '')
             
-            keys = ['simulator','module','problemName','mulgridFileName',
+            keys = ['simulator','module','problemName',
                     'num_components','num_equations','num_phases','num_secondary_parameters',
                     'max_iterations','print_level','max_timesteps','max_duration','print_interval',
                     'MOPs01','MOPs02','MOPs03','MOPs04','MOPs05','MOPs06','MOPs07','MOPs08','MOPs09',
@@ -1170,13 +1322,13 @@ class InputIni(object):
                     'gravity','timestep_reduction','scale','relative_error','absolute_error',
                     'upstream_weight','newton_weight','derivative_increment','for','amres',
                     'problemNamePreviousRun','water_table_elevation','1d_hydrostatic_sim_result_ini',
-                    'PRIMARY_default','PRIMARY_AIR','use_1d_result_as_incon',
+                    'PRIMARY_default',
                     'specifies_variable_INCON',
                     'seedFlg','crustalHeatFlowRate','rainfallAnnual_mm','T_rain','history_block',
                     'history_connection','prints_hc_surface','prints_hc_inj',
                     'selection_line1','selection_line2',
                     'num_times_specified','num_times','max_timestep_TIMES','time_increment','time',
-                    'assignFocusHf','focusHfRate','focusHfRange']
+                    'assignFocusHf','focusHfRate','focusHfRange', 'initial_t_grad']
 
             for key in keys:
                 set1(self, config, key)
@@ -1247,15 +1399,18 @@ class InputIni(object):
                 config.set(psec.secName, 'zmin', repr(psec.zmin))
                 config.set(psec.secName, 'zmax', repr(psec.zmax))
             config.set('toughInput', 'primary_sec_list', repr(primary_sec_list))
+            config.set('toughInput', 'specifies_variable_INCON', 'True')
                 
         if hasattr(self, 'mesh'):
-            keys = ['type', 'convention', 'isRadial', 'resistivity_structure_fp', 'mulgridFileFp']
+            keys = ['type', 'convention', 'isRadial', 'resistivity_structure_fp', 'mulgridFileFp', 
+                    'cone_top_elevation', 'cone_base_radius', 'cone_height_above_base', 'cone_shape_r',
+                    'cone_shape_elev']
             for key in keys:
                 if hasattr(self.mesh, key):
                     val = eval(f'self.mesh.{key}')
                     config.set('mesh', key, val if type(val) is str else repr(val))
                 else:
-                    config.set('mesh', key, '')
+                    pass
 
             if hasattr(self.mesh, 'rblocks'):
                 config.add_section('r')
@@ -1278,10 +1433,11 @@ class InputIni(object):
                 config.set('mesh', 'resistivity_structure_fp', create_relpath(self.mesh.resistivity_structure_fp))
             else:
                 config.set('mesh', 'resistivity_structure_fp', '')
-
+            
 
         if hasattr(self, 'amesh_voronoi'):
-            keys = ['elevation_top_layer', 'layer_thicknesses', 'tolar', 'top_layer_min_thickness']
+            # TODO add uses_amesh
+            keys = ['elevation_top_layer', 'layer_thicknesses', 'tolar', 'top_layer_min_thickness', 'uses_amesh']
             for key in keys:
                 if hasattr(self.amesh_voronoi, key):
                     val = eval(f'self.amesh_voronoi.{key}')
@@ -1356,6 +1512,16 @@ class InputIni(object):
                     config.set('atmosphere', 'ICP', str(self.atmosphere.atmos.capillarity['type']))
                 if 'parameters' in self.atmosphere.atmos.capillarity:
                     config.set('atmosphere', 'CP', repr(self.atmosphere.atmos.capillarity['parameters']))
+
+        if hasattr(self, 'sea'):
+            config.add_section('sea')
+            keys = ['sea_level', 'closeness_to_seawater_blk', 'primary_xcom']
+            for key in keys:
+                if hasattr(self.sea, key):
+                    val = eval(f'self.sea.{key}')
+                    config.set('sea', key, val if type(val) is str else repr(val))
+                else:
+                    pass
         
         if hasattr(self, 'solver'):
             keys = ['matslv', 'nProc', 'ksp_type', 'pc_type', 'ksp_rtol', 'ZPROCS', 'OPROCS', 'RITMAX', 'CLOSUR']
@@ -1365,7 +1531,22 @@ class InputIni(object):
                     config.set('solver', key, val if type(val) is str else repr(val))
                 else:
                     config.set('solver', key, '')
-    
+        
+        # fixed_p_regions_seclist
+        if hasattr(self, 'fixed_p_regions_seclist'):
+            fixed_p_regions_seclist = []
+            for sec in self.fixed_p_regions_seclist:
+                fixed_p_regions_seclist.append(sec.secName)
+                config.add_section(sec.secName)
+                config.set(sec.secName, 'block', repr(sec.block))
+                config.set(sec.secName, 'type', str(sec.type))
+                config.set(sec.secName, 'area', repr(sec.area))
+                config.set(sec.secName, 'dist_injblock', repr(sec.dist_injblock))
+                config.set(sec.secName, 'temperature', repr(sec.temperature))
+                config.set(sec.secName, 'pressure', str(sec.pressure_str))
+                config.set(sec.secName, 'added_p_block_permeability', repr(sec.added_p_block_permeability))
+            config.set('toughInput', 'fixed_p_regions_seclist', repr(fixed_p_regions_seclist))
+        
         with open(outfp, 'w') as f:
             config.write(f)
 

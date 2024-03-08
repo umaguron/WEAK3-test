@@ -79,6 +79,10 @@ x_wt2x_mol = lambda x_wt: 18*x_wt/(58.5-40.5*x_wt)
 
 
 def escape_t3outfiles(ini:_readConfig.InputIni):
+    """ get logger """
+    logger = define_logging.getLogger(
+        f"{__name__}.{sys._getframe().f_code.co_name}")
+    
     """escape t3outfiles to T3OUT_ESCAPE_DIRNAME set in setting.ini"""
     if ini.t2FileDirFp == ini.t3outEscapeFp: 
         return
@@ -90,7 +94,7 @@ def escape_t3outfiles(ini:_readConfig.InputIni):
         for f in os.listdir(ini.t2FileDirFp):
             if re.search(r"[FC]OFT.*csv", f) or re.search(r"^\..*", f) \
                     or re.search(r"CONNE*", f) or re.search(r"ELEME*", f): 
-                print(f"    escape {f}")
+                logger.info(f"    escape {f}")
                 shutil.move(os.path.join(ini.t2FileDirFp,f), ini.t3outEscapeFp)
 
 def create_savefig_dir(ini:_readConfig.InputIni):
@@ -315,7 +319,7 @@ def _xy_axisFormatter(max_t:float, axis:mpl.axis.Axis):
 
     return label
 
-def dfCleanElem(df_elem:pd.DataFrame, param: str):
+def dfCleanElem(df_elem:pd.DataFrame, param: str, convention: int):
     """
     return result array of all element except 'INJxx', 
     which added to grid by tough3exec_ws.py
@@ -326,13 +330,14 @@ def dfCleanElem(df_elem:pd.DataFrame, param: str):
         numpy.array: result array of all element
     """        
     # get index of element in Series 'row' which includes 'INJ', and roop
-    for i in list(df_elem[df_elem.row.str.contains('INJ')].index):
+    for i in list(df_elem[df_elem.row.str.contains(
+                f'INJ|{REGEX_FIXED_P_ADDED_CELL_NAME(convention)}', regex=True)].index):
         """drop the row of index i from dataFrame"""
         tmp = df_elem.drop(i)
         df_elem = tmp
     return np.array(df_elem[param])
 
-def dfCleanElem2(df_elem:pd.DataFrame):
+def dfCleanElem2(df_elem:pd.DataFrame, convention: int):
     """
     return reconstructed dataframe except rows including 'INJxx', 
     which added to grid by tough3exec_ws.py
@@ -342,21 +347,36 @@ def dfCleanElem2(df_elem:pd.DataFrame):
         numpy.array: result array of all element
     """        
     # get index of element in Series 'row' which includes 'INJ', and roop
-    for i in list(df_elem[df_elem.row.str.contains('INJ')].index):
+    for i in list(df_elem[df_elem.row.str.contains(
+                f'INJ|{REGEX_FIXED_P_ADDED_CELL_NAME(convention)}', regex=True)].index):
         """drop the row of index i from dataFrame"""
         tmp = df_elem.drop(i)
         df_elem = tmp
     return df_elem
 
-def _includesINJinTuple(tuple):
+def _includesINJinTupleConv0(tuple):
     """if tuple passed includes "INJ", returns True"""
     ret = False
     for t in tuple:
-        ret = "INJ" in t or ret
+        ret = ("INJ" in t or bool(re.search(REGEX_FIXED_P_ADDED_CELL_NAME(0), t))) or ret
+    # if ret: print(tuple)
+    return ret
+def _includesINJinTupleConv1(tuple):
+    """if tuple passed includes "INJ", returns True"""
+    ret = False
+    for t in tuple:
+        ret = ("INJ" in t or bool(re.search(REGEX_FIXED_P_ADDED_CELL_NAME(1), t))) or ret
+    # if ret: print(tuple)
+    return ret
+def _includesINJinTupleConv2(tuple):
+    """if tuple passed includes "INJ", returns True"""
+    ret = False
+    for t in tuple:
+        ret = ("INJ" in t or bool(re.search(REGEX_FIXED_P_ADDED_CELL_NAME(2), t))) or ret
     # if ret: print(tuple)
     return ret
 
-def dfCleanConn(df_conn:pd.DataFrame):
+def dfCleanConn(df_conn:pd.DataFrame, convention:int):
     """
     return result array of all element except 'INJxx', 
     which added to grid by tough3exec_ws.py
@@ -366,7 +386,16 @@ def dfCleanConn(df_conn:pd.DataFrame):
         df_conn 
     """        
     # get index of connection for which mapFunc returns True, and roop
-    exclude = list(df_conn[df_conn.row.map(_includesINJinTuple)].index)
+    if convention == 0:
+        mapfunc = _includesINJinTupleConv0
+    elif convention == 1:
+        mapfunc = _includesINJinTupleConv1
+    elif convention == 2:
+        mapfunc = _includesINJinTupleConv2
+    else:
+        print(f"invalid convention value: {convention}")
+        return
+    exclude = list(df_conn[df_conn.row.map(mapfunc)].index)
     for i in exclude:
         print(f"exclude {df_conn[df_conn.index==i].row[i]}")
     for i in exclude:
@@ -548,7 +577,7 @@ def plot_surface_flow_COFT(
         for col in geo.columnlist:
             layer_top = geo.column_surface_layer(col)
             blockname_top = geo.block_name(layer_top.name, col.name)
-            conn = (blockname_top,'ATM 0')
+            conn = (blockname_top,ATM_BLK_NAME(ini.mesh.convention))
             if (conn[0],conn[1]) in dat.grid.connection \
                     or (conn[1],conn[0]) in dat.grid.connection:
                 conn_list_suf.append(conn)
@@ -736,7 +765,7 @@ def reorganize_COFT_into_surface_flow_timetable_csv(
     for col in geo.columnlist:
         layer_top = geo.column_surface_layer(col)
         blockname_top = geo.block_name(layer_top.name, col.name)
-        conn = (blockname_top,'ATM 0')
+        conn = (blockname_top,ATM_BLK_NAME(ini.mesh.convention))
         if (conn[0],conn[1]) in dat.grid.connection \
                 or (conn[1],conn[0]) in dat.grid.connection:
             for obj in sufAreaObjects:
@@ -857,7 +886,7 @@ def ts_plotter(budget_dict:dict, saveDir:str, info:str, isXscaleLog, isYscaleLog
                 mpl.ticker.FuncFormatter(lambda x, pos: f"{x/10**6:,.2f} MW"))
         if 'FLOW' in variable:
             ax.yaxis.set_major_formatter(
-                mpl.ticker.FuncFormatter(lambda x, pos: f"{x:,.３f} kg/s"))
+                mpl.ticker.FuncFormatter(lambda x, pos: f"{x:,.3f} kg/s"))
                 # mpl.ticker.FuncFormatter(lambda x, pos: f"{x*3600*24:,.2f} kg/day"))
         
         if isYscaleLog: ax.set_yscale('log')
@@ -910,7 +939,7 @@ def get_inner_surface_flow_sum_COFT_radial(
             if r < radius:
                 # if position of column is in the circle whose radius=radius(argument)
                 blockname_top = geo.block_name(layer_top.name, col.name)
-                conn_list_suf.append((blockname_top,'ATM 0'))
+                conn_list_suf.append((blockname_top,ATM_BLK_NAME(ini.mesh.convention)))
     else: 
         print(f"[t2outUtil.plot_surface_flow_COFT] option "\
                 +"'prints_hc_surface' is False in ini file. skip")
@@ -1263,17 +1292,18 @@ def plot_spatial_flow_distribution_at_surface_COFT_radial(
         return
 
     ii = ini.toughInput
-    layer_top = geo.layerlist[1]  # get property of top layer 
     conn_list_suf = []
     xPosList = []
     areaList = []
     r_inner = 0
     if ii['prints_hc_surface']:
         for dr,col in zip(ini.mesh.rblocks,geo.columnlist):
+            # get property of top layer 
+            layer_top = geo.column_surface_layer(col)
             blockname_top = geo.block_name(layer_top.name, col.name)
             
             # name of connection
-            conn_list_suf.append((blockname_top,'ATM 0'))
+            conn_list_suf.append((blockname_top,ATM_BLK_NAME(ini.mesh.convention)))
             
             # position
             xPosList.append(col.centre[0])
@@ -2140,6 +2170,7 @@ def _df_elem_calc_bulk_resistivity(row:pd.Series):
     if math.isnan(row['POR']):
         """応急処置2021/5/23 porosityがNaNで出力される場合がある"""
         brine_proportion = 0.1 * row['SAT_L']
+        print("[t2outUtil._df_elem_calc_bulk_resistivity] WARNING!! porosity: NaN")
     else:
         brine_proportion = row['POR'] * row['SAT_L']
     cond_upper, cond_lower = \
@@ -2475,15 +2506,12 @@ def _df_elem_calc_bulk_molality(row:pd.Series):
 def get_cbar_limits(variable_name):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
-    """
-    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
-        return CBAR_LIM_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
-        return CBAR_LIM_SAT
-    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
+    """    
+    if FLAG_NAME_RES == variable_name.upper().strip(): 
         return CBAR_LIM_LOG10RES 
-    elif FLAG_NAME_X_NACL_L in variable_name.lower().strip(): 
-        return CBAR_LIM_NaCl_CONTENT
+    
+    if variable_name.upper().strip() in CBAR_LIM:
+        return CBAR_LIM[variable_name]
     else: 
         return None
 
@@ -2491,33 +2519,28 @@ def get_cbar_limits_flow(variable_name):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
     """
-    if FLAG_NAME_FLOW in variable_name.lower(): 
+    if FLAG_NAME_FLOW in variable_name.upper(): 
         return CBARLIMIT_DEFAULT_FLOW
-    elif FLAG_NAME_HEAT in variable_name.lower(): 
+    elif FLAG_NAME_HEAT in variable_name.upper(): 
         return CBARLIMIT_DEFAULT_HEAT
     return None
+    
 
 def get_unit(variable_name):
     """
     This method selects the appropriate unit name based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower(): 
-        return UNIT_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower(): 
-        return UNIT_SAT
+    if variable_name.upper().strip() in UNIT:
+        return UNIT[variable_name]
     else: 
-        return None
+        return False
 
 def get_contour_intbal(variable_name):
     """
     This method selects the appropriate contour interbal from define.py based on the FLAG NAME.
     """
-    if FLAG_NAME_TEMP in variable_name.lower().strip(): 
-        return CONTOUR_TEMP
-    elif FLAG_NAME_SAT in variable_name.lower().strip(): 
-        return CONTOUR_SAT
-    elif FLAG_NAME_RES == variable_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
-        return CONTOUR_RES
+    if variable_name.upper().strip() in CONTOUR_POS:
+        return CONTOUR_POS[variable_name]
     else: 
         return False
 
@@ -2550,8 +2573,8 @@ def surface_flow_map_from_listing(ini:_readConfig.InputIni,
         # surfblk_name_list.append(blockname_top)
         # surfblk_pos_x_list.append(col.centre[0])
         # surfblk_pos_y_list.append(col.centre[1])
-        conn = (blockname_top,'ATM 0')
-        connr = ('ATM 0', blockname_top)
+        conn = (blockname_top,ATM_BLK_NAME(ini.mesh.convention))
+        connr = (ATM_BLK_NAME(ini.mesh.convention), blockname_top)
         if conn in dat.grid.connection: 
             # conn_list_suf.append(conn)
             for key, value in ret.items():
@@ -2607,7 +2630,7 @@ def surface_flow_map_from_COFT(ini:_readConfig.InputIni, dat:t2data, geo:mulgrid
         surfblk_name_list.append(blockname_top)
         surfblk_pos_x_list.append(col.centre[0])
         surfblk_pos_y_list.append(col.centre[1])
-        conn = (blockname_top,'ATM 0')
+        conn = (blockname_top,ATM_BLK_NAME(ini.mesh.convention))
         if (conn[0],conn[1]) in dat.grid.connection\
             or (conn[1],conn[0]) in dat.grid.connection: 
             conn_list_suf.append(conn)

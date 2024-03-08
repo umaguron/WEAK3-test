@@ -23,6 +23,8 @@ pythonに色々なライブラリを導入することになるので、anaconda
     以下を参考に各自のhomeディレクトリにanacondaをインストール<br>
     https://www.python.jp/install/anaconda/unix/install.html
 
++ pythonのバージョンは3.9にするのが無難。(最新のものだとPyTOUGHが動かないことがある)
+```conda install python=3.9```
 
 
 
@@ -54,12 +56,19 @@ pythonに色々なライブラリを導入することになるので、anaconda
 
 
 
-# 必要なライブラリの導入
+## 必要なライブラリの導入
 ## 1. pyTOUGH
 1. https://github.com/acroucher/PyTOUGH
 からダウンロードもしくはgit cloneしてくる。
 2. 任意の場所に展開する。
 3. define_path.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリのパスを設定する。
+4. gitが使用可能な場合、以下のようにしてもOK
+```
+# @project root
+mkdir lib
+cd lib
+git clone https://github.com/acroucher/PyTOUGH
+```
 <br><br>
 
 ## 2. その他ライブラリ
@@ -85,19 +94,21 @@ conda install matplotlib pandas numpy scipy
 + flask
 + iapws
 + dill
++ pyproj
 
 コマンド
 
 ```
-python3 -m pip install --upgrade pip
-python3 -m pip install --upgrade Pillow
+python -m pip install --upgrade pip
+python -m pip install --upgrade Pillow
 pip install vtk
 pip install flask
 pip install iapws
 pip install dill
+pip install pyproj
 ```
 
-注) ライブラリを入れる前にpython3のインタープリタがanacondaのものと同一か確認したほうがよい
+注) ライブラリを入れる前にpythonのインタープリタがanacondaのものと同一か確認したほうがよい
 ```
 which pip3
 # -> anacondaが含まれるパスが表示されればたぶん大丈夫
@@ -128,6 +139,18 @@ iapwsについては以下でもOK
 
 ## 3.  pyTOUGHの修正
 そのままだと実装が古くて動かない部分がある。
+
+#### **mulgrid.py内部**
+すべての```if line == 'x':```
+を
+```if isinstance(line, str) and line == 'x':```
+に、<br>
+すべての```if line == 'y':```
+を
+```if isinstance(line, str) and line == 'y':```
+に、変更する
+
+
 #### **mulgrid.py: 2647行目付近**
 `from matplotlib.mlab import griddata`
 <br>
@@ -144,7 +167,7 @@ iapwsについては以下でもOK
 
 <br>
 
-##  4.  AMESHの導入
+##  4.  AMESHの導入 (optional)
 1. ダウンロードする。https://tough.lbl.gov/licensing-download/free-software-download/
 2. windowsの場合 -> executableをダウンロードする
 3. mac, linuxの場合 -> Source codeをダウンロードする
@@ -156,7 +179,7 @@ iapwsについては以下でもOK
 <br>
 <br>
 
-## 5. 各種パスの設定
+## 各種パスの設定
 
 * define_path.pyの以下の項目を自分の環境に合わせて修正
 
@@ -165,15 +188,18 @@ iapwsについては以下でもOK
   |PYTOUGH_ROOT_PATH|(location of PyTOUGH)|PyTOUGHのプログラム(t2data.pyなど)の場所を指定|
   |BIN_DIR|(location of TOUGH3 executable)|TOUGH3の各モジュールの実行ファイル(User's Guideに従い、コンパイルしたもの。tough3-eco2n_v2など。)が含まれるディレクトリ(フルパス)<br>おそらく、(...)/TOUGH3v1.x/TOUGH3-Code/esd-tough3/tough3-install/bin になる|
   |BIN_DIR_T2|(location of TOUGH2 executable)|(TOUGH2も使いたい場合のみ設定。)TOUGH2の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)|
-  |BIN_DIR_LOCAL|(location of TOUGH3 executable)|上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。|
+  |BIN_DIR_LOCAL|(location of TOUGH3 executable)|(optional) 上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。|
   |AMESH_DIR|(location of AMESH_PROG)||
   |AMESH_PROG|AMESH(Haukwa, 1998)実行ファイルの名前||
   |MPIEXEC|(full path of openMPI 'mpiexec' commands)|openMPIのmpiexecコマンドをフルパスで書く。TOUGH3並列計算に使用。<br>.../TOUGH3v1.0/TOUGH3-Code/esd-tough3/Readme_Linux.pdf 参照|
+  |EXEC_FILENAME|EOSごとのTOUGH3実行ファイルの名前のdict|BIN_DIRにある実行ファイルの名前を書く|
+  |EXEC_FILENAME_T2|EOSごとのTOUGH2実行ファイルの名前のdict|(optional) BIN_DIR_T2にある実行ファイルの名前を書く|
+  |EXEC_FILENAME_LOCAL|EOSごとのTOUGH3実行ファイルの名前のdict|(optional) BIN_DIR_LOCALにある実行ファイルの名前を書く|
 
 <br>
 <br>
 
-# その他
+## データベースの新規作成　など
 
 * 結果管理用データベースの新規作成
     
@@ -219,13 +245,30 @@ iapwsについては以下でもOK
 <br>
 
 # TOUGH3/TOUGH2の準備
-購入する or 同組織内で使っている人からもらう
+購入する or 同組織内で使っている人からもらう。コンパイル後のExecutableは以下のような名前に変更しておく。
+- TOUGH3の場合、'tough3-[module name (小文字)]'
+- TOUGH2の場合、'xt2_[module name (小文字)]'
+
 
 ### TOUGH3本体のbug fix
-TOUGH3本体にもいくつかバグが見つかっている。以下のURLに従いfixする。
+TOUGH3本体にもいくつかバグが見つかっている。以下のURLを参照しfixする。変更後はコンパイルを忘れずに。
 
 https://tough.lbl.gov/user-support/tough-bugs-fixes/
 
+
+<br>
+
+# Windowsの場合に必要な作業
+define.pyの```COMM_BF_EXEC```を空にしておく
+```
+COMM_BF_EXEC = """
+module purge
+export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH"""
+```
+-->
+```
+COMM_BF_EXEC = ""
+```
 
 <br>
 <br>
@@ -247,6 +290,7 @@ data/sowat_read.txt: sowat出力の塩水の熱力学データ
 以下からダウンロードする。
 https://drive.google.com/file/d/15HadRCdfGIZC_kKjQVaU1tYeTGnMXK5k/view?usp=sharing
 
+ダウンロードしたものをdata/以下に配置する
 <br>
 <br>
 
@@ -289,7 +333,7 @@ testdata/に２つのテスト用データがおいてある。
 
 ここでは以下になる。
 
-```.../WEAK3/testdata/result/ksv``` 
+```.../WEAK3/testdata/ksv/result/ksv``` 
 
 実行方法
 
@@ -300,35 +344,35 @@ cd ..../WEAK3
 
 ```
 # メッシュ、浸透率構造の作成
-python3 makeGridAmeshVoro.py testdata/ksv/input_ksv.ini
+python makeGrid.py testdata/ksv/input_ksv.ini
 ```
 作成されるファイル
 |||
 |-|-|
-|testdata/result/ksv/input_ksv.ini|testdata/ksv/input_ksv.iniのコピー|
-|testdata/result/ksv/t2data.dat.grid|浸透率構造のファイル|
-|testdata/result/ksv/layer_surface.pdf|作成したメッシュのplan view|
-|testdata/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
-|testdata/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
-|testdata/result/ksv/topo.pdf|作成されたメッシュから書いた地形図|
+|testdata/ksv/result/ksv/input_ksv.ini|testdata/ksv/input_ksv.iniのコピー|
+|testdata/ksv/result/ksv/t2data.dat.grid|浸透率構造のファイル|
+|testdata/ksv/result/ksv/layer_surface.pdf|作成したメッシュのplan view|
+|testdata/ksv/result/ksv/permeability_layer-XX.pdf|作成された浸透率構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
+|testdata/ksv/result/ksv/resistivity_slice-lineXX.pdf|比抵抗構造の断面(index=XX - input_ksv.iniの[plot] profile_lines_listで指定する)|
+|testdata/ksv/result/ksv/topo.pdf|作成されたメッシュから書いた地形図|
 |testdata/ksv/grid.geo|メッシュ定義ファイル(input_ksv.iniの[mesh]mulgridFileFpに指定されたもの)|
 ```
 # TOUGH3 インプットファイルの作成
-python3 tough3exec_ws.py testdata/ksv/input_ksv.ini
+python tough3exec_ws.py testdata/ksv/input_ksv.ini
 ```
 
 作成されるファイル
 |||
 |-|-|
-|testdata/result/ksv/t2data.dat|TOUGH3のインプットファイル|
-|testdata/result/ksv/INCON|TOUGH3の初期条件の設定ファイル|
-|testdata/result/ksv/CO2TAB|EOSモジュールがECO2N_v2のとき必要なファイル。プロジェクトルートからコピーされる|
+|testdata/ksv/result/ksv/t2data.dat|TOUGH3のインプットファイル|
+|testdata/ksv/result/ksv/INCON|TOUGH3の初期条件の設定ファイル|
+|testdata/ksv/result/ksv/CO2TAB|EOSモジュールがECO2N_v2のとき必要なファイル。プロジェクトルートからコピーされる|
 
 ### 本体の実行
 
 ```
 # 実行dirに移動
-cd testdata/result/ksv
+cd testdata/ksv/result/ksv
 
 # mpiexecの実行に必要な準備。(実行環境による)
 module purge
@@ -341,7 +385,7 @@ mpiexec -n 8 (tough3-eco2n_v2のフルパス) t2data.dat (outputファイル名)
 以下でも同じように実行可能
 
 ```
-python3 run.py testdata/ksv/input_ksv.ini
+python run.py testdata/ksv/input_ksv.ini
 ```
 
 出力ファイルについてはTOUGH3マニュアル参照
