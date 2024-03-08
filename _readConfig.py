@@ -305,12 +305,24 @@ class InputIni(object):
         """
         Define a path of executable by using 'module' in inputIni and 'BIN_DIR' in define_path.py.
         """
+        mod_name = ret['module'].lower()
+        
         if ret['simulator']==SIMULATOR_NAME_T3:
-            self.configuration.COMM_EXEC = \
-                os.path.join(BIN_DIR,f"tough3-{ret['module']}")
+            if mod_name in EXEC_FILENAME:
+                self.configuration.COMM_EXEC = \
+                    os.path.join(BIN_DIR, EXEC_FILENAME[mod_name])
+            else:
+                logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME")
+                raise InvalidToughInputException
+        
         if ret['simulator']==SIMULATOR_NAME_T2:
-            self.configuration.COMM_EXEC = \
-                os.path.join(BIN_DIR_T2,f"xt2_{ret['module']}")
+            if mod_name in EXEC_FILENAME_T2:
+                self.configuration.COMM_EXEC = \
+                    os.path.join(BIN_DIR_T2, EXEC_FILENAME_T2[mod_name])
+            else:
+                logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME_T2")
+                raise InvalidToughInputException
+        
         if ret['simulator']==SIMULATOR_NAME_T3_LOCAL:
             """
             simulator='TOUGH3_LOCAL' is totally same as simulator='TOUGH3' 
@@ -318,13 +330,19 @@ class InputIni(object):
             """
             ret['simulator'] = SIMULATOR_NAME_T3
             if BIN_DIR_LOCAL is None:
-                self.configuration.COMM_EXEC = \
-                    os.path.join(BIN_DIR,f"tough3-{ret['module']}")
-                logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
-                logger.warning(f"             use COMM_EXEC: {self.configuration.COMM_EXEC}")
+                logger.error("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
+                raise InvalidToughInputException
+                # self.configuration.COMM_EXEC = \
+                #     os.path.join(BIN_DIR,f"tough3-{ret['module']}")
+                # logger.warning("!! simulator is TOUGH3_LOCAL, but BIN_DIR_LOCAL is not found in define_path.py.")
+                # logger.warning(f"             use COMM_EXEC: {self.configuration.COMM_EXEC}")
             else:
-                self.configuration.COMM_EXEC = \
-                    os.path.join(BIN_DIR_LOCAL,f"tough3-{ret['module']}")
+                if mod_name in EXEC_FILENAME_LOCAL:
+                    self.configuration.COMM_EXEC = \
+                        os.path.join(BIN_DIR_LOCAL, EXEC_FILENAME_LOCAL[mod_name])
+                else:
+                    logger.error(f"Executable for module:{mod_name} not defined in define_path.EXEC_FILENAME_T2")
+                    raise InvalidToughInputException
 
         ret['problemName'] = self.config.get('toughInput', 'problemName')
         # ret['mulgridFileName'] = self.config.get('toughInput', 'mulgridFileName')

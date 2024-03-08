@@ -188,10 +188,13 @@ iapwsについては以下でもOK
   |PYTOUGH_ROOT_PATH|(location of PyTOUGH)|PyTOUGHのプログラム(t2data.pyなど)の場所を指定|
   |BIN_DIR|(location of TOUGH3 executable)|TOUGH3の各モジュールの実行ファイル(User's Guideに従い、コンパイルしたもの。tough3-eco2n_v2など。)が含まれるディレクトリ(フルパス)<br>おそらく、(...)/TOUGH3v1.x/TOUGH3-Code/esd-tough3/tough3-install/bin になる|
   |BIN_DIR_T2|(location of TOUGH2 executable)|(TOUGH2も使いたい場合のみ設定。)TOUGH2の各モジュールの実行ファイルが含まれるディレクトリ(フルパス)|
-  |BIN_DIR_LOCAL|(location of TOUGH3 executable)|上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。|
+  |BIN_DIR_LOCAL|(location of TOUGH3 executable)|(optional) 上2つとは別にTOUGH3実行ファイルの場所を指定できる。WSに持っていく前に自分の端末でテストしたいときなどに便利。|
   |AMESH_DIR|(location of AMESH_PROG)||
   |AMESH_PROG|AMESH(Haukwa, 1998)実行ファイルの名前||
   |MPIEXEC|(full path of openMPI 'mpiexec' commands)|openMPIのmpiexecコマンドをフルパスで書く。TOUGH3並列計算に使用。<br>.../TOUGH3v1.0/TOUGH3-Code/esd-tough3/Readme_Linux.pdf 参照|
+  |EXEC_FILENAME|EOSごとのTOUGH3実行ファイルの名前のdict|BIN_DIRにある実行ファイルの名前を書く|
+  |EXEC_FILENAME_T2|EOSごとのTOUGH2実行ファイルの名前のdict|(optional) BIN_DIR_T2にある実行ファイルの名前を書く|
+  |EXEC_FILENAME_LOCAL|EOSごとのTOUGH3実行ファイルの名前のdict|(optional) BIN_DIR_LOCALにある実行ファイルの名前を書く|
 
 <br>
 <br>
