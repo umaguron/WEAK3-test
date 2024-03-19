@@ -51,6 +51,8 @@ DEFAULTS_RADIO = {
     mops17: 9,
     mops18: 0,
     mops24: 0,
+    ksp_type: "bcgsl",
+    pc_type: "asm"
 }
 DEFAULTS_TEXT_SELEC_V2 = {
     FE9: 0.8,

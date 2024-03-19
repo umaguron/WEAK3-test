@@ -58,6 +58,7 @@ def main():
 
         plt.legend()
         plt.savefig(os.path.join(XMLDIR,"range.pdf"))
+        plt.close()
     
     ## plot 
     df = pd.read_csv(OUTPUT_XY, delim_whitespace=True, names=['x', 'y', 'z'])

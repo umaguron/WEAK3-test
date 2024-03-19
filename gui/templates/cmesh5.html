@@ -431,6 +431,16 @@
                     <b>{{ form.saveDirRel }}</b>
                     </li>
                 </ul>
+                To run, execute the following commands in the terminal. 
+                
+                    <div class="alert alert-success d-flex align-items-center" role="alert">
+                        python makeGrid.py -f {{ form.ini_outfp_rel }} <br>
+                        python tough3exec_ws.py -f {{ form.ini_outfp_rel }} <br>
+                        python run.py {{ form.ini_outfp_rel }} <br>
+                        python update_log.py -ini {{ form.ini_outfp_rel }} <br>
+                        python makeVtu.py -plc -suf {{ form.ini_outfp_rel }} <br>
+                    </div>
+                
             </div>
             <hr style="padding: 0px 20px;">
         {% endif %}
@@ -522,7 +532,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr class="table-primary">
                             <th>EOS module</th>
                             <td>
                                 <select class="form-select btn btn-outline-primary dropdown-toggle" aria-label="Default select example" name="module" id="module" required>
@@ -571,7 +581,7 @@
             <br>
             <!--primary variables-->
             <h4>Primary variables</h4>
-            <div class="row">
+            <div class="row alert-primary">
                 <table class="table">
                     <thead>
                         <tr>
@@ -724,7 +734,7 @@
                             <td>maximum simulation duration (machine seconds)</td>
                         </tr>
                         <!-- MCYPR -->
-                        <tr>
+                        <tr class="table-primary">
                             <th>MCYPR</th>
                             <td>1</td>
                             <td>
@@ -1054,7 +1064,7 @@
                             <td>automatic time stepping based on number of iterations needed for
                                 convergence.</td>
                         </tr>
-                        <tr>
+                        <tr class="table-warning">
                             <td>
                                 <input type="radio" name="mops16" value="2" {% if form.mops16 == "2" %} checked {% endif %} class="form-check-input" required>
                                 <label>>1</label>
@@ -1214,7 +1224,7 @@
                             </td>
                             <td>starting time of simulation in seconds (default is 0).</td>
                         </tr>
-                        <tr>
+                        <tr class="table-primary">
                             <th>TIMAX</th>
                             <td>infinite</td>
                             <td>
@@ -1223,7 +1233,7 @@
                             </td>
                             <td>time in seconds at which simulation should stop (default is infinite).</td>
                         </tr>
-                        <tr>
+                        <tr class="table-warning">
                             <th>DELTEN</th>
                             <td>(required)</td>
                             <td>
@@ -1285,7 +1295,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr class="table-warning">
                             <th>RE1</th>
                             <td>1e-5</td>
                             <td>
@@ -1485,7 +1495,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr class="table-primary">
                             <th>basal heat</th>
                             <td>0</td>
                             <td>

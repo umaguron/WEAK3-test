@@ -131,14 +131,14 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
         print(f"    Already exist. skip creating {fn}")
         return fp
 
-    if FLAG_NAME_FLOW in var_name.lower():
+    if FLAG_NAME_FLOW in var_name.upper():
         if df_conn is None: 
             # skip creating fig
             return None
         fn = _slice_plot_flow(geo,df_conn,ini,dat,plt,line,l,timeNow,saveDir,overWrites)
         return os.path.join(saveDir, fn)
         
-    if FLAG_NAME_RES == var_name.lower().strip(): #'PRES'とかぶるのでinでなく==使用
+    if FLAG_NAME_RES == var_name.upper().strip(): #'PRES'とかぶるのでinでなく==使用
         variable = t2o.calc_bulk_resistivity(t2o.dfCleanElem2(df_elem, ini.mesh.convention))
         colourmap = CMAP_RESISTIVITY
     else:
@@ -370,7 +370,7 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
             df_conn = lst2.connection.DataFrame
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                    if var_name in df_elem.columns or var_name.upper() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
                         fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, 
                                         saveDir=ini.t2FileDirFp, df_conn=df_conn,
                                         extension='png' if args.createGif else 'pdf')
@@ -395,7 +395,7 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
         plt.close()
         for l, line in enumerate(ini.plot.profile_lines_list):
             for i, var_name in enumerate(variables):
-                if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                if var_name in df_elem.columns or var_name.upper() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
                     fp = original_plot(var_name, lst2.time, df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=df_conn, overWrites=True)
                     if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)
 
@@ -454,7 +454,7 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
             df_elem = out
             for l, line in enumerate(ini.plot.profile_lines_list):
                 for i, var_name in enumerate(variables):
-                    if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                    if var_name in df_elem.columns or var_name.upper() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
                         fp = original_plot(var_name, timeNow, df_elem, line, l, ini, datG, plt, 
                                         saveDir=ini.t2FileDirFp, df_conn=None,
                                         extension='png' if args.createGifCsv else 'pdf')
@@ -475,7 +475,7 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
 
         for l, line in enumerate(ini.plot.profile_lines_list):
             for i, var_name in enumerate(variables):
-                if var_name in df_elem.columns or var_name.lower() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
+                if var_name in df_elem.columns or var_name.upper() in (FLAG_NAME_FLOW, FLAG_NAME_RES):
 
                     fp = original_plot(var_name, allTimesteps[-1], df_elem, line, l, ini, datG, plt, saveDir=ini.t2FileDirFp, df_conn=None, overWrites=True)
                     if fp is not None: shutil.copy2(fp, ini.t2FileDirFp)

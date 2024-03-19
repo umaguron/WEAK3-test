@@ -1519,12 +1519,19 @@ def cmesh5_read_inputIni(request:request):
         # retrieve topo data
         elevations, X, Y = [], [], []
         for col in geo.columnlist:
-            # X.append(col.centre[0])
-            # Y.append(col.centre[1])
+            X.append(col.centre[0])
+            Y.append(col.centre[1])
             elevations.append(col.surface)
         geo.layer_plot(layer=geo.layerlist[-1], column_names=True, plt=plt,
                        variable=elevations, variable_name='Elevation [m]',
                        xlabel = 'Northing (m)', ylabel = 'Easting (m)',)
+        try:
+            plt.tricontour(X, Y, elevations, np.arange(-5000,5000,100), 
+                    colors='white', linewidths=0.5)
+            plt.tricontour(X, Y, elevations, np.arange(-5000,5000,500), 
+                    colors='white', linewidths=1)
+        except:
+            pass
         form['layer_image_topo'] = \
             os.path.join('static','output',f'layer_topo_{time.time()}.png')
         # invert y axis

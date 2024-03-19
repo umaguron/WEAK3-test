@@ -57,18 +57,18 @@ pythonに色々なライブラリを導入することになるので、anaconda
 
 
 ## 必要なライブラリの導入
-## 1. pyTOUGH
-1. https://github.com/acroucher/PyTOUGH
-からダウンロードもしくはgit cloneしてくる。
-2. 任意の場所に展開する。
-3. define_path.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリのパスを設定する。
-4. gitが使用可能な場合、以下のようにしてもOK
+## 1. pyTOUGH (Croucher, 2011)
+__ターミナルで以下のコマンドを打つ__
 ```
 # @project root
 mkdir lib
 cd lib
 git clone https://github.com/acroucher/PyTOUGH
 ```
+__gitを使わない場合__
+1. https://github.com/acroucher/PyTOUGH からダウンロードし、任意の場所に展開する。
+2. define_path.pyの`PYTOUGH_ROOT_PATH`に展開後のディレクトリ(おそらくPyTOUGH-master/)のプロジェクトルートからの相対パスを設定する。
+
 <br><br>
 
 ## 2. その他ライブラリ
@@ -107,6 +107,12 @@ pip install iapws
 pip install dill
 pip install pyproj
 ```
+**重要) flaskのバージョンを落としておく (2024/03/08時点で最新版だとうまく動かない場合あり)**
+```
+pip install flask==2.3.1
+```
+<br>
+
 
 注) ライブラリを入れる前にpythonのインタープリタがanacondaのものと同一か確認したほうがよい
 ```
@@ -150,24 +156,9 @@ iapwsについては以下でもOK
 ```if isinstance(line, str) and line == 'y':```
 に、変更する
 
-
-#### **mulgrid.py: 2647行目付近**
-`from matplotlib.mlab import griddata`
-<br>
-を以下に変更
-<br>
-`from scipy.interpolate import griddata`
-
-#### **mulgrid.py: 2652行目付近**
-`valgrid = griddata(xc, yc, valc, xgrid, ygrid, interp = 'linear')`
-<br>
-を以下に変更
-<br>
-`valgrid = griddata((xc, yc), valc, (xgrid[None,:], ygrid[:,None]), method = 'linear')`
-
 <br>
 
-##  4.  AMESHの導入 (optional)
+##  4.  AMESH(Hawkwa, 1998)の導入 (optional)
 1. ダウンロードする。https://tough.lbl.gov/licensing-download/free-software-download/
 2. windowsの場合 -> executableをダウンロードする
 3. mac, linuxの場合 -> Source codeをダウンロードする
@@ -211,7 +202,7 @@ iapwsについては以下でもOK
 
 * テーブルの表示を見やすくする
     
-  * linux/mac
+  * linux/macの場合
     
     ~/.sqlitercを作っておく。
     ファイルの中身は以下のようにする。
@@ -221,7 +212,7 @@ iapwsについては以下でもOK
     .headers on
     .nullvalue NULL
     ```
-  * windows
+  * windowsの場合
     
     不明 
 
@@ -245,9 +236,15 @@ iapwsについては以下でもOK
 <br>
 
 # TOUGH3/TOUGH2の準備
-購入する or 同組織内で使っている人からもらう。コンパイル後のExecutableは以下のような名前に変更しておく。
-- TOUGH3の場合、'tough3-[module name (小文字)]'
-- TOUGH2の場合、'xt2_[module name (小文字)]'
+購入する or 同組織内で使っている人からもらう。コンパイル後のExecutableの名前を以下のようにdefine_path.pyに記載する。
+
+__define_path.py__ の変数 __BIN_DIR__ に指定したディレクトリにある各EOSの実行ファイルの名前を __EXEC_FILENAME__ (dict形式)のに記載する。このときdictのキーは変更しないこと。
+
+同様に、<br>
+__BIN_DIR_T2__ にある実行ファイルの名前は __EXEC_FILENAME_T2__,<br>
+__BIN_DIR_LOCAL__ にある実行ファイルの名前は __EXEC_FILENAME_LOCAL__ に記載すること。
+<br>
+<br>
 
 
 ### TOUGH3本体のbug fix
@@ -284,8 +281,8 @@ COMM_BF_EXEC = ""
 <br>
 <br>
 
-# 大きすぎてgitにupできないデータ
-data/sowat_read.txt: sowat出力の塩水の熱力学データ
+# 大きすぎてgithubにupできないデータ
+data/sowat_read.txt: sowat出力の塩水の熱力学データ (Driesner, 2007)
 
 以下からダウンロードする。
 https://drive.google.com/file/d/15HadRCdfGIZC_kKjQVaU1tYeTGnMXK5k/view?usp=sharing

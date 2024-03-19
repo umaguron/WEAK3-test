@@ -200,9 +200,11 @@ def makeGridRegular(ini:_readConfig.InputIni, showsProfiles=False):
     geo.slice_plot(line=90, block_names=False, rocktypes=dat.grid, plt=plt)
     if not showsProfiles:
         plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_deg90.pdf"))
+        plt.close()
     geo.slice_plot(line=0, block_names=True, rocktypes=dat.grid, plt=plt)
     if not showsProfiles:
         plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_deg0.pdf"))
+        plt.close()
     # geo.layer_plot(None, column_names=True, plt=plt)
     # if not showsProfiles:
     #     plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes_layer.pdf"))
@@ -432,5 +434,6 @@ def makeGrid2dRadialEdifice(ini:_readConfig.InputIni, showsProfiles=False):
     lim = plt.ylim()    
     plt.ylim(lim[0] ,max(ELEV))
     plt.savefig(os.path.join(ini.t2FileDirFp, f"rocktypes.pdf"))
+    plt.close()
 
 

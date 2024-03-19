@@ -197,6 +197,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                         lim = plt.ylim()    
                         plt.ylim((lim[1],lim[0]))
                         plt.savefig(ini.mulgridFileFp+f"_error_at_col{col}.pdf")
+                        plt.close()
                         """"""
 
                         raise SurfaceElevationLowerThanBottomLayerException(
@@ -447,6 +448,7 @@ def makePermVariableVoronoiGrid(ini:_readConfig.InputIni,
 
     ## ROCKS ##
     for secRock in ini.rockSecList:
+        secRock: _readConfig.InputIni._RocktypeSec
         count = 0
         # set rocktype to grid
         dat.grid.add_rocktype(secRock.rocktype)
@@ -693,6 +695,8 @@ def visualize_vslice(ini:_readConfig.InputIni,
             plt.text(text_pos[0], text_pos[1], f'line #{i}', fontsize=20)
             
         plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_LAYER_SURFACE}.{fex}"))
+        plt.close()
+
     
     # position of slice
     xslices = []

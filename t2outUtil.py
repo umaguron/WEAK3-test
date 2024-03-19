@@ -23,7 +23,7 @@ import quistMarshall_data_interpl as qm
 from iapws import IAPWS97
 sys.path.append(os.path.join(baseDir,"scriptsCreateFig"))
 import brine_density_module as bdm
-
+import datetime
 
 # matplot setting
 plt.rcParams['font.family'] ='sans-serif'#使用するフォント
@@ -84,18 +84,46 @@ def escape_t3outfiles(ini:_readConfig.InputIni):
         f"{__name__}.{sys._getframe().f_code.co_name}")
     
     """escape t3outfiles to T3OUT_ESCAPE_DIRNAME set in setting.ini"""
+    escapes = False
     if ini.t2FileDirFp == ini.t3outEscapeFp: 
         return
     elif os.path.isdir(ini.t3outEscapeFp):
-        return
-    else:
-        os.makedirs(ini.t3outEscapeFp)
-        import shutil
-        for f in os.listdir(ini.t2FileDirFp):
-            if re.search(r"[FC]OFT.*csv", f) or re.search(r"^\..*", f) \
-                    or re.search(r"CONNE*", f) or re.search(r"ELEME*", f): 
-                logger.info(f"    escape {f}")
-                shutil.move(os.path.join(ini.t2FileDirFp,f), ini.t3outEscapeFp)
+        # TODO ファイル更新日時判定
+        old = os.path.join(ini.t3outEscapeFp,"OUTPUT_ELEME.csv")
+        new = os.path.join(ini.t2FileDirFp,"OUTPUT_ELEME.csv")
+        if not os.path.exists(old) and os.path.exists(new):
+            # go escaping
+            if os.path.exists(ini.t3outEscapeFp): 
+                os.removedirs(ini.t3outEscapeFp)
+            pass
+        elif os.path.exists(old) and os.path.exists(new):
+            # check timestamp
+            if os.stat(new).st_mtime > os.stat(old).st_mtime:
+                # go escaping
+                t = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                os.rename(ini.t3outEscapeFp, f"{ini.t3outEscapeFp}_{t}_escaped")
+            else:
+                # do nothing
+                return
+        elif os.path.exists(old) and not os.path.exists(new):
+            # do nothing
+            return
+        else:
+            if ini.toughInput['simulator'] != SIMULATOR_NAME_T2:
+                # T3 no results
+                raise Exception("result does not exists")
+            else:
+                # do nothing
+                return
+        
+    logger.info("New results found")
+    os.makedirs(ini.t3outEscapeFp)
+    import shutil
+    for f in os.listdir(ini.t2FileDirFp):
+        if re.search(r"[FC]OFT.*csv", f) or re.search(r"^\..*", f) \
+                or re.search(r"CONNE*", f) or re.search(r"ELEME*", f): 
+            logger.info(f"    escape {f}")
+            shutil.move(os.path.join(ini.t2FileDirFp,f), ini.t3outEscapeFp)
 
 def create_savefig_dir(ini:_readConfig.InputIni):
     if ini.t2FileDirFp == ini.savefigFp: 
