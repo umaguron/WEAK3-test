@@ -326,7 +326,7 @@
         <!-- tolar -->
         <div class="form-group">
             <h5>tolar</h5>
-            <p id="tolar_amesh">A parameter [m] for AMESH program. "the length of the minimum interface between elements" (Hakuwa, 1998).</p>
+            <p id="tolar_amesh">A parameter [m] for AMESH program. "the length of the minimum interface between elements" (Haukwa, 1998).</p>
             <p id="tolar_scipy">A parameter [m] for voronoi partitioning by scipy.spatial.Voronoi. Edges smaller than this value are ignored (not generated). Note that a larger value means a less accurate mesh.</p>
             <input type="text" {% if form.tolar %} value="{{ form.tolar }}" {% else %} value="20" {% endif %} class="form-control" name="tolar" pattern="{{PATTERN['float']}}" title="{{TITLE['float']}}"/>
             <div class="invalid-msg">{{TITLE['float']}}</div>

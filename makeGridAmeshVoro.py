@@ -185,7 +185,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                         
                         """ visualize position of bad column with topography """
                         import matplotlib.pyplot as plt
-                        geo.layer_plot(plt=plt, column_names=[col.name])
+                        geo.layer_plot(layer=None, plt=plt, column_names=[col.name])
                         plt.plot(col.centre[0], col.centre[1], 'ro', ms=10)
                         x = np.linspace(-10000, 10000, 1000)
                         y = np.linspace(-10000, 10000, 1000)
