@@ -979,6 +979,7 @@ def convert_InputIni2form_cmesh3(ini:_readConfig.InputIni, form=None):
                 and hasattr(ini.amesh_voronoi, 'layer_thicknesses')\
                 and hasattr(ini.amesh_voronoi, 'tolar')\
                 and hasattr(ini.amesh_voronoi, 'top_layer_min_thickness'):
+            logger.debug('InputIni has complete amesh_voronoi_section. Let createsMesh=1')
             ret["createsMesh"] = 1
             ret["topodata_fp"] = ini.amesh_voronoi.topodata_fp
             ret["voronoi_seeds_list_fp"] = ini.amesh_voronoi.voronoi_seeds_list_fp
@@ -1390,7 +1391,7 @@ def cmesh5_read_inputIni(request:request):
     config.read(iniFp)
     
     
-    """ path of each simulators """
+    logger.debug(""" path of each simulators """)
     form = construct_simulator_paths(form)
     
     logger.debug(""" read param values from config and substitute values to form """)
@@ -1538,7 +1539,8 @@ def cmesh5_read_inputIni(request:request):
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
         plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
-                                 form['layer_image_topo']))
+                                 form['layer_image_topo']),
+                    dpi=600)
         plt.close()
         ## permeability ##
         perm_fp = os.path.join(form['saveDirFull'], form['problemName'], SAVEFIG_DIRNAME, PICKLED_MULGRID_PERM)
@@ -1555,7 +1557,8 @@ def cmesh5_read_inputIni(request:request):
             lim = plt.ylim()    
             plt.ylim((lim[1],lim[0]))
             plt.savefig(os.path.join(pathlib.Path(__file__).parent.resolve(), 
-                                     form['layer_image_perm']))
+                                     form['layer_image_perm']),
+                        dpi=600)
             plt.close()
         
     return form
@@ -1873,13 +1876,13 @@ def run_tough3():
         if not os.path.isfile(create_fullpath(inifp)):
             ret['error_msg'].append(f"Flie not found: {inifp}")
             return _corsify_actual_response(jsonify(ret))
+
+        ini = _readConfig.InputIni().read_from_inifile(create_fullpath(inifp))
         
-        if not os.path.isfile(MPIEXEC):
+        if ini.solver.matslv==8 and not os.path.isfile(MPIEXEC):
             ret['error_msg'].append(f"MPIEXEC not found: {MPIEXEC}")
             return _corsify_actual_response(jsonify(ret))
         
-        ini = _readConfig.InputIni().read_from_inifile(create_fullpath(inifp))
-
         if not os.path.isfile(ini.configuration.COMM_EXEC):
             ret['error_msg'].append(f"Executable not found: {ini.configuration.COMM_EXEC}")
             return _corsify_actual_response(jsonify(ret))
