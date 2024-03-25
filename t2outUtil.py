@@ -24,6 +24,7 @@ from iapws import IAPWS97
 sys.path.append(os.path.join(baseDir,"scriptsCreateFig"))
 import brine_density_module as bdm
 import datetime
+import shutil
 
 # matplot setting
 plt.rcParams['font.family'] ='sans-serif'#使用するフォント
@@ -94,7 +95,7 @@ def escape_t3outfiles(ini:_readConfig.InputIni):
         if not os.path.exists(old) and os.path.exists(new):
             # go escaping
             if os.path.exists(ini.t3outEscapeFp): 
-                os.removedirs(ini.t3outEscapeFp)
+                shutil.rmtree(ini.t3outEscapeFp)
             pass
         elif os.path.exists(old) and os.path.exists(new):
             # check timestamp
@@ -118,7 +119,6 @@ def escape_t3outfiles(ini:_readConfig.InputIni):
         
     logger.info("New results found")
     os.makedirs(ini.t3outEscapeFp)
-    import shutil
     for f in os.listdir(ini.t2FileDirFp):
         if re.search(r"[FC]OFT.*csv", f) or re.search(r"^\..*", f) \
                 or re.search(r"CONNE*", f) or re.search(r"ELEME*", f): 
