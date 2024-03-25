@@ -228,3 +228,35 @@ send (コピーしたいファイルorディレクトリのプロジェクトル
 get (コピーしたいファイルorディレクトリのプロジェクトルート基準の相対パス)
 
 ```
+
+<br>
+
+# 引用
+### TOUGH3
+Yoojin Jung et al., “TOUGH3: A New Efficient Version of the TOUGH Suite of Multiphase Flow and Transport Simulators,” Computers & Geosciences 108 (November 2017): 2–7, https://doi.org/10.1016/j.cageo.2016.09.009.
+
+### TOUGH2・EOS2・EOS3
+K Pruess, C Oldenburg, and G Moridis, “TOUGH2 User’s Guide, Version 2.0, Report LBNL-43134, Lawrence Berkeley National Laboratory, Berkeley, Calif,” Superseded by Pruess et Al, 2012.
+
+### ECO2N V2.0
+Lehua Pan et al., “ECO2N V2.0: A TOUGH2 Fluid Property Module for Modeling CO2-H2O-NaCl Systems to Elevated Temperatures of up to 300°C,” Greenhouse Gases: Science and Technology 7, no. 2 (April 2017): 313–27, https://doi.org/10.1002/ghg.1617.
+
+### EWASG
+Alfredo Battistelli, Claudio Calore, and Karsten Pruess, “The Simulator TOUGH2/EWASG for Modelling Geothermal Reservoirs with Brines and Non-Condensible Gas,” Geothermics 26, no. 4 (August 1, 1997): 437–64, https://doi.org/10.1016/S0375-6505(97)00007-2.
+
+### AMESH
+Charles Haukwa, “AMESH A Mesh Creating Program for the Integral Finite Differencemethod: A User’s Manual,” August 31, 1998, https://doi.org/10.2172/892927.
+
+### PyTOUGH
+Adrian E. Croucher, “PyTOUGH: A Python Scripting Library for Automating TOUGH2 Simulations.,” Proceedings of the New Zealand Geothermal Workshop (2011).
+
+### 塩水の比抵抗計算に使用
+Ryosuke Sinmyo and Hans Keppler, “Electrical Conductivity of NaCl-Bearing Aqueous Fluids to 600 °C and 1 GPa,” Contributions to Mineralogy and Petrology 172, no. 1 (January 2017): 4, https://doi.org/10.1007/s00410-016-1323-z.
+
+Arvin S. Quist and William L. Marshall, “Electrical Conductances of Aqueous Sodium Chloride Solutions from 0 to 800.Degree. and at Pressures to 4000 Bars,” The Journal of Physical Chemistry 72, no. 2 (February 1968): 684–703, https://doi.org/10.1021/j100848a050.
+
+### 塩水の比抵抗計算に必要な塩水密度の算出に使用
+Thomas Driesner, “The System H2O–NaCl. Part II: Correlations for Molar Volume, Enthalpy, and Isobaric Heat Capacity from 0 to 1000°C, 1 to 5000bar, and 0 to 1 XNaCl,” Geochimica et Cosmochimica Acta 71, no. 20 (October 15, 2007): 4902–19, https://doi.org/10.1016/j.gca.2007.05.026.
+
+### 塩水の比抵抗計算に必要なH<sub>2</sub>O密度の算出に使用
+IAPWS, “Revised Release on the IAPWS Industrial Formulation 1997 for the Thermodynamic Properties of Water and Steam” (The International Association for the Properties of Water and Steam, 2007).

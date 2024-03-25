@@ -688,12 +688,12 @@
                         </tr>
                         <tr>
                             <td>
-                                <input type="radio" name="print_level" value="0" {% if not form.print_level or form.print_level == "0" %} checked {% endif %} class="form-check-input" required>
+                                <input type="radio" name="print_level" value="0" {% if not form.print_level or form.print_level == "0" %} checked {% endif %} class="form-check-input" required disabled>
                                 <label class="form-check-label">
                                     0 or 1
                                 </label>
                             </td>
-                            <td>print a selection of element variables.</td>
+                            <td style="color:gray">print a selection of element variables.</td>
                         </tr>
                         <tr>
                             <td>

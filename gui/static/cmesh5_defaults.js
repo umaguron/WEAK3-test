@@ -13,7 +13,7 @@ DEFAULTS_TEXT = {
     be: "",
     tstart: "",
     tstop: "",
-    const_timestep: 1e-5,
+    const_timestep: 1000,
     max_timestep: "",
     gravity: 9.807,
     timestep_reduction: "",

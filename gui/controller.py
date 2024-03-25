@@ -1857,7 +1857,7 @@ def checkrun():
                         time_y = time/365.25/24/3600
             print("-------- 5 ---------")
             print(i+1, thr["inifp"], info, steps, time_y, time_step_length)
-            msg = f'(Proc. {i+1}) inifp: {create_relpath(thr["inifp"])} is {info}. Steps: {steps}. Time: {time_y:.2f} year. Time step length: {time_step_length} [s]'
+            msg = f'(Proc. {i+1}) inifp: {create_relpath(thr["inifp"])} is {info}. Steps: {steps}. Time elapsed: {time_y:.2f} year. Time step length: {time_step_length} [s]'
             print(msg)
             ret.append(msg)
 
