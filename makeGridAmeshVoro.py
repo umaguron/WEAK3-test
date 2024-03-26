@@ -196,6 +196,7 @@ def create_mulgrid_with_topo(ini:_readConfig.InputIni):
                         # invert y axis
                         lim = plt.ylim()    
                         plt.ylim((lim[1],lim[0]))
+                        plt.axis('equal')
                         plt.savefig(ini.mulgridFileFp+f"_error_at_col{col}.pdf")
                         plt.close()
                         """"""
@@ -786,6 +787,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
+            plt.axis('equal')
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_SLICE_LINE}{l}.{fex}"))
             plt.close()
         geo_topo.slice_plot(line=line, 
@@ -796,6 +798,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
+            plt.axis('equal')
             plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_SLICE_LINE}{l}.{fex}"))
             plt.close()
 
@@ -815,6 +818,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
         # invert y axis
         lim = plt.ylim()    
         plt.ylim((lim[1],lim[0]))
+        plt.axis('equal')
         plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_TOPO}.{fex}"))
         plt.close()
     
@@ -878,6 +882,7 @@ def visualize_layer(ini:_readConfig.InputIni,
                 # invert y axis
                 lim = plt.ylim()    
                 plt.ylim((lim[1],lim[0]))
+                plt.axis('equal')
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
             geo_topo.layer_plot(layer=layer, 
@@ -893,6 +898,7 @@ def visualize_layer(ini:_readConfig.InputIni,
                 # invert y axis
                 lim = plt.ylim()    
                 plt.ylim((lim[1],lim[0]))
+                plt.axis('equal')
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
     
@@ -913,6 +919,7 @@ def visualize_layer(ini:_readConfig.InputIni,
                 # invert y axis
                 lim = plt.ylim()    
                 plt.ylim((lim[1],lim[0]))
+                plt.axis('equal')
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_PERM_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
             geo_topo.layer_plot(layer=layer, 
@@ -928,6 +935,7 @@ def visualize_layer(ini:_readConfig.InputIni,
                 # invert y axis
                 lim = plt.ylim()    
                 plt.ylim((lim[1],lim[0]))
+                plt.axis('equal')
                 plt.savefig(os.path.join(ini.t2FileDirFp, f"{IMG_RESIS_LAYER}{layer.replace(' ', '_')}.{fex}"))
                 plt.close()
 

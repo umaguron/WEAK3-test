@@ -157,6 +157,7 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
                 contours = t2o.get_contour_intbal(var_name),
                 unit=t2o.get_unit(var_name))
     plt.grid(False)
+    plt.axis('equal')
     plt.savefig(fp)
     print("saved:", fp)
     plt.close()
@@ -221,6 +222,7 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         
         # save
         plt.grid(False)
+        plt.axis('equal')
         plt.savefig(fp)
         print("saved:", fp)
         plt.close()
