@@ -688,7 +688,7 @@
                         </tr>
                         <tr>
                             <td>
-                                <input type="radio" name="print_level" value="0" {% if not form.print_level or form.print_level == "0" %} checked {% endif %} class="form-check-input" required disabled>
+                                <input type="radio" name="print_level" value="0" {% if form.print_level == "0" %} checked {% endif %} class="form-check-input" required disabled>
                                 <label class="form-check-label">
                                     0 or 1
                                 </label>
