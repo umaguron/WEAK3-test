@@ -171,6 +171,15 @@ CONTOUR_POS = {
     'POR': False,
 }
 
+CBAR_LIM_FOR_DIFF = {
+    'TEMP': None,
+    'PRES': None,
+}
+CONTOUR_POS_FOR_DIFF = {
+    'TEMP': False,
+    'PRES': False,
+}
+
 """figure"""
 CMAP_PERMEABILITY = "gist_rainbow"
 CMAP_RESISTIVITY = "gist_rainbow"

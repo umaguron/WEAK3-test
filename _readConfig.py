@@ -582,6 +582,7 @@ class InputIni(object):
             self.gif_minimun_print_interval_sec = 1
             self.columns_incon_plot = None
             self.reads_data_from_current_dir = False
+            self.diff_times = None
 
 
         def read_from_config(self, config: configparser.ConfigParser):
@@ -634,9 +635,13 @@ class InputIni(object):
                 for i, line in enumerate(self.profile_lines_list):
                     if isinstance(line, list):
                         self.profile_lines_list[i] = np.array(line)
-                        
             except:
                 self.profile_lines_list = PROFILE_LINES_LIST_DEFAULT
+            try:
+                self.diff_times = eval(config['plot']['diff_times'])
+            except:
+                self.diff_times = None
+
             return self
 
     class _PrimarySec(object):
@@ -1458,7 +1463,7 @@ class InputIni(object):
 
         if hasattr(self, 'plot'):
             keys = ['slice_plot_limits', 'slice_plot_variables_T2', 'slice_plot_variables_T3', 'xoft_t_range',
-                    'gif_minimun_print_interval_sec', 'columns_incon_plot', 'reads_data_from_current_dir']
+                    'gif_minimun_print_interval_sec', 'columns_incon_plot', 'reads_data_from_current_dir', 'diff_times']
             for key in keys:
                 if hasattr(self.plot, key):
                     val = eval(f'self.plot.{key}')

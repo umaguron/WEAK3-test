@@ -51,6 +51,9 @@ parser.add_argument("-gif","--createGif",
 parser.add_argument("-plc","--plotsProfileLastCsv", 
         help="if given, plot vertical profile at end timestep from OUTPUT_ELEME.csv", 
         action='store_true')
+parser.add_argument("-pcdiff","--plotsProfileCsvDiff", 
+        help="if given, plot vertical profile of the distribution of the time variation of each variable between two time points (specified at plot.diff_times in ini-format file)", 
+        action='store_true')
 parser.add_argument("-pac","--plotsProfileAllCsv", 
         help="if given, plot vertical profile at all printed timestep", 
         action='store_true')
@@ -154,6 +157,7 @@ def original_plot(var_name, timeNow, df_elem, line, l, ini, dat, plt, df_conn=No
                 contour_label_format='%.1f',
                 grid=dat.grid,
                 plt=plt,
+                linewidth=0.0,
                 contours = t2o.get_contour_intbal(var_name),
                 unit=t2o.get_unit(var_name))
     plt.grid(False)
@@ -199,6 +203,7 @@ def _slice_plot_flow(geo:mulgrid, df_conn:pd.DataFrame, ini:_readConfig.InputIni
         'flow_scale': flow_scale,
         'contours': t2o.get_contour_intbal(temp),
         'unit': t2o.get_unit(temp),
+        'linewidth':0.0,
         'linecolour': 'black'
     }
 
@@ -252,6 +257,7 @@ def original_surfacemap(variable_name:str, values:list,
     # plot flow data
     geo.layer_plot(layer=None, variable=values, plt=plt, variable_name=variable_name+"/m^2",
                 title=title,
+                linewidth=0.0,
                 xlabel="Northing (m)", ylabel="Easting (m)", 
                 colourbar_limits=cbarlim)
     
@@ -491,6 +497,50 @@ if args.plotsProfileLastCsv or args.createGifCsv or args.plotsProfileAllCsv:
                     # print("saved:", os.path.join(ini.t2FileDirFp,f'lay{var_name}_{allTimesteps[-1]}.png'))
                     # # plt.show()
                     # plt.close()
+
+if args.plotsProfileCsvDiff:
+    if II['simulator']==SIMULATOR_NAME_T3:
+        import matplotlib.pyplot as plt
+        # get dataFrame containing time variation bet. two time points 
+        diff_df, label, unit, time_pts = t2o.time_variation_elem_csv(ini)
+
+        for l, line in enumerate(ini.plot.profile_lines_list):
+            for i, var_name in enumerate(ini.plot.slice_plot_variables_T3):
+                if var_name in diff_df.columns:
+                    
+                    saveDir = os.path.join(ini.t2FileDirFp, "slice_images")
+                    os.makedirs(saveDir, exist_ok=True)
+                    fp = os.path.join(saveDir, f'{var_name}_diff_{time_pts[0]/365.25/24/3600:.0f}-{time_pts[1]/365.25/24/3600:.0f}_line{l}.pdf')
+
+                    variable = t2o.dfCleanElem(diff_df, var_name, ini.mesh.convention)
+                    
+                    # get the range of color scale 
+                    lim = t2o.get_cbar_limits(f"{var_name}", is4diff=True)
+                    if lim is None:
+                        # set auto range
+                        absmax = max(abs(max(variable)), abs(min(variable)))
+                        lim = [-1*absmax, absmax]
+                    
+                    geo.slice_plot(line=line, 
+                                variable=variable,
+                                title=f"{var_name} change ({time_pts[0]/365.25/24/3600:.2f}yr-{time_pts[1]/365.25/24/3600:.2f}yr) in vertical slice {line} \n",
+                                variable_name=f"{var_name}",
+                                plot_limits=ini.plot.slice_plot_limits,
+                                colourbar_limits=lim,
+                                colourmap='bwr',
+                                contour_label_format='%.1f',
+                                grid=dat.grid,
+                                plt=plt,
+                                linewidth=0.0,
+                                contours = t2o.get_contour_intbal(var_name, is4diff=True),
+                                unit=t2o.get_unit(var_name))
+                    plt.grid(False)
+                    plt.axis('equal')
+                    plt.savefig(fp)
+                    print("saved:", fp)
+                    plt.close()
+    else:
+        print("simulator type must be 'TOUGH3' for --plotsProfileCsvDiff")
 
 
 # if option -t given, plot time series for specified element

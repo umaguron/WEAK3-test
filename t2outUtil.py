@@ -32,7 +32,7 @@ plt.rcParams['xtick.direction'] = 'in'#x軸の目盛線が内向き('in')か外�
 plt.rcParams['ytick.direction'] = 'in'#y軸の目盛線が内向き('in')か外向き('out')か双方向か('inout')
 plt.rcParams['xtick.major.width'] = 1.0#x軸主目盛り線の線幅
 plt.rcParams['ytick.major.width'] = 1.0#y軸主目盛り線の線幅
-plt.rcParams['font.size'] = 8 #フォントの大きさ
+plt.rcParams['font.size'] = 15 #フォントの大きさ
 plt.rcParams['axes.linewidth'] = 1.0# 軸の線幅edge linewidth。囲みの太さ
 plt.rcParams['axes.labelsize'] = 'medium'
 plt.rcParams['axes.grid'] = True
@@ -1630,6 +1630,46 @@ def read_output_eleme_csv(ini:_readConfig.InputIni):
             out[i] = pd.DataFrame(tmp, columns=label)
     return out, time, label, unit
 
+def time_variation_elem_csv(ini:_readConfig.InputIni):
+    """
+    Calculates the time variation of each physical property between two time points,  
+    specified in the `plot.diff_times` section of the ini-format file.  
+
+    The closest snapshots to the specified times are used for the calculation.
+    
+    Args:
+        ini (_readConfig.InputIni): [description]
+
+    Returns:
+        (pandas.DataFrame): The variation in each variable between the 
+                            two time points specified in the ini-format file 
+        (list): colname in dataframe out[i]
+        (list): unit of column in dataframe out[i]
+        (list): two time points [s] used for the calculation
+    """
+    
+    out, time, label, unit = read_output_eleme_csv(ini)
+    print(time)
+
+    if ini.plot.diff_times is None:
+        iaf = -1
+        ibf = 0
+    else:
+        l1 = [abs(max(ini.plot.diff_times)-t) for t in time]
+        l2 = [abs(min(ini.plot.diff_times)-t) for t in time]
+        iaf = l1.index(min(l1))
+        ibf = l2.index(min(l2))
+
+    new_df = pd.DataFrame()
+    # calculate time variation
+    for col in out[ibf].columns:
+        # is the column values' dtype is numeric
+        if col in ['row', 'X', 'Y', 'Z', 'EL', 'NE']:
+            new_df[col] = out[ibf][col]
+        elif pd.api.types.is_numeric_dtype(out[ibf][col]):
+            new_df[col] = out[iaf][col] - out[ibf][col]
+
+    return new_df, label, unit, [time[ibf], time[iaf]]
 
 def read_output_conne_csv(ini:_readConfig.InputIni):
     """[summary]
@@ -2531,15 +2571,15 @@ def _df_elem_calc_bulk_molality(row:pd.Series):
     molality = 1000*row['X_NaCl_L']/(1-row['X_NaCl_L'])/NaCl_FORMULA_WEIGHT # NaCl molality[mol/kg]
     return molality
 
-def get_cbar_limits(variable_name):
+def get_cbar_limits(variable_name, is4diff=False):
     """
     This method selects the appropriate cbar based on the FLAG NAME.
     """    
     if FLAG_NAME_RES == variable_name.upper().strip(): 
         return CBAR_LIM_LOG10RES 
-    
-    if variable_name.upper().strip() in CBAR_LIM:
-        return CBAR_LIM[variable_name]
+    lim = CBAR_LIM_FOR_DIFF if is4diff else CBAR_LIM
+    if variable_name.upper().strip() in lim:
+        return lim[variable_name]
     else: 
         return None
 
@@ -2563,12 +2603,13 @@ def get_unit(variable_name):
     else: 
         return False
 
-def get_contour_intbal(variable_name):
+def get_contour_intbal(variable_name, is4diff=False):
     """
     This method selects the appropriate contour interbal from define.py based on the FLAG NAME.
     """
-    if variable_name.upper().strip() in CONTOUR_POS:
-        return CONTOUR_POS[variable_name]
+    pos = CONTOUR_POS_FOR_DIFF if is4diff else CONTOUR_POS
+    if variable_name.upper().strip() in pos:
+        return pos[variable_name]
     else: 
         return False
 

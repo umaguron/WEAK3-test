@@ -168,6 +168,7 @@ TOUGH3/TOUGH2を実行
 |flag|--createGif|-gif|設定ファイルのtoughInput.print_intervalに指定されたステップごとに断面図を作成し、gif形式のアニメーションを作成する。プロファイルの位置をplot.profile_lines_list, 出力したいパラメータをplot.slice_plot_variables_t[23]、断面の範囲をtoughInput.slice_plot_limitsに指定する。|
 |flag|--plotsProfileLastCsv|-plc|__(TOUGH3専用)__ -plと同じ。output.listingではなくOUTPUT_ELEM.csvから結果を読み込む。FLOWのプロットはできない。|
 |flag|--plotsProfileAllCsv|-pac|__(TOUGH3専用)__ -paと同じ。output.listingではなくOUTPUT_ELEM.csvから結果を読み込む。FLOWのプロットはできない。|
+|flag|--plotsProfileCsvDiff|-pcdiff|__(TOUGH3専用)__ ini-format file のplot.diff_timesに指定された２つの時刻にそれぞれ最も近いスナップショット同士の差分を取り、その分布を任意の断面についてプロットする。プロファイルの位置、出力したいパラメータ、断面の範囲の設定は-plと同様。(2024/11/25追加)|
 |flag|--createGifCsv|-gifc|__(TOUGH3専用)__ -gifと同じ。output.listingではなくOUTPUT_ELEM.csvから結果を読み込む。FLOWのプロットはできない。|
 |flag|--inconColumn|-incon|INCONとSAVEを読み込み、初期状態および計算終了時におけるprimary variable (P,T,X)の鉛直一次元プロファイルをプロットする。設定ファイルのplot.columns_incon_plotにプロットしたいカラムのインデックスを指定する。|
 |flag|--surfaceFlowMap|-suf|__(TOUGH3専用)__ シミュレーション終了時の状態について地表面での熱/流体の流量マップを作成する。設定ファイルのtoughInput.prints_hc_surfaceがTrueでなければならない。|
