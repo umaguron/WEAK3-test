@@ -718,6 +718,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
                             variable_name='log10 permeability',
                             colourmap=CMAP_PERMEABILITY, 
                             plt=plt,
+                            linewidth=0.0,
                             colourbar_limits=CBAR_LIM_LOG10PERM,
                             )
         if not open_viewer:
@@ -784,6 +785,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
                             variable_name='log10 permeability',
                             colourmap=CMAP_PERMEABILITY,
                             plt=plt,
+                            linewidth=0.0,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10PERM)
         if not open_viewer:
@@ -795,6 +797,7 @@ def visualize_vslice(ini:_readConfig.InputIni,
                             variable_name='log10 resistivity',
                             colourmap=CMAP_RESISTIVITY,
                             plt=plt,
+                            linewidth=0.0,
                             plot_limits=ini.plot.slice_plot_limits,
                             colourbar_limits=CBAR_LIM_LOG10RES)
         if not open_viewer:
