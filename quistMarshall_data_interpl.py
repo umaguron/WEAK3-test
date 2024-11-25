@@ -258,19 +258,19 @@ for molality_index, m in enumerate(MOLALITY_QM):
     F_EQCOND_LINEARND.append(interpolate.LinearNDInterpolator(points_dens_temp, values))
 
 
-""" interp2d cubic"""
-# prepare interpolating function for each table(density x temp)
-F_EQCOND_CUBIC = []
-for qmd in QM_data:
-    # interpolate
-    dens = []
-    temp = []
-    eqcd = []
-    for d in qmd['density']:
-        dens.extend(d)
-    for e in qmd['eq_cond']:
-        eqcd.extend(e)
-    for i,t in enumerate(qmd['temperature']):
-        temp.extend([t]*len(qmd['density'][i]))
-    f_eq_cond = interpolate.interp2d(np.array(dens), np.array(temp), np.array(eqcd), kind='cubic')
-    F_EQCOND_CUBIC.append(f_eq_cond)
+# """ interp2d cubic"""
+# # prepare interpolating function for each table(density x temp)
+# F_EQCOND_CUBIC = []
+# for qmd in QM_data:
+#     # interpolate
+#     dens = []
+#     temp = []
+#     eqcd = []
+#     for d in qmd['density']:
+#         dens.extend(d)
+#     for e in qmd['eq_cond']:
+#         eqcd.extend(e)
+#     for i,t in enumerate(qmd['temperature']):
+#         temp.extend([t]*len(qmd['density'][i]))
+#     f_eq_cond = interpolate.interp2d(np.array(dens), np.array(temp), np.array(eqcd), kind='cubic')
+#     F_EQCOND_CUBIC.append(f_eq_cond)
