@@ -27,7 +27,7 @@ def makeGrid(ini:_readConfig.InputIni, force_overwrite_all=False,
             return
         
         
-        if ini.mesh.incorporatesCone:
+        if ini.mesh.isRadial and ini.mesh.incorporatesCone:
             # 2-D radial grid with edifice
             makeGrid2dRadialEdifice(ini, showsProfiles=open_viewer)
         else:

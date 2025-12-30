@@ -366,6 +366,7 @@ if args.plotsProfileAll or args.plotsProfileLast or args.createGif :
                 if dt < ini.plot.gif_minimun_print_interval_sec: 
                     # skip this timestep and go next
                     print(f"    SKIP: step={stepNow} time={timeNow}[s]")
+                    exists_next_step = lst2.next()
                     continue
 
             # save snapshot
