@@ -37,28 +37,34 @@ class DB_CellElementNodeRelation(object):
         complete file path of resistivity_block_iter[#].dat
     fpMeshDat str
         complete file path of mesh.dat
-    fpBb str
+    fpDb str
         complete file path of db
-    fp3rdBlockTemp str
-        complete path where 3rd block of mesh.dat is saved
     nElem
         number of elements read from resistivit_block_iter[#].dat
     nCell
-        number of elements read from resistivit_block_iter[#].dat        
+        number of parameter cells read from resistivit_block_iter[#].dat        
+    mode
+        'TETRA' or 'DHEXA'
     """
      
     
     def __init__(self, fpMeshDat, fpResistivityBlockIter, fpDb):
 
+        # detect 'TETRA' or 'DHEXA' 
+        with open(fpMeshDat, 'r') as f:
+            self.mode=f.readline().strip().upper()
+
+        print(f"Mode: {self.mode}")
+
         # fixed value        
         # specified in baseDir/outputResistivityBlockIter.sql
         self.baseDir = os.path.dirname(__file__)
-        self.fpDdl1 = os.path.join(self.baseDir, 'ddl.sql')
-        self.fpDdl2 = os.path.join(self.baseDir, 'createViewCellRange.sql')
-        self.fpDdl3 = os.path.join(self.baseDir, 'InsertIntoCellRange.sql')
-        self.fpTmpCellGroupResistivity = os.path.join(self.baseDir, 'temporary/cellGroupResistivity.txt')
-        self.fpTmpelementCellGroup = os.path.join(self.baseDir, 'temporary/elementCellGroup.txt')
-        self.fpOutputShellScript = os.path.join(self.baseDir, 'outputResistivityBlockIter.sh')
+        if self.mode=='TETRA':
+            self.fpDdl1 = os.path.join(self.baseDir, 'ddl.sql')
+        elif self.mode=='DHEXA':
+            self.fpDdl1 = os.path.join(self.baseDir, 'ddl_dhexa.sql')
+        else:
+            raise Exception("unexpected mesh type in mesh.dat")
 
         # file path to be read
         self.fpMeshDat = fpMeshDat
@@ -112,7 +118,8 @@ class DB_CellElementNodeRelation(object):
         conn = sqlite3.connect(self.fpDb)
         c = conn.cursor()
 
-        c.executescript("""
+        if self.mode=="TETRA":
+            c.executescript("""
 INSERT INTO elementNodePosWithResistivity
 SELECT en.elementId, B.cellId, B.resistivity, 
     (SELECT 
@@ -178,8 +185,136 @@ SELECT en.elementId, B.cellId, B.resistivity,
 FROM elementNode en 
 JOIN (SELECT c.elementid, c.cellId, r.resistivity FROM elementCellGroup c 
       JOIN cellGroupResistivity r ON r.cellId=c.cellId) B
-ON en.elementId=B.elementId;
-        """)
+ON en.elementId=B.elementId;""")
+            
+        elif self.mode=="DHEXA":
+            c.executescript("""
+INSERT INTO elementNodePosWithResistivity
+SELECT en.elementId, B.cellId, B.resistivity, 
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node0Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node0posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node0Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node0posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node0Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node0posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node1Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node1posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node1Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node1posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node1Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node1posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node2Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node2posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node2Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node2posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node2Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node2posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node3Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node3posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node3Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node3posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node3Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node3posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node4Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node4posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node4Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node4posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node4Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node4posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node5Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node5posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node5Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node5posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node5Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node5posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node6Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node6posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node6Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node6posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node6Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node6posz,
+    (SELECT 
+      posx
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node7Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node7posx,
+    (SELECT 
+      posy
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node7Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node7posy,
+    (SELECT 
+      posz
+     FROM nodePos 
+     WHERE nodeId IN (SELECT node7Id FROM elementNode WHERE elementid = en.elementId) 
+    ) node7posz
+FROM elementNode en 
+JOIN (SELECT c.elementid, c.cellId, r.resistivity FROM elementCellGroup c 
+      JOIN cellGroupResistivity r ON r.cellId=c.cellId) B
+ON en.elementId=B.elementId;""")
 
         conn.commit()
         conn.close()
@@ -259,7 +394,7 @@ ON en.elementId=B.elementId;
             
             # 1st block - node position
             # (0)node id (1)node pos X (1)node pos Y (1)node pos Z
-            f.readline() # TETRA
+            f.readline() # TETRA or DHEXA
             tmp=f.readline().split() # number of node
             nNode = int(tmp[0])
             print(f'   NODE: reading {nNode} lines ...')
@@ -270,15 +405,26 @@ ON en.elementId=B.elementId;
             
             
             # 2nd block - element-node relation 
+            # --- if mode 'TETRA'
             # (0)element id 
             # (1)adj0ElemId (2)adj1ElemId (3)adj2ElemId (4)adj3ElemId
             # (5)node0Id (6)node1Id (7)node2Id (8)node3Id
+            # --- if mode 'DHEXA'
+            # (0)element id 
+            # (1)node0Id (2)node1Id (3)node2Id (4)node3Id
+            # (5)node4Id (6)node5Id (7)node6Id (8)node7Id
+            # (+ 6 additional infomation lines)
             tmp=f.readline().split() # number of element
             nElem = int(tmp[0])
             print(f'   ELEMENT DETAIL: reading {nElem} lines ...')
             elementNodeLines = [None]*nElem
             for i in range(nElem):
                 elementNodeLines[i] = f.readline().split()
+                if self.mode=='TETRA':
+                    pass
+                elif self.mode=='DHEXA':
+                    # skip 6 informatiion lines
+                    for i in range(6): f.readline()
             print(f'   finished')
 
         print(f'   writing to DB ...')
@@ -320,13 +466,22 @@ ON en.elementId=B.elementId;
         """
         conn = sqlite3.connect(self.fpDb)
         c = conn.cursor()
-        sql = (
-            "SELECT resistivity,"
-            " (node0posx+node1posx+node2posx+node3posx)/4 x,"
-            " (node0posy+node1posy+node2posy+node3posy)/4 y,"
-            " (node0posz+node1posz+node2posz+node3posz)/4 z "
-            "FROM elementNodePosWithResistivity"
-        )
+        if self.mode=="TETRA":
+            sql = (
+                "SELECT resistivity,"
+                " (node0posx+node1posx+node2posx+node3posx)/4 x,"
+                " (node0posy+node1posy+node2posy+node3posy)/4 y,"
+                " (node0posz+node1posz+node2posz+node3posz)/4 z "
+                "FROM elementNodePosWithResistivity"
+            )
+        elif self.mode=="DHEXA":
+            sql = (
+                "SELECT resistivity,"
+                " (node0posx+node1posx+node2posx+node3posx+node4posx+node5posx+node6posx+node7posx)/8 x,"
+                " (node0posy+node1posy+node2posy+node3posy+node4posy+node5posy+node6posy+node7posy)/8 y,"
+                " (node0posz+node1posz+node2posz+node3posz+node4posz+node5posz+node6posz+node7posz)/8 z "
+                "FROM elementNodePosWithResistivity"
+            )
         if resistivity_threshold is not None:
             sql += f" WHERE resistivity < {resistivity_threshold}"
         result = c.execute(sql)
