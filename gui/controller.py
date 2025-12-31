@@ -698,6 +698,9 @@ def cmesh3_check():
             # detect mesh convention
             geo = mulgrid(inputIni.mesh.mulgridFileFp)
             inputIni.mesh.convention = geo.convention
+            if hasattr(inputIni, 'amesh_voronoi'):
+                # cmesh3_readFromIniからの場合にて、AMESH実行なし・topodata_fpが空のファイルを読み込んだときのcmesh5でのエラー回避のため
+                del inputIni.amesh_voronoi 
         
         """problem dir."""
         config['configuration'] = {}
@@ -1755,6 +1758,7 @@ def cmesh5_write_file(request:request):
 
     # base directoryへコピー
     outfp2 = create_fullpath(os.path.join(ini.configuration.TOUGH_INPUT_DIR, os.path.basename(outfp)))
+    os.makedirs(os.path.dirname(outfp2), exist_ok=True)
     shutil.copy(outfp, outfp2)
     logger.debug(f"Ini-file: {outfp} was copied to {ini.configuration.TOUGH_INPUT_DIR}")
     
